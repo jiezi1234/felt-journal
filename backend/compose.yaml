@@ -3,12 +3,17 @@ services:
     build:
       context: ..
       dockerfile: backend/Dockerfile
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
+        FELT_PRELOAD_MODEL: ${FELT_PRELOAD_MODEL:-1}
     environment:
       FELT_PUBLIC_BASE_URL: https://${FELT_DOMAIN:?Set FELT_DOMAIN in backend/.env}
       FELT_MODEL: isnet-general-use
       OMP_NUM_THREADS: '2'
     expose:
       - '8787'
+    ports:
+      - '127.0.0.1:8787:8787'
     volumes:
       - felt_runtime:/app/backend/.runtime
     restart: unless-stopped
@@ -24,6 +29,7 @@ services:
       retries: 3
       start_period: 30s
   https:
+    profiles: ['public']
     image: caddy:2-alpine
     environment:
       FELT_DOMAIN: ${FELT_DOMAIN:?Set FELT_DOMAIN in backend/.env}
