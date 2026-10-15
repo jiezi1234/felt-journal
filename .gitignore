@@ -1,0 +1,23 @@
+# Dependencies and generated runtime data
+node_modules/
+.venv/
+backend/.runtime/
+__pycache__/
+*.py[cod]
+artifacts/
+*.log
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+project.private.config.json
+.ssh/
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Operating system metadata
+.DS_Store
+Thumbs.db

@@ -1,0 +1,3 @@
+.brand { letter-spacing:2px; font-size:11px; color:#715A4A; }.board-caption { margin:14px 0 22px; }.recent-grid { display:flex; flex-wrap:wrap; gap:20px 14px; }.recent-item { width:calc(50% - 7px); }.space-small { margin-top:12px; }
+.board-caption .muted { flex:1; min-width:0; }.board-caption button.ghost { width:auto; flex-shrink:0; }
+.themes-link { margin-top:16px !important; }

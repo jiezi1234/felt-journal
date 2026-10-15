@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_stack" name="shell-type"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;family=Noto+Serif+SC:wght@500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "surface-tint": "#715a4a", "tertiary": "#0e2915", "on-primary-fixed": "#28180c", "on-error": "#ffffff", "on-secondary-fixed-variant": "#205032", "inverse-on-surface": "#f2f1e8", "inverse-primary": "#dfc1ad", "secondary": "#396848", "on-error-container": "#93000a", "secondary-fixed": "#baefc6", "surface-container-lowest": "#ffffff", "inverse-surface": "#2f312b", "outline": "#81756e", "surface-variant": "#e3e3da", "on-secondary": "#ffffff", "on-surface-variant": "#4f453f", "primary-container": "#493527", "tertiary-fixed": "#caebcc", "surface-container-highest": "#e3e3da", "on-primary-container": "#ba9d8b", "on-tertiary-fixed-variant": "#314d37", "tertiary-fixed-dim": "#afcfb1", "on-secondary-fixed": "#00210e", "surface-container": "#efeee6", "on-secondary-container": "#3f6e4d", "on-primary-fixed-variant": "#584234", "page-canvas": "#E8EDE7", "primary-fixed": "#fddcc8", "background": "#fafaf1", "outline-variant": "#d2c4bb", "surface-bright": "#fafaf1", "on-primary": "#ffffff", "surface-container-low": "#f4f4eb", "primary-fixed-dim": "#dfc1ad", "paper-surface": "#F7F2E9", "accent-mustard": "#C9A64B", "on-tertiary": "#ffffff", "on-surface": "#1b1c17", "error-container": "#ffdad6", "secondary-fixed-dim": "#9fd3ab", "secondary-container": "#baefc6", "error": "#ba1a1a", "on-tertiary-container": "#8cab8f", "tertiary-container": "#243f2a", "on-tertiary-fixed": "#05210e", "surface-container-high": "#e9e9e0", "surface-dim": "#dbdad2", "text-charcoal": "#302F2B", "surface": "#fafaf1", "on-background": "#1b1c17", "felt-oatmeal": "#D9CBAF", "primary": "#312013" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-lg": "1.5rem", "margin": "1.25rem", "space-md": "1rem", "space-xs": "0.25rem", "margin-mobile": "1rem", "space-xl": "2rem", "space-sm": "0.5rem", "gutter": "1rem" }, "fontFamily": { "display-lg": ["Noto Serif SC", "serif"], "body-md": ["Manrope", "sans-serif"], "display-md": ["Noto Serif SC", "serif"], "label-sm": ["Manrope", "sans-serif"], "label-md": ["Manrope", "sans-serif"], "label-lg": ["Manrope", "sans-serif"], "body-lg": ["Manrope", "sans-serif"], "headline-lg": ["Noto Serif SC", "serif"], "body-sm": ["Manrope", "sans-serif"], "headline-sm": ["Noto Serif SC", "serif"] }, "fontSize": { "display-lg": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }], "display-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "500" }], "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.02em", "fontWeight": "600" }], "label-lg": ["15px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }], "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }], "headline-lg": ["20px", { "lineHeight": "28px", "fontWeight": "600" }], "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "400" }], "headline-sm": ["18px", { "lineHeight": "26px", "fontWeight": "500" }] } } } };</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-page-canvas font-body-md text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 inset-x-0 z-50 bg-page-canvas/90 backdrop-blur-xl pt-safe shadow-[0_1px_8px_rgba(48,47,43,0.04)]"><div class="h-16 px-margin flex items-center justify-between"><div class="flex items-center gap-space-xs"><button aria-label="返回" class="w-11 h-11 flex items-center justify-center rounded-full text-primary hover:bg-paper-surface/60 transition-colors" onclick="history.back()" type="button"><span class="material-symbols-outlined text-[20px]">arrow_back_ios_new</span></button><img alt="毛毡生活手账Logo" class="h-7 w-auto object-contain hidden xs:block" src="https://lh3.googleusercontent.com/aida/AEtjO1VVs57lc35aIukHAC1WB9TfajEze1QG37OsXwc8kktz-X8Su9DE0tkKhYWlXOEZvC-Z0bqvbrHsT_Nkme2L0_o48QdKNDGnMToatBsWKW-ZQ3imANrPT_hTIIYKPM7P2NFimLdYPvx0YBJKEMd2hAPX6P3CyP3xaUxABPI6or4IRVt7iie0gLqbhYFU3bmXtmgoKqZZEUB9Mg5x4aqcSS8T3Kp1i21NHT6WiDr0boImAFrG8ooexVldB14Q"/><h1 class="font-headline-sm text-headline-sm text-primary tracking-tight font-semibold ml-1">Export</h1></div><div class="flex items-center gap-space-sm"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-16 pb-safe bg-page-canvas"><div class="flex flex-col w-full pb-8">
+<!-- 标题与状态提示区 -->
+<div class="px-margin pt-4 pb-2 text-center">
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary-container/60 mb-2">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
+<span class="font-label-sm text-label-sm text-on-secondary-container tracking-wider">作品已生成 · 高清 3:2</span>
+</div>
+<p class="font-headline-sm text-headline-sm text-primary tracking-tight font-medium">把今天的温暖温度，封存在胡桃木画框里</p>
+</div>
+<!-- 核心画作展示区（轻量奶油纸托台 + 完整实体毛毡板） -->
+<div class="px-margin my-3">
+<!-- 纸面承托底座 -->
+<div class="w-full bg-paper-surface rounded-xl p-3 sm:p-4 shadow-[0_6px_20px_-2px_rgba(48,47,43,0.07)] flex flex-col items-center">
+<!-- 完整实体 3:2 胡桃木毛毡板 (外轮廓深胡桃木色 #493527，无任何UI干扰控件) -->
+<div class="w-full aspect-[3/2] rounded-lg bg-primary-container p-2.5 sm:p-3 shadow-[0_10px_28px_-4px_rgba(48,47,43,0.22)] relative overflow-hidden select-none transition-transform duration-300 active:scale-[0.995]" id="feltBoardExportTarget">
+<!-- 实木倒角微光与内嵌沉槽 -->
+<div class="w-full h-full rounded-[4px] bg-felt-oatmeal relative overflow-hidden shadow-[inset_0_2px_5px_rgba(48,47,43,0.28)]">
+<!-- 细纤维毛毡纹理光泽层 -->
+<div class="absolute inset-0 opacity-40 bg-[radial-gradient(#ab9b7d_1px,transparent_1px)] [background-size:6px_6px] pointer-events-none"></div>
+<!-- 物件 1: 精致陶制手冲咖啡杯 (主体独立贴片 + 极紧密接触硬阴影) -->
+<div class="absolute left-[12%] bottom-[14%] w-[27%] aspect-square z-10 flex items-center justify-center">
+<!-- 贴合接触阴影 -->
+<div class="absolute bottom-1 w-[78%] h-3 bg-text-charcoal/25 rounded-full blur-[1px]"></div>
+<!-- 咖啡杯图像剪影 -->
+<img class="w-full h-full object-contain relative z-10 drop-shadow-[0_2px_4px_rgba(48,47,43,0.24)] -rotate-3" data-alt="Top down diagonal viewpoint of a handmade rustic cream ceramic coffee mug filled with rich brown espresso, soft natural lighting, warm artisanal aesthetic, cleanly cut sticker edge casting soft contact shadow, felt craft style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB8aLvFV3bEa4BaWS1U25Bej207iK8Wn_gKijFY5oigHGMKjc7d29EXZfK1-ncvYogllsWCFZrfYLJIUvhBjtK1IZxyVhdo-6H9O7I36O2VqPYoiVt3xJSdrG5sVp7zzfFVXSXWEOvpGa-pvcpIPvTp6rCo_n0M7jffCsTgcqPnH7nqvPbN82UVP5qTcjhZ9juEXrTkT9VJTDkOlEwkZ6Wrn0PIh7wggUksQ-8Vh8MDNn3RAM0ijoZ26Q"/>
+</div>
+<!-- 物件 2: 酥脆金黄牛角包 (居中略靠右，主体独立贴片) -->
+<div class="absolute left-[38%] top-[22%] w-[34%] aspect-[4/3] z-20 flex items-center justify-center">
+<!-- 贴合接触阴影 -->
+<div class="absolute bottom-1.5 w-[85%] h-3.5 bg-text-charcoal/25 rounded-full blur-[1.5px]"></div>
+<!-- 牛角包图像剪影 -->
+<img class="w-full h-full object-contain relative z-10 drop-shadow-[0_3px_5px_rgba(48,47,43,0.22)] rotate-6" data-alt="Artisanal French croissant with flaky golden-brown layers, warm soft morning sunlight, tactile bakery cutout on warm cream paper edge, photorealistic crafted felt journal sticker with subtle matte depth." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAIJd8Xrd-u8oW0NtHFgKZhXLRVYaYPqCueWV1S-2emE4DWt6M4EA4NsdqVJYWwyCJdBAyF_-PiWx5JRIhjYE-j5578P4s6CTvu0eZACHRORAJ1s9Aa4oALZeu_yT0dd2BOR8-YAQHaV5LaByIbe1bmG_GHR8D1IPoOzi3ntQQy6HHSf3rYQd9_G7jqkpRi7sVhpklGdNiprQjmOt0fAvVmViOiTZmE5s1QOU4aThwmFcpxlqAQ4kfMVw"/>
+</div>
+<!-- 物件 3: 鲜活小雏菊干花枝 (右上角落款，恬淡点缀) -->
+<div class="absolute right-[9%] top-[14%] w-[25%] aspect-square z-15 flex items-center justify-center">
+<!-- 接触阴影 -->
+<div class="absolute bottom-1 right-2 w-[70%] h-2.5 bg-text-charcoal/20 rounded-full blur-[1px]"></div>
+<!-- 小雏菊剪影 -->
+<img class="w-full h-full object-contain relative z-10 drop-shadow-[0_2px_4px_rgba(48,47,43,0.2)] -rotate-12" data-alt="Small white daisy flowers with sunny yellow center, tiny green stem, delicate dried botany specimen, tactile pressed craft botanical cutout, crisp physical drop shadow on felt background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBwWGrZJIHqu5VsTNM-sbD8UnonveQ0hi4N1ryGniD-8q9mEB4T2dw7zzn2RxkXfmgBfVq8vMtXLFMNMOT5cMZlYIJ9Q_m-uuWGfj3PBaVOuvK9Qgg7KG_GDH88vHWgzShuWE2Mvga2O6yV5PXL0EbUKo7BidXp-NebTR38QiiCXEDTDN1HEc-EE7bP4VN3GW5ZGNT-wHCZE2m4Ca19dmcrzJSp2h9RMBdpHPGlg3MmQNrNQHWx8RFbHw"/>
+</div>
+<!-- 质朴底款标签（如同手作工坊签名标签） -->
+<div class="absolute right-3 bottom-2.5 px-2 py-0.5 rounded bg-paper-surface/80 text-on-surface-variant font-label-sm text-label-sm tracking-widest shadow-sm pointer-events-none">
+            MEMOIRE · 05.24
+          </div>
+</div>
+</div>
+<!-- 纸底台边缘极细手工裁切装订线感与铭牌 -->
+<div class="w-full mt-3 pt-2.5 flex items-center justify-between px-1">
+<div class="flex items-center gap-1.5 text-on-surface-variant">
+<span class="material-symbols-outlined text-[17px] text-secondary">crop_original</span>
+<span class="font-body-sm text-body-sm">胡桃原木装裱 · 300 DPI</span>
+</div>
+<div class="flex items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-[15px] text-accent-mustard">check_circle</span>
+<span class="font-label-sm text-label-sm">3 件记忆拼贴贴合完成</span>
+</div>
+</div>
+</div>
+</div>
+<!-- 交互行动区 -->
+<div class="px-margin mt-2 flex flex-col gap-2.5">
+<!-- 森林绿实色主按钮 (带物理按压落差) -->
+<button class="w-full h-12 bg-secondary text-paper-surface font-label-lg text-label-lg rounded-lg shadow-[0_3px_0_0_#205032] active:translate-y-0.5 active:shadow-[0_1px_0_0_#205032] transition-all flex items-center justify-center gap-2 cursor-pointer" id="saveAlbumBtn" type="button">
+<span class="material-symbols-outlined text-[20px]">download_for_offline</span>
+<span>保存到手机相册</span>
+</button>
+<!-- 辅助纸色按钮 -->
+<button class="w-full h-11 bg-paper-surface text-primary font-label-md text-label-md rounded-lg shadow-[0_2px_6px_rgba(48,47,43,0.06)] active:bg-surface-container transition-all flex items-center justify-center gap-2 cursor-pointer" id="shareFriendBtn" type="button">
+<span class="material-symbols-outlined text-[18px] text-primary">share</span>
+<span>分享给好友</span>
+</button>
+<!-- 说明文本 -->
+<div class="text-center pt-1 pb-2">
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+        将生成带实木框的高清毛毡画，记录保存在当前设备
+      </p>
+</div>
+</div>
+<!-- 轻量轻提示 Toast (初始隐藏) -->
+<div class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-body-sm font-body-sm opacity-0 pointer-events-none transition-all duration-300 transform translate-y-3 z-50" id="toastBox">
+<span class="material-symbols-outlined text-[18px] text-secondary-fixed">check</span>
+<span id="toastMsg">已保存至系统相册</span>
+</div>
+</div>
+<script>
+  (function() {
+    const saveBtn = document.getElementById('saveAlbumBtn');
+    const shareBtn = document.getElementById('shareFriendBtn');
+    const toast = document.getElementById('toastBox');
+    const toastMsg = document.getElementById('toastMsg');
+    let toastTimeout;
+
+    function showToast(text) {
+      if (!toast) return;
+      toastMsg.textContent = text;
+      toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-3');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-3');
+        toast.classList.remove('opacity-100', 'translate-y-0');
+      }, 2200);
+    }
+
+    if (saveBtn) {
+      saveBtn.addEventListener('click', () => {
+        saveBtn.classList.add('opacity-90');
+        setTimeout(() => saveBtn.classList.remove('opacity-90'), 150);
+        showToast('已成功将胡桃木手账画保存到相册');
+      });
+    }
+
+    if (shareBtn) {
+      shareBtn.addEventListener('click', () => {
+        if (navigator.share) {
+          navigator.share({
+            title: '收藏这一天 · 毛毡生活手账',
+            text: '这是我今天拼贴的生活毛毡画，温暖定格。'
+          }).catch(() => {});
+        } else {
+          showToast('已生成分享卡片链接');
+        }
+      });
+    }
+  })();
+</script></main></body></html>

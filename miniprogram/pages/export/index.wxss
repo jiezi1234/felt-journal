@@ -1,0 +1,5 @@
+.back { padding-left:0; }.export-paper { padding:12px; }.preview { display:block; width:100%; border-radius:16px; }.export-canvas { position:fixed; left:-3000px; top:-3000px; width:360px; height:240px; pointer-events:none; }
+.page > button.back { display:inline-block; margin:0; width:auto; }
+.export-actions { display:flex; flex-direction:column; gap:16px; margin-top:24px; }
+.share-error { padding:12px 14px; color:#944835; background:#F7F2E9; border-radius:14px; font-size:13px; }
+.share-hint { text-align:center; padding:0 6px; }

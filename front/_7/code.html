@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;family=Noto+Serif+SC:wght@500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "surface-tint": "#715a4a", "tertiary": "#0e2915", "on-primary-fixed": "#28180c", "on-error": "#ffffff", "on-secondary-fixed-variant": "#205032", "inverse-on-surface": "#f2f1e8", "inverse-primary": "#dfc1ad", "secondary": "#396848", "on-error-container": "#93000a", "secondary-fixed": "#baefc6", "surface-container-lowest": "#ffffff", "inverse-surface": "#2f312b", "outline": "#81756e", "surface-variant": "#e3e3da", "on-secondary": "#ffffff", "on-surface-variant": "#4f453f", "primary-container": "#493527", "tertiary-fixed": "#caebcc", "surface-container-highest": "#e3e3da", "on-primary-container": "#ba9d8b", "on-tertiary-fixed-variant": "#314d37", "tertiary-fixed-dim": "#afcfb1", "on-secondary-fixed": "#00210e", "surface-container": "#efeee6", "on-secondary-container": "#3f6e4d", "on-primary-fixed-variant": "#584234", "page-canvas": "#E8EDE7", "primary-fixed": "#fddcc8", "background": "#fafaf1", "outline-variant": "#d2c4bb", "surface-bright": "#fafaf1", "on-primary": "#ffffff", "surface-container-low": "#f4f4eb", "primary-fixed-dim": "#dfc1ad", "paper-surface": "#F7F2E9", "accent-mustard": "#C9A64B", "on-tertiary": "#ffffff", "on-surface": "#1b1c17", "error-container": "#ffdad6", "secondary-fixed-dim": "#9fd3ab", "secondary-container": "#baefc6", "error": "#ba1a1a", "on-tertiary-container": "#8cab8f", "tertiary-container": "#243f2a", "on-tertiary-fixed": "#05210e", "surface-container-high": "#e9e9e0", "surface-dim": "#dbdad2", "text-charcoal": "#302F2B", "surface": "#fafaf1", "on-background": "#1b1c17", "felt-oatmeal": "#D9CBAF", "primary": "#312013" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-lg": "1.5rem", "margin": "1.25rem", "space-md": "1rem", "space-xs": "0.25rem", "margin-mobile": "1rem", "space-xl": "2rem", "space-sm": "0.5rem", "gutter": "1rem" }, "fontFamily": { "display-lg": ["Noto Serif SC", "serif"], "body-md": ["Manrope", "sans-serif"], "display-md": ["Noto Serif SC", "serif"], "label-sm": ["Manrope", "sans-serif"], "label-md": ["Manrope", "sans-serif"], "label-lg": ["Manrope", "sans-serif"], "body-lg": ["Manrope", "sans-serif"], "headline-lg": ["Noto Serif SC", "serif"], "body-sm": ["Manrope", "sans-serif"], "headline-sm": ["Noto Serif SC", "serif"] }, "fontSize": { "display-lg": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }], "display-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "500" }], "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.02em", "fontWeight": "600" }], "label-lg": ["15px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }], "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }], "headline-lg": ["20px", { "lineHeight": "28px", "fontWeight": "600" }], "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "400" }], "headline-sm": ["18px", { "lineHeight": "26px", "fontWeight": "500" }] } } } };</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-page-canvas font-body-md text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 inset-x-0 z-50 bg-page-canvas/85 backdrop-blur-xl pt-safe shadow-[0_1px_8px_rgba(48,47,43,0.04)]"><div class="h-16 px-margin flex items-center justify-between"><div class="flex items-center gap-space-sm"><img alt="毛毡生活手账Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1VVs57lc35aIukHAC1WB9TfajEze1QG37OsXwc8kktz-X8Su9DE0tkKhYWlXOEZvC-Z0bqvbrHsT_Nkme2L0_o48QdKNDGnMToatBsWKW-ZQ3imANrPT_hTIIYKPM7P2NFimLdYPvx0YBJKEMd2hAPX6P3CyP3xaUxABPI6or4IRVt7iie0gLqbhYFU3bmXtmgoKqZZEUB9Mg5x4aqcSS8T3Kp1i21NHT6WiDr0boImAFrG8ooexVldB14Q"/><div class="flex flex-col"><span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">FELT JOURNAL</span><span class="font-headline-sm text-headline-sm text-primary tracking-tight font-semibold">Calendar</span></div></div><div class="flex items-center gap-space-sm"><div class="hidden sm:flex items-center px-space-sm py-space-xs rounded-full bg-paper-surface/80 text-secondary text-label-sm font-label-sm shadow-[0_1px_3px_rgba(48,47,43,0.08)]"><span class="w-1.5 h-1.5 rounded-full bg-secondary mr-1.5"></span><span>小程序模式</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-16 pb-24 bg-page-canvas"><div class="flex flex-col w-full pb-8">
+<!-- Top Navigation & Month Selector -->
+<div class="px-margin pt-2 pb-4 flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<button aria-label="返回" class="flex items-center justify-center w-9 h-9 rounded-full bg-paper-surface text-primary shadow-[0_2px_6px_rgba(48,47,43,0.06)] active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[20px]">arrow_back</span>
+</button>
+<div class="flex items-center gap-space-xs">
+<button aria-label="上一月" class="w-8 h-8 flex items-center justify-center rounded-full bg-paper-surface/60 text-on-surface-variant hover:bg-paper-surface active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</button>
+<div class="px-space-sm py-1 rounded-full bg-paper-surface shadow-sm">
+<span class="font-headline-sm text-headline-sm text-primary font-semibold tracking-tight">2026年 10月</span>
+</div>
+<button aria-label="下一月" class="w-8 h-8 flex items-center justify-center rounded-full bg-paper-surface/60 text-on-surface-variant hover:bg-paper-surface active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+<button class="flex items-center gap-1 px-3 py-1.5 rounded-full bg-secondary text-paper-surface text-label-sm font-label-sm shadow-[0_2px_6px_rgba(32,80,50,0.2)] active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-[14px]">today</span>
+<span>今月</span>
+</button>
+</div>
+<div class="flex items-center justify-between px-1">
+<div class="flex items-baseline gap-2">
+<h1 class="font-display-md text-display-md text-primary font-semibold tracking-tight">时光回顾</h1>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium tracking-wide">OCTOBER ARCHIVE</span>
+</div>
+<span class="font-label-sm text-label-sm text-accent-mustard flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+        秋意初浓
+      </span>
+</div>
+</div>
+<!-- Main Calendar Paper Card -->
+<div class="px-margin">
+<div class="relative bg-paper-surface rounded-xl shadow-[0_6px_20px_-2px_rgba(48,47,43,0.08)] overflow-hidden">
+<!-- Decorative Receipt Top Edge (Perforations) -->
+<div class="w-full flex items-center justify-between px-2 pt-2 pb-1 opacity-70">
+<div class="flex gap-1.5 overflow-hidden w-full justify-between">
+<div class="w-2.5 h-1 rounded-full bg-page-canvas"></div>
+<div class="w-2.5 h-1 rounded-full bg-page-canvas"></div>
+<div class="w-2.5 h-1 rounded-full bg-page-canvas"></div>
+<div class="w-2.5 h-1 rounded-full bg-page-canvas"></div>
+<div class="w-2.5 h-1 rounded-full bg-page-canvas"></div>
+<div class="w-2.5 h-1 rounded-full bg-page-canvas"></div>
+<div class="w-2.5 h-1 rounded-full bg-page-canvas"></div>
+<div class="w-2.5 h-1 rounded-full bg-page-canvas"></div>
+<div class="w-2.5 h-1 rounded-full bg-page-canvas"></div>
+<div class="w-2.5 h-1 rounded-full bg-page-canvas"></div>
+<div class="w-2.5 h-1 rounded-full bg-page-canvas"></div>
+<div class="w-2.5 h-1 rounded-full bg-page-canvas"></div>
+<div class="w-2.5 h-1 rounded-full bg-page-canvas"></div>
+<div class="w-2.5 h-1 rounded-full bg-page-canvas"></div>
+</div>
+</div>
+<!-- Journal Subheader Tag -->
+<div class="px-4 pt-2 pb-2 flex items-center justify-between border-b border-dashed border-outline-variant/50">
+<span class="font-label-sm text-label-sm text-on-surface-variant tracking-wider uppercase">NO. 10 / AUTUMN JOURNAL</span>
+<div class="flex items-center gap-1 text-on-surface-variant font-label-sm text-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-accent-mustard"></span>
+<span>手账档案库</span>
+</div>
+</div>
+<!-- Weekday Headers -->
+<div class="grid grid-cols-7 pt-3 pb-2 px-2 text-center">
+<div class="font-label-sm text-label-sm text-on-surface-variant font-medium">一</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant font-medium">二</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant font-medium">三</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant font-medium">四</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant font-medium">五</div>
+<div class="font-label-sm text-label-sm text-secondary font-medium">六</div>
+<div class="font-label-sm text-label-sm text-secondary font-medium">日</div>
+</div>
+<!-- Dashed Separation Line -->
+<div class="mx-3 border-b border-dashed border-outline-variant/40"></div>
+<!-- 7-Column Calendar Grid -->
+<div class="grid grid-cols-7 gap-1.5 p-2 sm:p-3" id="calendarGrid">
+<!-- Week 1: Sep 28 - Oct 4 (Oct starts on Thu) -->
+<div class="h-16 flex flex-col items-center justify-start p-1 opacity-25">
+<span class="font-label-sm text-label-sm text-on-surface-variant">28</span>
+</div>
+<div class="h-16 flex flex-col items-center justify-start p-1 opacity-25">
+<span class="font-label-sm text-label-sm text-on-surface-variant">29</span>
+</div>
+<div class="h-16 flex flex-col items-center justify-start p-1 opacity-25">
+<span class="font-label-sm text-label-sm text-on-surface-variant">30</span>
+</div>
+<!-- 10.01: 有记录 (红苹果 + 枫叶) -->
+<button class="h-16 rounded-lg bg-surface-container-low/70 hover:bg-surface-container active:scale-95 transition-all flex flex-col items-center justify-between p-1 cursor-pointer group shadow-[0_1px_3px_rgba(48,47,43,0.03)]" data-date="10-01" data-items="红富士苹果, 红枫落叶" data-quote="秋天第一颗清甜的脆苹果与林间红叶。" type="button">
+<span class="font-label-sm text-label-sm text-on-surface font-medium self-start pl-0.5">01</span>
+<div class="flex items-center justify-center -space-x-1 mb-0.5 relative">
+<span class="material-symbols-outlined text-[19px] text-error drop-shadow-[0_2px_4px_rgba(48,47,43,0.18)] transform -rotate-6" style="font-variation-settings: 'FILL' 1;">nutrition</span>
+<span class="material-symbols-outlined text-[17px] text-accent-mustard drop-shadow-[0_2px_4px_rgba(48,47,43,0.18)] transform rotate-12" style="font-variation-settings: 'FILL' 1;">spa</span>
+</div>
+</button>
+<!-- 10.02: 无记录 -->
+<div class="h-16 rounded-lg flex flex-col items-center justify-start p-1">
+<span class="font-label-sm text-label-sm text-outline-variant font-medium self-start pl-0.5">02</span>
+</div>
+<!-- 10.03: 有记录 (咖啡杯) -->
+<button class="h-16 rounded-lg bg-surface-container-low/70 hover:bg-surface-container active:scale-95 transition-all flex flex-col items-center justify-between p-1 cursor-pointer group shadow-[0_1px_3px_rgba(48,47,43,0.03)]" data-date="10-03" data-items="手冲耶加雪菲" data-quote="街角新开的木质咖啡馆，浅烘日晒香气。" type="button">
+<span class="font-label-sm text-label-sm text-on-surface font-medium self-start pl-0.5">03</span>
+<div class="flex items-center justify-center mb-0.5">
+<span class="material-symbols-outlined text-[20px] text-primary drop-shadow-[0_2px_4px_rgba(48,47,43,0.18)] transform -rotate-3" style="font-variation-settings: 'FILL' 1;">coffee</span>
+</div>
+</button>
+<!-- 10.04: 有记录 (野餐篮/面包) -->
+<button class="h-16 rounded-lg bg-surface-container-low/70 hover:bg-surface-container active:scale-95 transition-all flex flex-col items-center justify-between p-1 cursor-pointer group shadow-[0_1px_3px_rgba(48,47,43,0.03)]" data-date="10-04" data-items="法式牛角包, 野餐草帽" data-quote="草坪阳光微醺，风筝线缠住云朵。" type="button">
+<span class="font-label-sm text-label-sm text-secondary font-semibold self-start pl-0.5">04</span>
+<div class="flex items-center justify-center -space-x-1 mb-0.5">
+<span class="material-symbols-outlined text-[19px] text-accent-mustard drop-shadow-[0_2px_4px_rgba(48,47,43,0.18)] transform rotate-6" style="font-variation-settings: 'FILL' 1;">bakery_dining</span>
+</div>
+</button>
+<!-- Week 2: Oct 5 - Oct 11 -->
+<!-- 10.05: 无记录 -->
+<div class="h-16 rounded-lg flex flex-col items-center justify-start p-1">
+<span class="font-label-sm text-label-sm text-outline-variant font-medium self-start pl-0.5">05</span>
+</div>
+<!-- 10.06: 有记录 (小猫) -->
+<button class="h-16 rounded-lg bg-surface-container-low/70 hover:bg-surface-container active:scale-95 transition-all flex flex-col items-center justify-between p-1 cursor-pointer group shadow-[0_1px_3px_rgba(48,47,43,0.03)]" data-date="10-06" data-items="庭院三花猫" data-quote="在院子晒被子时，偶遇一只打盹的小橘猫。" type="button">
+<span class="font-label-sm text-label-sm text-on-surface font-medium self-start pl-0.5">06</span>
+<div class="flex items-center justify-center mb-0.5">
+<span class="material-symbols-outlined text-[20px] text-surface-tint drop-shadow-[0_2px_4px_rgba(48,47,43,0.18)]" style="font-variation-settings: 'FILL' 1;">pets</span>
+</div>
+</button>
+<!-- 10.07: 有记录 (雏菊小花 + 钢笔) -->
+<button class="h-16 rounded-lg bg-surface-container-low/70 hover:bg-surface-container active:scale-95 transition-all flex flex-col items-center justify-between p-1 cursor-pointer group shadow-[0_1px_3px_rgba(48,47,43,0.03)]" data-date="10-07" data-items="白色洋甘菊, 黄铜蘸水笔" data-quote="把桌角枯萎前的小花拓印在信纸页脚。" type="button">
+<span class="font-label-sm text-label-sm text-on-surface font-medium self-start pl-0.5">07</span>
+<div class="flex items-center justify-center -space-x-1.5 mb-0.5">
+<span class="material-symbols-outlined text-[18px] text-accent-mustard drop-shadow-[0_2px_4px_rgba(48,47,43,0.18)] transform -rotate-12" style="font-variation-settings: 'FILL' 1;">local_florist</span>
+<span class="material-symbols-outlined text-[17px] text-primary drop-shadow-[0_2px_4px_rgba(48,47,43,0.18)] transform rotate-12" style="font-variation-settings: 'FILL' 1;">edit_note</span>
+</div>
+</button>
+<!-- 10.08: 无记录 -->
+<div class="h-16 rounded-lg flex flex-col items-center justify-start p-1">
+<span class="font-label-sm text-label-sm text-outline-variant font-medium self-start pl-0.5">08</span>
+</div>
+<!-- 10.09: 有记录 (音乐盒/黑胶) -->
+<button class="h-16 rounded-lg bg-surface-container-low/70 hover:bg-surface-container active:scale-95 transition-all flex flex-col items-center justify-between p-1 cursor-pointer group shadow-[0_1px_3px_rgba(48,47,43,0.03)]" data-date="10-09" data-items="肖邦夜曲唱片" data-quote="夜雨敲窗，慢速黑胶在唱机里轻微沙沙作响。" type="button">
+<span class="font-label-sm text-label-sm text-on-surface font-medium self-start pl-0.5">09</span>
+<div class="flex items-center justify-center mb-0.5">
+<span class="material-symbols-outlined text-[19px] text-secondary drop-shadow-[0_2px_4px_rgba(48,47,43,0.18)] transform rotate-6" style="font-variation-settings: 'FILL' 1;">album</span>
+</div>
+</button>
+<!-- 10.10: 有记录 (相机) -->
+<button class="h-16 rounded-lg bg-surface-container-low/70 hover:bg-surface-container active:scale-95 transition-all flex flex-col items-center justify-between p-1 cursor-pointer group shadow-[0_1px_3px_rgba(48,47,43,0.03)]" data-date="10-10" data-items="旁轴胶片机" data-quote="洗出两卷胶卷，秋天颗粒感温和沉静。" type="button">
+<span class="font-label-sm text-label-sm text-secondary font-semibold self-start pl-0.5">10</span>
+<div class="flex items-center justify-center mb-0.5">
+<span class="material-symbols-outlined text-[19px] text-primary drop-shadow-[0_2px_4px_rgba(48,47,43,0.18)]" style="font-variation-settings: 'FILL' 1;">photo_camera</span>
+</div>
+</button>
+<!-- 10.11: 有记录 (小木马/绘本) -->
+<button class="h-16 rounded-lg bg-surface-container-low/70 hover:bg-surface-container active:scale-95 transition-all flex flex-col items-center justify-between p-1 cursor-pointer group shadow-[0_1px_3px_rgba(48,47,43,0.03)]" data-date="10-11" data-items="手雕木质小马" data-quote="市集淘到的旧木雕，留有淡淡松木油脂香。" type="button">
+<span class="font-label-sm text-label-sm text-secondary font-semibold self-start pl-0.5">11</span>
+<div class="flex items-center justify-center mb-0.5">
+<span class="material-symbols-outlined text-[19px] text-surface-tint drop-shadow-[0_2px_4px_rgba(48,47,43,0.18)] transform -rotate-6" style="font-variation-settings: 'FILL' 1;">toys</span>
+</div>
+</button>
+<!-- Week 3: Oct 12 - Oct 18 -->
+<!-- 10.12: 无记录 -->
+<div class="h-16 rounded-lg flex flex-col items-center justify-start p-1">
+<span class="font-label-sm text-label-sm text-outline-variant font-medium self-start pl-0.5">12</span>
+</div>
+<!-- 10.13: 今天 (高亮标记：芥末黄/鼠尾草微晕底色 + 咖啡与植物) -->
+<button class="h-16 rounded-lg bg-secondary-fixed/55 hover:bg-secondary-fixed/70 active:scale-95 transition-all flex flex-col items-center justify-between p-1 cursor-pointer group shadow-[0_2px_8px_rgba(57,104,72,0.15)] ring-2 ring-secondary/30 relative" data-date="10-13" data-items="热肉桂拿铁, 尤加利叶插瓶" data-quote="今日：炉火温茶，秋日落叶铺满手账本的留白。" type="button">
+<div class="w-full flex items-center justify-between px-0.5">
+<span class="font-label-sm text-label-sm text-on-secondary-fixed-variant font-bold">13</span>
+<span class="text-[9px] font-label-sm px-1 py-0.2 rounded-full bg-secondary text-paper-surface scale-90">今</span>
+</div>
+<div class="flex items-center justify-center -space-x-1.5 mb-0.5">
+<span class="material-symbols-outlined text-[20px] text-primary drop-shadow-[0_2px_4px_rgba(48,47,43,0.22)] transform -rotate-6" style="font-variation-settings: 'FILL' 1;">local_cafe</span>
+<span class="material-symbols-outlined text-[19px] text-secondary drop-shadow-[0_2px_4px_rgba(48,47,43,0.22)] transform rotate-12" style="font-variation-settings: 'FILL' 1;">potted_plant</span>
+</div>
+</button>
+<!-- 10.14: 有记录 (信件/邮票) -->
+<button class="h-16 rounded-lg bg-surface-container-low/70 hover:bg-surface-container active:scale-95 transition-all flex flex-col items-center justify-between p-1 cursor-pointer group shadow-[0_1px_3px_rgba(48,47,43,0.03)]" data-date="10-14" data-items="远方寄来的明信片" data-quote="带着山野松针气味的旧邮戳，来自老朋友。" type="button">
+<span class="font-label-sm text-label-sm text-on-surface font-medium self-start pl-0.5">14</span>
+<div class="flex items-center justify-center mb-0.5">
+<span class="material-symbols-outlined text-[19px] text-accent-mustard drop-shadow-[0_2px_4px_rgba(48,47,43,0.18)] transform rotate-3" style="font-variation-settings: 'FILL' 1;">mail</span>
+</div>
+</button>
+<!-- 10.15: 有记录 (红苹果) -->
+<button class="h-16 rounded-lg bg-surface-container-low/70 hover:bg-surface-container active:scale-95 transition-all flex flex-col items-center justify-between p-1 cursor-pointer group shadow-[0_1px_3px_rgba(48,47,43,0.03)]" data-date="10-15" data-items="手烤苹果派" data-quote="厨房弥漫肉桂与烤苹果的甜润暖香。" type="button">
+<span class="font-label-sm text-label-sm text-on-surface font-medium self-start pl-0.5">15</span>
+<div class="flex items-center justify-center mb-0.5">
+<span class="material-symbols-outlined text-[19px] text-error drop-shadow-[0_2px_4px_rgba(48,47,43,0.18)] transform -rotate-3" style="font-variation-settings: 'FILL' 1;">nutrition</span>
+</div>
+</button>
+<!-- 10.16: 有记录 (野花) -->
+<button class="h-16 rounded-lg bg-surface-container-low/70 hover:bg-surface-container active:scale-95 transition-all flex flex-col items-center justify-between p-1 cursor-pointer group shadow-[0_1px_3px_rgba(48,47,43,0.03)]" data-date="10-16" data-items="山间野紫菀" data-quote="路过石桥摘下的一簇淡紫，插在墨水瓶中。" type="button">
+<span class="font-label-sm text-label-sm text-on-surface font-medium self-start pl-0.5">16</span>
+<div class="flex items-center justify-center mb-0.5">
+<span class="material-symbols-outlined text-[19px] text-secondary drop-shadow-[0_2px_4px_rgba(48,47,43,0.18)] transform rotate-12" style="font-variation-settings: 'FILL' 1;">psychiatry</span>
+</div>
+</button>
+<!-- 10.17: 无记录 -->
+<div class="h-16 rounded-lg flex flex-col items-center justify-start p-1">
+<span class="font-label-sm text-label-sm text-outline-variant font-medium self-start pl-0.5">17</span>
+</div>
+<!-- 10.18: 有记录 (绘具盘 + 调色板) -->
+<button class="h-16 rounded-lg bg-surface-container-low/70 hover:bg-surface-container active:scale-95 transition-all flex flex-col items-center justify-between p-1 cursor-pointer group shadow-[0_1px_3px_rgba(48,47,43,0.03)]" data-date="10-18" data-items="固体水彩调色盒, 羊毫笔" data-quote="调出了深赭与枯茶色的秋意微光。" type="button">
+<span class="font-label-sm text-label-sm text-secondary font-semibold self-start pl-0.5">18</span>
+<div class="flex items-center justify-center mb-0.5">
+<span class="material-symbols-outlined text-[19px] text-accent-mustard drop-shadow-[0_2px_4px_rgba(48,47,43,0.18)] transform -rotate-6" style="font-variation-settings: 'FILL' 1;">palette</span>
+</div>
+</button>
+<!-- Week 4: Oct 19 - Oct 25 (未来日期淡灰不可点击) -->
+<div class="h-16 rounded-lg flex flex-col items-center justify-start p-1 cursor-not-allowed opacity-40">
+<span class="font-label-sm text-label-sm text-outline-variant font-medium self-start pl-0.5">19</span>
+</div>
+<div class="h-16 rounded-lg flex flex-col items-center justify-start p-1 cursor-not-allowed opacity-40">
+<span class="font-label-sm text-label-sm text-outline-variant font-medium self-start pl-0.5">20</span>
+</div>
+<div class="h-16 rounded-lg flex flex-col items-center justify-start p-1 cursor-not-allowed opacity-40">
+<span class="font-label-sm text-label-sm text-outline-variant font-medium self-start pl-0.5">21</span>
+</div>
+<div class="h-16 rounded-lg flex flex-col items-center justify-start p-1 cursor-not-allowed opacity-40">
+<span class="font-label-sm text-label-sm text-outline-variant font-medium self-start pl-0.5">22</span>
+</div>
+<div class="h-16 rounded-lg flex flex-col items-center justify-start p-1 cursor-not-allowed opacity-40">
+<span class="font-label-sm text-label-sm text-outline-variant font-medium self-start pl-0.5">23</span>
+</div>
+<div class="h-16 rounded-lg flex flex-col items-center justify-start p-1 cursor-not-allowed opacity-40">
+<span class="font-label-sm text-label-sm text-outline-variant font-medium self-start pl-0.5">24</span>
+</div>
+<div class="h-16 rounded-lg flex flex-col items-center justify-start p-1 cursor-not-allowed opacity-40">
+<span class="font-label-sm text-label-sm text-outline-variant font-medium self-start pl-0.5">25</span>
+</div>
+<!-- Week 5: Oct 26 - Oct 31 -->
+<div class="h-16 rounded-lg flex flex-col items-center justify-start p-1 cursor-not-allowed opacity-40">
+<span class="font-label-sm text-label-sm text-outline-variant font-medium self-start pl-0.5">26</span>
+</div>
+<div class="h-16 rounded-lg flex flex-col items-center justify-start p-1 cursor-not-allowed opacity-40">
+<span class="font-label-sm text-label-sm text-outline-variant font-medium self-start pl-0.5">27</span>
+</div>
+<div class="h-16 rounded-lg flex flex-col items-center justify-start p-1 cursor-not-allowed opacity-40">
+<span class="font-label-sm text-label-sm text-outline-variant font-medium self-start pl-0.5">28</span>
+</div>
+<div class="h-16 rounded-lg flex flex-col items-center justify-start p-1 cursor-not-allowed opacity-40">
+<span class="font-label-sm text-label-sm text-outline-variant font-medium self-start pl-0.5">29</span>
+</div>
+<div class="h-16 rounded-lg flex flex-col items-center justify-start p-1 cursor-not-allowed opacity-40">
+<span class="font-label-sm text-label-sm text-outline-variant font-medium self-start pl-0.5">30</span>
+</div>
+<div class="h-16 rounded-lg flex flex-col items-center justify-start p-1 cursor-not-allowed opacity-40">
+<span class="font-label-sm text-label-sm text-outline-variant font-medium self-start pl-0.5">31</span>
+</div>
+<div class="h-16 flex flex-col items-center justify-start p-1 opacity-25">
+<span class="font-label-sm text-label-sm text-on-surface-variant">01</span>
+</div>
+</div>
+<!-- Scalloped Stamp Bottom Edge -->
+<div class="relative w-full h-4 bg-paper-surface flex items-end justify-between px-1 overflow-hidden">
+<div class="w-full flex justify-between -mb-2">
+<div class="w-4 h-4 rounded-full bg-page-canvas"></div>
+<div class="w-4 h-4 rounded-full bg-page-canvas"></div>
+<div class="w-4 h-4 rounded-full bg-page-canvas"></div>
+<div class="w-4 h-4 rounded-full bg-page-canvas"></div>
+<div class="w-4 h-4 rounded-full bg-page-canvas"></div>
+<div class="w-4 h-4 rounded-full bg-page-canvas"></div>
+<div class="w-4 h-4 rounded-full bg-page-canvas"></div>
+<div class="w-4 h-4 rounded-full bg-page-canvas"></div>
+<div class="w-4 h-4 rounded-full bg-page-canvas"></div>
+<div class="w-4 h-4 rounded-full bg-page-canvas"></div>
+<div class="w-4 h-4 rounded-full bg-page-canvas"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Hint Caption -->
+<div class="px-margin pt-3 flex items-center justify-center gap-1.5 text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-secondary">touch_app</span>
+<span class="font-label-sm text-label-sm tracking-wide">点击任意一天，展开当天的完整毛毡板收藏</span>
+</div>
+<!-- Monthly Stats Ledger Panel -->
+<div class="px-margin pt-4">
+<div class="bg-paper-surface rounded-xl p-4 shadow-[0_4px_16px_rgba(48,47,43,0.06)] relative overflow-hidden flex flex-col gap-3">
+<!-- Decorative stitched stitch-dash header -->
+<div class="flex items-center justify-between pb-2 border-b border-dashed border-outline-variant/60">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+<span class="font-headline-sm text-headline-sm text-primary font-semibold">当月珍藏手账单</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container px-2 py-0.5 rounded-full">已归档</span>
+</div>
+<!-- Stats Summary Row -->
+<div class="grid grid-cols-2 gap-3 py-1">
+<div class="flex flex-col p-2.5 rounded-lg bg-surface-container-low/60">
+<span class="font-label-sm text-label-sm text-on-surface-variant">物件总数</span>
+<div class="flex items-baseline gap-1 mt-0.5">
+<span class="font-display-md text-display-md text-primary font-bold">18</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">个生活物件</span>
+</div>
+</div>
+<div class="flex flex-col p-2.5 rounded-lg bg-surface-container-low/60">
+<span class="font-label-sm text-label-sm text-on-surface-variant">珍藏天数</span>
+<div class="flex items-baseline gap-1 mt-0.5">
+<span class="font-display-md text-display-md text-secondary font-bold">11</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">天有记录</span>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between pt-1 text-on-surface-variant font-body-sm text-body-sm">
+<span class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-accent-mustard" style="font-variation-settings: 'FILL' 1;">hotel_class</span>
+          最频繁物件：手冲咖啡 (4次) · 雏菊花 (3次)
+        </span>
+<span class="font-label-sm text-label-sm text-primary font-semibold underline underline-offset-4 decoration-outline-variant">导出月度画报</span>
+</div>
+</div>
+</div>
+<!-- Interactive Day Preview Modal / Bottom Sheet -->
+<div class="fixed inset-0 z-50 bg-primary/40 backdrop-blur-sm hidden items-end justify-center transition-opacity p-0" id="dayDrawer">
+<div class="w-full max-w-md bg-paper-surface rounded-t-2xl p-5 shadow-[0_-8px_30px_rgba(48,47,43,0.18)] flex flex-col gap-4 transform translate-y-full transition-transform duration-300 pb-safe" id="drawerContent">
+<div class="w-12 h-1 rounded-full bg-outline-variant self-center mb-1"></div>
+<div class="flex items-center justify-between">
+<div>
+<span class="font-label-sm text-label-sm text-secondary uppercase font-semibold">FELT MEMORY ARCHIVE</span>
+<h2 class="font-display-md text-display-md text-primary font-semibold" id="drawerDateTitle">10月13日</h2>
+</div>
+<button class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant active:scale-95" id="closeDrawer" type="button">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<!-- Mini 3:2 Felt Board Preview Stage -->
+<div class="relative w-full aspect-[3/2] rounded-lg bg-primary-container p-2.5 shadow-[0_8px_20px_-4px_rgba(48,47,43,0.2)]">
+<!-- Inner Felt Oatmeal Sheet -->
+<div class="w-full h-full rounded bg-felt-oatmeal relative flex items-center justify-center overflow-hidden shadow-[inset_0_2px_4px_rgba(48,47,43,0.2)]">
+<!-- Subtle fiber noise & objects placed on board -->
+<div class="absolute inset-0 bg-gradient-to-tr from-black/5 via-transparent to-white/10 pointer-events-none"></div>
+<div class="flex items-center justify-center gap-6 z-10" id="drawerBoardPreview">
+<div class="flex flex-col items-center transform -rotate-3 p-2 bg-paper-surface/90 rounded shadow-[0_3px_8px_rgba(48,47,43,0.18)]">
+<span class="material-symbols-outlined text-[32px] text-primary" style="font-variation-settings: 'FILL' 1;">local_cafe</span>
+<span class="font-label-sm text-label-sm text-on-surface mt-1">肉桂拿铁</span>
+</div>
+<div class="flex flex-col items-center transform rotate-6 p-2 bg-paper-surface/90 rounded shadow-[0_3px_8px_rgba(48,47,43,0.18)]">
+<span class="material-symbols-outlined text-[32px] text-secondary" style="font-variation-settings: 'FILL' 1;">potted_plant</span>
+<span class="font-label-sm text-label-sm text-on-surface mt-1">尤加利瓶</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Journal Quote Card -->
+<div class="p-3 bg-surface-container-low rounded-lg border-l-4 border-secondary flex flex-col gap-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant">当日手记</span>
+<p class="font-headline-sm text-headline-sm text-primary italic" id="drawerQuote">“今日：炉火温茶，秋日落叶铺满手账本的留白。”</p>
+</div>
+<!-- Action Button -->
+<button class="w-full h-12 rounded-lg bg-secondary text-paper-surface font-label-lg text-label-lg font-semibold flex items-center justify-center gap-2 shadow-[0_3px_10px_rgba(57,104,72,0.25)] active:translate-y-0.5 transition-all" type="button">
+<span class="material-symbols-outlined text-[20px]">space_dashboard</span>
+<span>进入该日毛毡板整理</span>
+</button>
+</div>
+</div>
+</div>
+<script>
+  (function () {
+    const grid = document.getElementById('calendarGrid');
+    const drawer = document.getElementById('dayDrawer');
+    const drawerContent = document.getElementById('drawerContent');
+    const closeBtn = document.getElementById('closeDrawer');
+    const dateTitle = document.getElementById('drawerDateTitle');
+    const quoteText = document.getElementById('drawerQuote');
+
+    function openModal(date, quote) {
+      if (!drawer || !drawerContent) return;
+      dateTitle.textContent = date.replace('-', '月') + '日';
+      quoteText.textContent = '“' + quote + '”';
+      drawer.classList.remove('hidden');
+      drawer.classList.add('flex');
+      setTimeout(() => {
+        drawerContent.classList.remove('translate-y-full');
+      }, 10);
+    }
+
+    function closeModal() {
+      if (!drawer || !drawerContent) return;
+      drawerContent.classList.add('translate-y-full');
+      setTimeout(() => {
+        drawer.classList.add('hidden');
+        drawer.classList.remove('flex');
+      }, 250);
+    }
+
+    if (grid) {
+      grid.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-date]');
+        if (!btn) return;
+        const date = btn.getAttribute('data-date');
+        const quote = btn.getAttribute('data-quote') || '这一天记录了一段宁静的手账时光。';
+        openModal(date, quote);
+      });
+    }
+
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (drawer) {
+      drawer.addEventListener('click', (e) => {
+        if (e.target === drawer) closeModal();
+      });
+    }
+  })();
+</script></main><nav class="fixed bottom-0 inset-x-0 z-50 pb-safe bg-paper-surface/92 backdrop-blur-xl shadow-[0_-4px_16px_rgba(48,47,43,0.06)]" data-active-classes="text-secondary font-semibold"><div class="flex items-center justify-around h-16 px-margin max-w-md mx-auto"><a class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] gap-0.5 text-on-surface-variant transition-colors" data-path="home" href="#"><span class="material-symbols-outlined text-[22px]">cottage</span><span class="font-label-sm text-label-sm">今天</span></a><a class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] gap-0.5 text-on-surface-variant transition-colors" data-path="board-view" href="#"><span class="material-symbols-outlined text-[22px]">space_dashboard</span><span class="font-label-sm text-label-sm">毛毡板</span></a><a aria-current="page" class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] gap-0.5 transition-colors text-secondary font-semibold" data-path="calendar" href="#"><span class="material-symbols-outlined text-[22px]">calendar_month</span><span class="font-label-sm text-label-sm">月历时光</span></a></div></nav></body></html>

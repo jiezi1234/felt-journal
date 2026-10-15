@@ -1,0 +1,20 @@
+{
+  "name": "felt-journal-miniprogram",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "check": "node scripts/check.js",
+    "test:visual": "node scripts/render-qa.js",
+    "test:e2e": "node tests/wechat-e2e.js",
+    "test:filters": "node tests/memories-e2e.js",
+    "test:share": "node tests/share-e2e.js",
+    "test:themes": "node tests/themes-e2e.js",
+    "test:navigation": "node tests/navigation-e2e.js",
+    "dev:extraction": "node scripts/local-extraction.js"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "0.1.80",
+    "miniprogram-automator": "0.12.1"
+  }
+}

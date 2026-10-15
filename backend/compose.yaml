@@ -1,0 +1,45 @@
+services:
+  extractor:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    environment:
+      FELT_PUBLIC_BASE_URL: https://${FELT_DOMAIN:?Set FELT_DOMAIN in backend/.env}
+      FELT_MODEL: isnet-general-use
+      OMP_NUM_THREADS: '2'
+    expose:
+      - '8787'
+    volumes:
+      - felt_runtime:/app/backend/.runtime
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    cpus: 2.0
+    mem_limit: 3g
+    healthcheck:
+      test: ['CMD', 'python', '-c', "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8787/health', timeout=5)"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+  https:
+    image: caddy:2-alpine
+    environment:
+      FELT_DOMAIN: ${FELT_DOMAIN:?Set FELT_DOMAIN in backend/.env}
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      extractor:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  felt_runtime:
+  caddy_data:
+  caddy_config:

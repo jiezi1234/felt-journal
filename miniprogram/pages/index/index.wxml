@@ -1,0 +1,20 @@
+<view class="page with-main-nav">
+  <view class="muted brand">毛毡生活手账 · FELT JOURNAL</view>
+  <view wx:if="{{loading}}" class="loading">正在翻开手账…</view>
+  <view wx:elif="{{error}}" class="error">{{error}}<button class="ghost" bindtap="refresh">重新读取</button></view>
+  <block wx:else>
+    <view class="row space"><text class="chip">{{dateLabel}}</text><text class="muted">今日 {{count}} 件记忆</text></view>
+    <view class="title">把今天，轻轻收好</view>
+    <felt-board model="{{model}}" bind:memory="openBoard" bind:boardtap="openBoard" />
+    <view class="row board-caption"><text class="muted">{{count ? '已收纳 ' + count + ' 个生活切片' : '从一张照片，收藏今天的小事'}}</text><button class="ghost" bindtap="openBoard">查看整板 ↗</button></view>
+    <button class="primary full" bindtap="primary">{{count ? '＋ 继续布置' : '＋ 记录今天'}}</button>
+    <button id="open-themes" class="secondary full themes-link" bindtap="themes">▣ 主题板 · 收集不同日子的小美好 ↗</button>
+    <view class="paper">
+      <view class="row"><text class="section-title">最近手账</text><button class="ghost" bindtap="calendar">月历回顾 ↗</button></view>
+      <view class="divider" />
+      <view wx:if="{{!recent.length}}" class="caption">慢慢收集，日常也会成为珍藏。</view>
+      <view class="recent-grid"><view wx:for="{{recent}}" wx:key="date" class="recent-item" data-date="{{item.date}}" bindtap="recentBoard"><felt-board model="{{item.model}}" interactive="{{false}}" /><view class="small space-small">{{item.label}}</view><view class="muted">{{item.count}} 件记忆</view></view></view>
+    </view>
+    <view class="space"><button id="find-memories" class="secondary full" bindtap="memories">按分类查找记忆 ↗</button></view>
+  </block>
+</view>

@@ -1,0 +1,17 @@
+<view class="page"><button class="ghost back" bindtap="back">‹ 返回毛毡板</button><view class="title">{{isTheme ? '收藏与分享这块板' : '收藏与分享这一天'}}</view>
+  <view wx:if="{{generating}}" class="loading">正在生成带完整框体的作品…</view>
+  <view wx:if="{{error}}" class="error">{{error}}<button wx:if="{{!imagePath || imageExpired}}" id="regenerate-image" class="ghost" disabled="{{generating || saving || sharing}}" bindtap="generate">重新生成</button></view>
+  <block wx:if="{{imagePath}}">
+    <text class="chip">{{imageExpired ? '图片需要重新生成' : albumSaved ? '已保存到相册' : '作品已生成 · 3:2'}}</text>
+    <view class="paper export-paper"><image class="preview" src="{{imagePath}}" mode="widthFix" bindtap="preview" /><view class="row space"><text class="muted">{{dateLabel}}</text><text class="muted">{{count}} 件记忆</text></view></view>
+    <view class="export-actions">
+      <button id="share-image" class="primary full" loading="{{sharing}}" disabled="{{generating || saving || sharing || imageExpired || !shareSupported}}" bindtap="shareImage">{{sharing ? '正在打开分享面板' : '分享到微信'}}</button>
+      <view wx:if="{{shareError}}" id="share-error" class="share-error">{{shareError}}</view>
+      <view wx:if="{{!shareSupported}}" id="share-unavailable" class="muted share-hint">当前微信暂不支持直接分享，可保存到相册后发送。</view>
+      <button id="save-album" class="secondary full" loading="{{saving}}" disabled="{{generating || saving || sharing || imageExpired}}" bindtap="saveAlbum">{{saving ? '正在保存到相册' : albumSaved ? '再次保存到相册' : '保存到相册'}}</button>
+      <button wx:if="{{albumDenied}}" id="album-settings" class="full" bindtap="settings">打开权限设置</button>
+    </view>
+    <view class="caption"><view>分享的是上方完整板面图片。</view><view>在微信面板中选择发送对象；也可先保存到相册。</view></view>
+  </block>
+</view>
+<canvas type="2d" id="exportCanvas" class="export-canvas" />

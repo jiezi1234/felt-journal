@@ -1,0 +1,35 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/board-tab/index",
+    "pages/board/index",
+    "pages/memory/index",
+    "pages/calendar/index",
+    "pages/export/index",
+    "pages/photo-edit/index",
+    "pages/memories/index",
+    "pages/themes/index"
+  ],
+  "window": {
+    "backgroundColor": "#E8EDE7",
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#E8EDE7",
+    "navigationBarTitleText": "毛毡生活手账",
+    "navigationBarTextStyle": "black"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#615950",
+    "selectedColor": "#396848",
+    "backgroundColor": "#F7F2E9",
+    "borderStyle": "white",
+    "list": [
+      { "pagePath": "pages/index/index", "text": "今天", "iconPath": "images/navigation/today.png", "selectedIconPath": "images/navigation/today-active.png" },
+      { "pagePath": "pages/board-tab/index", "text": "毛毡板", "iconPath": "images/navigation/board.png", "selectedIconPath": "images/navigation/board-active.png" },
+      { "pagePath": "pages/calendar/index", "text": "月历时光", "iconPath": "images/navigation/calendar.png", "selectedIconPath": "images/navigation/calendar-active.png" }
+    ]
+  },
+  "sitemapLocation": "sitemap.json",
+  "style": "v2",
+  "lazyCodeLoading": "requiredComponents"
+}
