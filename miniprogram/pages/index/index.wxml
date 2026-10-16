@@ -1,27 +1,23 @@
 <view class="page with-main-nav home-page">
-  <view class="home-brand"><view class="brand-lockup"><view class="brand-mark">f.</view><view><view class="brand-name">毛毡生活手账</view><view class="brand-en">little things, lovely days</view></view></view><text class="brand-spark" aria-hidden="true">✦</text></view>
-  <view wx:if="{{loading}}" class="loading">正在翻开手账…</view>
+  <view wx:if="{{loading}}" class="loading">加载中…</view>
   <view wx:elif="{{error}}" class="error">{{error}}<button class="ghost" bindtap="refresh">重新读取</button></view>
   <block wx:else>
-    <view class="home-intro"><view class="title">今天的<view class="intro-accent">小小美好。</view></view><view class="page-subtitle">拍一张，贴一贴。把喜欢留在身边。</view></view>
     <view class="today-sheet">
       <view class="sheet-binding" aria-hidden="true"><view/><view/><view/><view/><view/><view/></view>
-      <view class="row home-meta"><view><view class="sheet-label">TODAY'S PAGE</view><view class="sheet-date">{{dateLabel}}</view></view><view class="memory-count"><text>{{count}}</text> 件记忆</view></view>
+      <view class="row home-meta"><view class="sheet-date">{{dateLabel}}</view><view class="home-actions"><view class="memory-count"><text>{{count}}</text> 件</view><button id="arrange-today" class="ghost" bindtap="openBoard">布置 ⌃</button></view></view>
       <felt-board id="today-board" covered="{{editorOpen}}" model="{{model}}" bind:memory="openMemory" bind:boardtap="openBoard" />
-      <view class="row board-caption"><text class="muted">{{count ? '平凡的一天，也闪闪发光。' : '今天的故事，从一张照片开始。'}}</text><button id="arrange-today" class="ghost" bindtap="openBoard">布置板面 ⌃</button></view>
       <button id="record-today" class="primary full record-button" bindtap="primary"><text class="record-star">＋</text>{{count ? '再记一件' : '记录今天'}}</button>
-      <button wx:if="{{count}}" id="export-today" class="ghost full" bindtap="exportToday">分享今天的毛毡板 ↗</button>
+      <button wx:if="{{count}}" id="export-today" class="ghost full" bindtap="exportToday">分享 ↗</button>
     </view>
     <view class="recent-section">
-      <view class="row"><text class="section-title">最近手账<text class="section-dot"/></text><button class="ghost section-link" bindtap="calendar">全部日子 ↗</button></view>
-      <view wx:if="{{!recent.length}}" class="empty-recent"><text class="empty-spark">✧</text><view class="empty-title">日子慢慢过，记忆慢慢攒。</view><view class="muted">过往的手账，会在这里与你重逢。</view></view>
+      <view class="row"><text class="section-title">最近记录</text><button class="ghost section-link" bindtap="calendar">全部 ↗</button></view>
+      <view wx:if="{{!recent.length}}" class="empty-recent muted">暂无往日记录</view>
       <view wx:else class="recent-grid"><view wx:for="{{recent}}" wx:key="date" class="recent-item" data-date="{{item.date}}" bindtap="recentBoard"><felt-board covered="{{editorOpen}}" model="{{item.model}}" interactive="{{false}}" /><view class="space-small">{{item.label}}</view><view class="muted">{{item.count}} 件记忆</view></view></view>
     </view>
     <view class="collection-links">
-      <button id="open-themes" class="collection-link" bindtap="themes"><view class="collection-top"><image class="collection-icon" src="/images/navigation/board-active.png" /><text class="collection-arrow">↗</text></view><text class="collection-title">长期主题板</text><text class="collection-note">不同日子，同一份喜欢</text></button>
-      <button id="find-memories" class="collection-link" bindtap="memories"><view class="collection-top"><image class="collection-icon" src="/images/navigation/calendar-active.png" /><text class="collection-arrow">↗</text></view><text class="collection-title">记忆分类</text><text class="collection-note">每一件，都有故事</text></button>
+      <button id="open-themes" class="collection-link" bindtap="themes"><view class="collection-top"><image class="collection-icon" src="/images/navigation/board-active.png" /><text class="collection-arrow">↗</text></view><text class="collection-title">主题板</text></button>
+      <button id="find-memories" class="collection-link" bindtap="memories"><view class="collection-top"><image class="collection-icon" src="/images/navigation/calendar-active.png" /><text class="collection-arrow">↗</text></view><text class="collection-title">记忆分类</text></button>
     </view>
-    <view class="home-footer">慢慢来，生活自有可爱之处。</view>
   </block>
 </view>
 <record-card wx:if="{{editorOpen}}" id="record-card" board-id="{{editorDate}}" start-with-photo="{{startWithPhoto}}" bind:close="closeEditor" bind:change="editorChanged" />

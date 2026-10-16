@@ -1,17 +1,17 @@
 <view class="page">
   <view class="row"><button class="ghost" bindtap="back">‹ {{backLabel}}</button><button wx:if="{{memory && !editing}}" bindtap="edit">编辑记忆</button></view>
-  <view class="page-heading"><text class="eyebrow">A MOMENT TO KEEP</text><view class="title">值得留下的这一刻</view></view>
-  <view wx:if="{{loading}}" class="loading">正在翻开记忆…</view><view wx:elif="{{error}}" class="error">{{error}}<button bindtap="refresh">重试</button></view>
+  <view class="page-heading"><view class="title">记忆详情</view></view>
+  <view wx:if="{{loading}}" class="loading">加载中…</view><view wx:elif="{{error}}" class="error">{{error}}<button bindtap="refresh">重试</button></view>
   <view wx:else class="paper memory-paper">
     <image wx:if="{{!originalMissing}}" class="original" src="{{memory.originalPath}}" mode="widthFix" bindtap="preview" binderror="originalError" /><view wx:else class="error">原始照片无法读取，可替换照片恢复这条记忆。</view>
-    <view class="row space-small"><text class="muted">原始照片 · 轻点查看完整照片</text><text class="muted">{{memory.kind === 'original' ? '保留原图' : '已提取主体'}}</text></view>
-    <view class="divider" /><view class="row"><view class="section-title">贴入毛毡板的物件</view><button id="adjust-image" class="ghost small" disabled="{{!!task}}" bindtap="adjust">裁剪 / 修正</button></view>
+    <view class="row space-small"><text class="muted">原图 · 点击放大</text><text class="muted">{{memory.kind === 'original' ? '保留原图' : '已提取主体'}}</text></view>
+    <view class="divider" /><view class="row"><view class="section-title">板上物件</view><button id="adjust-image" class="ghost small" disabled="{{!!task}}" bindtap="adjust">裁剪 / 修正</button></view>
     <view class="subject-sample"><image wx:if="{{!subjectMissing}}" src="{{memory.subjectPath}}" mode="aspectFit" binderror="subjectError" /><text wx:else class="muted">展示图片无法读取，请替换照片</text></view>
     <view wx:if="{{memory.subjectEdited}}" class="muted edited-hint">已手动调整 · 原始照片保留</view>
     <view class="row"><text class="chip">{{dateLabel}}</text><text class="chip">{{memory.category}}</text></view>
     <view class="muted space-small">{{usageLabel}}</view><button id="add-to-theme" class="secondary full space" disabled="{{!!task}}" bindtap="themes">＋ 放入主题板</button>
     <view class="divider" />
-    <block wx:if="{{editing}}"><textarea class="note-input" placeholder="写下这一刻，留空也很好…" maxlength="{{maxText}}" value="{{text}}" bindinput="textInput" auto-height /><view class="muted text-count">{{text.length}} / {{maxText}}</view><picker range="{{categories}}" value="{{category}}" bindchange="categoryInput"><view class="category-picker">分类：{{categories[category]}}　⌄</view></picker><view wx:if="{{saveError}}" class="error">{{saveError}}</view><button class="primary full space" bindtap="save">保存文字与分类</button></block>
+    <block wx:if="{{editing}}"><textarea class="note-input" placeholder="记点什么（选填）" maxlength="{{maxText}}" value="{{text}}" bindinput="textInput" auto-height /><view class="muted text-count">{{text.length}} / {{maxText}}</view><picker range="{{categories}}" value="{{category}}" bindchange="categoryInput"><view class="category-picker">分类：{{categories[category]}}　⌄</view></picker><view wx:if="{{saveError}}" class="error">{{saveError}}</view><button class="primary full space" bindtap="save">保存</button></block>
     <view wx:elif="{{memory.text}}" class="note">{{memory.text}}</view><button wx:else class="secondary full" bindtap="edit">写下记忆</button>
     <view wx:if="{{contentStatus}}" class="muted space">{{contentStatus}}</view><view class="row space"><button class="secondary" bindtap="replace">↻ 替换照片</button><button id="delete-memory" class="danger" bindtap="remove">彻底删除记忆</button></view>
   </view>

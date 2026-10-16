@@ -1,20 +1,19 @@
 <view class="record-overlay" catchtouchmove="stop">
   <view class="record-scrim" bindtap="back" />
-  <view class="record-card {{sourceStage ? 'is-source' : ''}}" role="dialog" aria-modal="true" aria-label="{{sourceStage ? '记录今天' : '布置今日毛毡板'}}">
+  <view class="record-card {{sourceStage ? 'is-source' : ''}} {{task ? 'is-processing' : ''}}" role="dialog" aria-modal="true" aria-label="{{sourceStage ? '记录今天' : '布置今日毛毡板'}}">
     <view class="record-handle" aria-hidden="true" />
     <view class="row record-header"><view><view class="section-title">{{sourceStage ? '记录今天' : '今天的毛毡板'}}</view><text class="muted record-date">{{dateLabel}}</text></view><button id="close-record" class="record-close" aria-label="关闭记录卡片" bindtap="back">×</button></view>
     <scroll-view scroll-y class="record-scroll" enhanced bounces="{{false}}">
       <view class="record-body">
         <view wx:if="{{sourceStage}}" class="record-source">
-          <view class="source-heading">把这一刻，轻轻贴上去。</view><view class="muted">选一张照片，在这里完成记录和布置。</view>
-          <view wx:if="{{!task}}" class="source-actions"><button id="record-camera" class="primary full" disabled="{{loading || recovering || !!error}}" bindtap="camera">◎ 拍一张照片</button><button id="record-album" class="secondary full" disabled="{{loading || recovering || !!error}}" bindtap="album">▧ 从相册选择</button><button wx:if="{{count}}" id="record-existing" class="ghost full" bindtap="showBoard">布置已有的 {{count}} 件记忆</button></view>
+          <view wx:if="{{!task}}" class="source-actions"><button id="record-camera" class="primary full" disabled="{{loading || recovering || !!error}}" bindtap="camera">◎ 拍照</button><button id="record-album" class="secondary full" disabled="{{loading || recovering || !!error}}" bindtap="album">▧ 相册</button><button wx:if="{{count}}" id="record-existing" class="ghost full" bindtap="showBoard">布置已有记忆</button></view>
           <view wx:if="{{error}}" class="error">{{error}}</view>
         </view>
         <block wx:if="{{!sourceStage && !task}}"><include src="../../templates/board-content.wxml" /></block>
         <photo-panel id="record-photo" inline="{{true}}" task="{{task}}" bind:retry="retryPhoto" bind:original="originalPhoto" bind:cancel="cancelPhoto" />
       </view>
     </scroll-view>
-    <view wx:if="{{!sourceStage && !task}}" class="record-footer"><button id="finish-record" class="primary full" disabled="{{recovering}}" bindtap="done">完成，收好今天</button></view>
+    <view wx:if="{{!sourceStage && !task}}" class="record-footer"><button id="finish-record" class="primary full" disabled="{{recovering}}" bindtap="done">完成</button></view>
     <include src="../../templates/board-drawers.wxml" />
   </view>
 </view>

@@ -6,8 +6,8 @@ view,button,image,textarea,input { box-sizing:border-box; }
 .title { font-size:28px; font-weight:700; line-height:1.45; letter-spacing:.1px; margin:22px 0 28px; }
 .section-title { font-size:19px; font-weight:600; line-height:1.5; color:#5E4B40; }
 .eyebrow { color:#95877D; font-size:10px; letter-spacing:1.6px; font-weight:500; }
-.page-heading { margin:26px 0 28px; }
-.page-heading .title { margin:8px 0 10px; }
+.page-heading { margin:16px 0 22px; }
+.page-heading .title { margin:0; }
 .page-subtitle { color:#8B7E74; font-size:13px; line-height:1.8; }
 .row { display:flex; align-items:center; justify-content:space-between; gap:10px; }
 .stack { display:flex; flex-direction:column; gap:14px; }

@@ -1,17 +1,17 @@
 <view class="page memories-page">
-  <view class="row"><button class="ghost" bindtap="back">‹ 返回</button><text class="muted">生活拾遗</text></view>
-  <view class="page-heading"><text class="eyebrow">LITTLE MOMENTS</text><view class="title">{{targetId ? '挑选一份记忆' : '记忆分类'}}</view><view wx:if="{{!targetId}}" class="page-subtitle">那些被认真收藏的小日常。</view></view>
-  <view wx:if="{{targetId}}" class="muted">放入「{{targetTitle}}」· {{targetDaily ? '仅展示当天记忆' : '照片和文字共用，摆放独立保存'}}</view>
+  <view class="row"><button class="ghost" bindtap="back">‹ 返回</button></view>
+  <view class="page-heading"><view class="title">{{targetId ? '选择记忆' : '记忆分类'}}</view></view>
+  <view wx:if="{{targetId}}" class="muted">添加到「{{targetTitle}}」{{targetDaily ? ' · 仅限当天' : ''}}</view>
   <view class="paper filter-paper">
     <view wx:if="{{!targetDaily}}" class="row scope-tabs"><button id="scope-all" class="grow {{scope === 'all' ? 'active' : ''}}" data-scope="all" disabled="{{loading}}" bindtap="scope">全部时间</button><button id="scope-month" class="grow {{scope === 'month' ? 'active' : ''}}" data-scope="month" disabled="{{loading}}" bindtap="scope">按月查看</button></view>
     <picker wx:if="{{!targetDaily && scope === 'month'}}" id="month-picker" mode="date" fields="month" value="{{month}}" end="{{maxMonth}}" disabled="{{loading}}" bindchange="month"><view class="month-choice">{{monthLabel}}<text>选择月份　⌄</text></view></picker>
     <view wx:if="{{!targetDaily}}" class="divider" />
     <view class="category-chips"><button wx:for="{{categories}}" wx:key="name" id="category-{{index}}" data-category="{{item.value}}" class="category {{category === item.value ? 'active' : ''}}" disabled="{{loading}}" aria-label="{{item.name + '，' + item.count + '件' + (category === item.value ? '，已选' : '')}}" bindtap="category">{{item.name}}<text class="category-count">{{item.count}}</text></button></view>
   </view>
-  <view wx:if="{{loading}}" class="loading">正在整理记忆…</view>
+  <view wx:if="{{loading}}" class="loading">加载中…</view>
   <view wx:elif="{{error}}" class="error">{{error}}<button class="ghost" bindtap="refresh">重试读取</button></view>
   <block wx:else>
-    <view id="results" class="results-heading"><text>{{summary}}</text><text class="muted">按日期从近到远</text></view>
+    <view id="results" class="results-heading"><text>{{summary}}</text></view>
     <view wx:if="{{!total}}" class="paper empty-result">
       <view class="section-title">{{emptyTitle}}</view><view class="muted space">{{emptyHint}}</view>
       <button wx:if="{{category}}" id="clear-category" class="secondary full space" bindtap="clearCategory">查看全部分类</button>
@@ -22,9 +22,9 @@
       <view class="row date-heading"><text>{{item.label}}</text><button wx:if="{{!targetId}}" class="ghost small" data-date="{{item.date}}" disabled="{{opening}}" bindtap="board">查看整板 ↗</button></view>
       <button wx:for="{{item.items}}" wx:for-item="memory" wx:key="id" class="memory-row" data-id="{{memory.id}}" disabled="{{opening || placing || memory.placed}}" bindtap="open">
         <view class="memory-thumb"><image wx:if="{{!memory.missing}}" src="{{memory.path}}" mode="aspectFit" data-id="{{memory.id}}" data-path="{{memory.path}}" binderror="imageError" /><text wx:else class="missing-thumb">图片缺失</text></view>
-        <view class="memory-copy"><text class="memory-category">{{memory.category}}</text><view class="memory-excerpt {{!memory.excerpt ? 'muted' : ''}}">{{memory.excerpt || '还没有写下这一刻'}}</view><view wx:if="{{memory.placed}}" class="muted">已在板上</view></view><text class="memory-arrow">{{targetId ? memory.placed ? '✓' : '＋' : '›'}}</text>
+        <view class="memory-copy"><text class="memory-category">{{memory.category}}</text><view wx:if="{{memory.excerpt}}" class="memory-excerpt">{{memory.excerpt}}</view><view wx:if="{{memory.placed}}" class="muted">已在板上</view></view><text class="memory-arrow">{{targetId ? memory.placed ? '✓' : '＋' : '›'}}</text>
       </button>
     </view>
-    <view wx:if="{{total}}" class="pagination"><view class="row"><button id="previous-page" class="secondary grow" disabled="{{!hasPrevious || placing}}" bindtap="previous">较新的记忆</button><text class="page-number">{{page}} / {{pageCount}}</text><button id="next-page" class="secondary grow" disabled="{{!hasNext || placing}}" bindtap="next">更早的记忆</button></view><view class="caption">每页最多 {{pageSize}} 件 · {{targetId ? '点击一件放入板面' : '点击物件查看或编辑记忆'}}</view></view>
+    <view wx:if="{{total}}" class="pagination"><view class="row"><button id="previous-page" class="secondary grow" disabled="{{!hasPrevious || placing}}" bindtap="previous">上一页</button><text class="page-number">{{page}} / {{pageCount}}</text><button id="next-page" class="secondary grow" disabled="{{!hasNext || placing}}" bindtap="next">下一页</button></view></view>
   </block>
 </view>

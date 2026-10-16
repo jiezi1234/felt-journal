@@ -1,4 +1,4 @@
-.calendar-top { align-items:center; }
+.calendar-top { align-items:center; margin-bottom:18px; }
 .calendar-top button { font-size:12px; }
 .month { margin:0 0 18px; }
 .month button { width:44px; height:44px; padding:4px; font-size:25px; background:#F4F2EE; border-color:transparent; border-radius:14px; }
