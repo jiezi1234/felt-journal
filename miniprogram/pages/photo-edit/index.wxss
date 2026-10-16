@@ -1,14 +1,16 @@
 .crop-page .title { margin-bottom:18px; font-size:25px; }
-.source-tabs { background:#EEF3EF; padding:4px; border-radius:18px; }
+.source-tabs { background:#EEECE7; padding:4px; border-radius:18px; }
 .source-tabs button { background:transparent; font-size:14px; }
-.source-tabs button.active,.ratio-row button.active { background:#435E4E; color:#FFFFFF; }
+.source-tabs button.active,.ratio-row button.active { background:#8D6B32; color:#FFFFFF; }
 .source-hint { margin:12px 0; min-height:42px; }
-.crop-stage { position:relative; width:100%; height:320px; overflow:hidden; border-radius:18px; background:#E9EEEB; }
+.crop-stage { position:relative; width:100%; height:320px; overflow:hidden; border-radius:18px; background:#EFEAE3; }
 .crop-canvas { width:100%; height:320px; }
 .crop-handle { position:absolute; z-index:10; width:44px; height:44px; }
-.stage-status { position:absolute; inset:0; background:#E9EEEB; display:flex; align-items:center; justify-content:center; color:#68766C; }
+.stage-status { position:absolute; inset:0; background:#EFEAE3; display:flex; align-items:center; justify-content:center; color:#847A72; }
 .ratio-row,.tools-row { display:flex; gap:8px; }
 .ratio-row button { flex:1; padding:12px 0; min-width:0; width:0; }
 .tools-row button { flex:1; padding:12px 4px; font-size:13px; min-width:0; width:0; }
 .output-canvas { position:fixed; width:1px; height:1px; left:-10000px; top:-10000px; }
-.source-tabs button { border-color:transparent; }.source-tabs button.active { background:#FFFFFF; color:#344C40; box-shadow:0 2px 8px rgba(38,53,48,.04); }.ratio-row button.active { background:#E7EFE9; color:#344C40; border-color:#D7E3DA; }.crop-stage { border:1px solid #E7EEEA; }.crop-page .page-heading .title { font-size:26px; }.tools-row { flex-wrap:wrap; }
+.source-tabs button { border-color:transparent; }.source-tabs button.active { background:#FFFFFF; color:#342E28; box-shadow:0 2px 8px rgba(65,48,36,.04); }.ratio-row button.active { background:#FFEDBD; color:#342E28; border-color:#EFDCB0; }.crop-stage { border:1px solid #EEE7DE; }.crop-page .page-heading .title { font-size:26px; }.tools-row { flex-wrap:wrap; }
+
+.source-tabs { border-radius:30px; background:#EEEAE2; }.source-tabs button.active { color:#70563F; }.ratio-row button.active { background:#FFEDBD; border-color:#EDCF89; color:#72542E; }.crop-stage { border-radius:26px; border:3px solid #FFFFFF; box-shadow:0 4px 14px rgba(68,52,36,.05); }.tools-row button { background:#FFFFFF; }.source-hint { padding:0 4px; }

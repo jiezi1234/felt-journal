@@ -3,3 +3,5 @@
 .board-heading button { font-size:13px; padding:10px 18px; }
 .board-intro { margin-bottom:28px; }
 .board-intro .title { margin:8px 0 10px; }
+
+.board-intro .title { color:#302B26; }.board-intro .eyebrow { color:#A9916F; }.board-heading button { background:#FFF0CA; border-color:transparent; color:#775C39; }.board-heading .section-title { font-size:20px; }.board-sheet { background:#FFFFFF; border-radius:30px; padding:16px; box-shadow:0 5px 20px rgba(65,48,36,.035); }.board-sheet .caption { margin:16px 0 0; }

@@ -1,4 +1,4 @@
-<view class="page with-main-nav">
+<view class="page with-main-nav calendar-page">
   <view class="row calendar-top"><text class="eyebrow">DAYS TO REMEMBER</text><button class="ghost" bindtap="current">回到当月 ↗</button></view>
   <view class="page-heading"><view class="title">月历时光</view><view class="page-subtitle">翻过日历，重逢那些微小的美好。</view></view>
   <view class="row month"><button aria-label="上个月" bindtap="previous">‹</button><text class="section-title">{{year}}年 {{month}}月</text><button aria-label="下个月" disabled="{{!canNext}}" bindtap="next">›</button></view>

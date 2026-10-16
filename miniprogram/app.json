@@ -11,22 +11,37 @@
     "pages/themes/index"
   ],
   "window": {
-    "backgroundColor": "#FAFCFB",
+    "backgroundColor": "#F5F5F5",
     "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#FFFFFF",
+    "navigationBarBackgroundColor": "#FFFDF8",
     "navigationBarTitleText": "毛毡生活手账",
     "navigationBarTextStyle": "black"
   },
   "tabBar": {
     "custom": true,
-    "color": "#7F8B83",
-    "selectedColor": "#344C40",
+    "color": "#9A948D",
+    "selectedColor": "#5E4B40",
     "backgroundColor": "#FFFFFF",
     "borderStyle": "white",
     "list": [
-      { "pagePath": "pages/index/index", "text": "今天", "iconPath": "images/navigation/today.png", "selectedIconPath": "images/navigation/today-active.png" },
-      { "pagePath": "pages/board-tab/index", "text": "毛毡板", "iconPath": "images/navigation/board.png", "selectedIconPath": "images/navigation/board-active.png" },
-      { "pagePath": "pages/calendar/index", "text": "月历时光", "iconPath": "images/navigation/calendar.png", "selectedIconPath": "images/navigation/calendar-active.png" }
+      {
+        "pagePath": "pages/index/index",
+        "text": "今天",
+        "iconPath": "images/navigation/today.png",
+        "selectedIconPath": "images/navigation/today-active.png"
+      },
+      {
+        "pagePath": "pages/board-tab/index",
+        "text": "毛毡板",
+        "iconPath": "images/navigation/board.png",
+        "selectedIconPath": "images/navigation/board-active.png"
+      },
+      {
+        "pagePath": "pages/calendar/index",
+        "text": "月历时光",
+        "iconPath": "images/navigation/calendar.png",
+        "selectedIconPath": "images/navigation/calendar-active.png"
+      }
     ]
   },
   "sitemapLocation": "sitemap.json",

@@ -1,22 +1,25 @@
 <view class="page with-main-nav home-page">
-  <view class="home-brand"><view class="brand-mark"><view class="brand-mark-core" /></view><view><view class="brand-name">毛毡生活手账</view><view class="brand-en">FELT JOURNAL</view></view></view>
+  <view class="home-brand"><view class="brand-lockup"><view class="brand-mark">f.</view><view><view class="brand-name">毛毡生活手账</view><view class="brand-en">little things, lovely days</view></view></view><text class="brand-spark" aria-hidden="true">✦</text></view>
   <view wx:if="{{loading}}" class="loading">正在翻开手账…</view>
   <view wx:elif="{{error}}" class="error">{{error}}<button class="ghost" bindtap="refresh">重新读取</button></view>
   <block wx:else>
-    <view class="home-intro"><view class="title">把今天，<view class="intro-accent">轻轻收好。</view></view><view class="page-subtitle">一张照片，一件值得留下的小事。</view></view>
-    <view class="row home-meta"><text class="chip">{{dateLabel}}</text><view class="memory-count"><text>{{count}}</text> 件今日记忆</view></view>
-    <felt-board model="{{model}}" bind:memory="openBoard" bind:boardtap="openBoard" />
-    <view class="row board-caption"><text class="muted">{{count ? '日常的片刻，都在这里。' : '留一点空白，等今天的故事。'}}</text><button class="ghost" bindtap="openBoard">查看整板 ↗</button></view>
-    <button class="primary full record-button" bindtap="primary">{{count ? '＋ 继续布置' : '＋ 记录今天'}}</button>
+    <view class="home-intro"><view class="title">今天的<view class="intro-accent">小小美好。</view></view><view class="page-subtitle">拍一张，贴一贴。把喜欢留在身边。</view></view>
+    <view class="today-sheet">
+      <view class="sheet-binding" aria-hidden="true"><view/><view/><view/><view/><view/><view/></view>
+      <view class="row home-meta"><view><view class="sheet-label">TODAY'S PAGE</view><view class="sheet-date">{{dateLabel}}</view></view><view class="memory-count"><text>{{count}}</text> 件记忆</view></view>
+      <felt-board model="{{model}}" bind:memory="openBoard" bind:boardtap="openBoard" />
+      <view class="row board-caption"><text class="muted">{{count ? '平凡的一天，也闪闪发光。' : '今天的故事，从一张照片开始。'}}</text><button class="ghost" bindtap="openBoard">展开 ↗</button></view>
+      <button class="primary full record-button" bindtap="primary"><text class="record-star">＋</text>{{count ? '继续布置' : '记录今天'}}</button>
+    </view>
     <view class="recent-section">
-      <view class="row"><text class="section-title">最近手账</text><button class="ghost section-link" bindtap="calendar">全部日子 ↗</button></view>
-      <view wx:if="{{!recent.length}}" class="empty-recent"><view class="empty-line" /><view class="empty-title">日子慢慢过，记忆慢慢攒。</view><view class="muted">过往的手账，会在这里与你重逢。</view></view>
+      <view class="row"><text class="section-title">最近手账<text class="section-dot"/></text><button class="ghost section-link" bindtap="calendar">全部日子 ↗</button></view>
+      <view wx:if="{{!recent.length}}" class="empty-recent"><text class="empty-spark">✧</text><view class="empty-title">日子慢慢过，记忆慢慢攒。</view><view class="muted">过往的手账，会在这里与你重逢。</view></view>
       <view wx:else class="recent-grid"><view wx:for="{{recent}}" wx:key="date" class="recent-item" data-date="{{item.date}}" bindtap="recentBoard"><felt-board model="{{item.model}}" interactive="{{false}}" /><view class="space-small">{{item.label}}</view><view class="muted">{{item.count}} 件记忆</view></view></view>
     </view>
     <view class="collection-links">
-      <button id="open-themes" class="collection-link" bindtap="themes"><view class="collection-top"><image class="collection-icon" src="/images/navigation/board-active.png" /><text class="collection-arrow">↗</text></view><text class="collection-title">主题收藏</text><text class="collection-note">让喜欢的日子相遇</text></button>
-      <button id="find-memories" class="collection-link" bindtap="memories"><view class="collection-top"><image class="collection-icon" src="/images/navigation/calendar-active.png" /><text class="collection-arrow">↗</text></view><text class="collection-title">记忆分类</text><text class="collection-note">找回生活里的片刻</text></button>
+      <button id="open-themes" class="collection-link" bindtap="themes"><view class="collection-top"><image class="collection-icon" src="/images/navigation/board-active.png" /><text class="collection-arrow">↗</text></view><text class="collection-title">主题收藏</text><text class="collection-note">把喜欢，放在一起</text></button>
+      <button id="find-memories" class="collection-link" bindtap="memories"><view class="collection-top"><image class="collection-icon" src="/images/navigation/calendar-active.png" /><text class="collection-arrow">↗</text></view><text class="collection-title">记忆分类</text><text class="collection-note">每一件，都有故事</text></button>
     </view>
-    <view class="home-footer">给日常，一处温柔的留白</view>
+    <view class="home-footer">慢慢来，生活自有可爱之处。</view>
   </block>
 </view>

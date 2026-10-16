@@ -3,4 +3,6 @@
 .export-actions { display:flex; flex-direction:column; gap:16px; margin-top:24px; }
 .share-error { padding:12px 14px; color:#97574C; background:#FFFFFF; border-radius:14px; font-size:13px; }
 .share-hint { text-align:center; padding:0 6px; }
-.export-paper { padding:18px; background:linear-gradient(150deg,#FFFFFF,#F2F6F3); }.export-actions { margin-top:30px; gap:12px; }.share-error { background:#FBF4F2; }.export-paper .row { gap:16px; }.export-paper .row text:first-child { min-width:0; overflow-wrap:anywhere; }
+.export-paper { padding:18px; background:linear-gradient(150deg,#FFFFFF,#FFF9E9); }.export-actions { margin-top:30px; gap:12px; }.share-error { background:#FBF4F2; }.export-paper .row { gap:16px; }.export-paper .row text:first-child { min-width:0; overflow-wrap:anywhere; }
+
+.export-paper { border-radius:30px; padding:18px; background:linear-gradient(145deg,#FFFFFF,#FFFCF3); }.preview { border-radius:22px; }.share-hint { color:#96816B; }.export-actions .secondary { background:#FFFFFF; }.export-actions .primary { min-height:54px; }

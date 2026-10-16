@@ -83,11 +83,11 @@ Page({
     const left = (width - bounds.width * scale) / 2, top = (height - bounds.height * scale) / 2;
     this.viewport = { scale, left, top };
     const ctx = this.canvas.getContext('2d'); ctx.setTransform(this.canvas.width / width, 0, 0, this.canvas.height / height, 0, 0); ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = '#F8FAF9'; ctx.fillRect(0, 0, width, height);
-    for (let y = 0; y < height; y += 12) for (let x = 0; x < width; x += 12) if ((x / 12 + y / 12) % 2 === 0) { ctx.fillStyle = '#E9EEEB'; ctx.fillRect(x, y, 12, 12); }
+    ctx.fillStyle = '#FAF9F6'; ctx.fillRect(0, 0, width, height);
+    for (let y = 0; y < height; y += 12) for (let x = 0; x < width; x += 12) if ((x / 12 + y / 12) % 2 === 0) { ctx.fillStyle = '#EEEAE3'; ctx.fillRect(x, y, 12, 12); }
     ctx.save(); ctx.translate(left, top); ctx.scale(scale, scale); edit.drawImage(ctx, this.image, this.state); ctx.restore();
     const c = this.state.crop, x = left + c.x * scale, y = top + c.y * scale, w = c.width * scale, h = c.height * scale;
-    ctx.fillStyle = 'rgba(38, 48, 39, .48)'; ctx.fillRect(0, 0, width, y); ctx.fillRect(0, y + h, width, height - y - h); ctx.fillRect(0, y, x, h); ctx.fillRect(x + w, y, width - x - w, h);
+    ctx.fillStyle = 'rgba(48, 40, 31, .48)'; ctx.fillRect(0, 0, width, y); ctx.fillRect(0, y + h, width, height - y - h); ctx.fillRect(0, y, x, h); ctx.fillRect(x + w, y, width - x - w, h);
     ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 2; ctx.strokeRect(x, y, w, h);
     ctx.lineWidth = 0.6; ctx.beginPath();
     for (const fraction of [1 / 3, 2 / 3]) { ctx.moveTo(x + w * fraction, y); ctx.lineTo(x + w * fraction, y + h); ctx.moveTo(x, y + h * fraction); ctx.lineTo(x + w, y + h * fraction); }
@@ -95,7 +95,7 @@ Page({
     // Native Canvas captures may omit overlaid views. Draw visible grips here;
     // the transparent views retain independent 44px gesture targets.
     for (const [px, py] of [[x, y], [x + w, y], [x, y + h], [x + w, y + h]]) {
-      ctx.beginPath(); ctx.arc(px, py, 7.5, 0, Math.PI * 2); ctx.fillStyle = '#FFFFFF'; ctx.fill(); ctx.strokeStyle = '#435E4E'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.beginPath(); ctx.arc(px, py, 7.5, 0, Math.PI * 2); ctx.fillStyle = '#FFFFFF'; ctx.fill(); ctx.strokeStyle = '#A37C36'; ctx.lineWidth = 2; ctx.stroke();
     }
     this.setData({ handles: [['nw', x, y], ['ne', x + w, y], ['sw', x, y + h], ['se', x + w, y + h]].map(([id, px, py]) => ({ id, style: `left:${px - 22}px;top:${py - 22}px;` })) });
   },

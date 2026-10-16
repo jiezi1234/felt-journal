@@ -35,7 +35,7 @@ function paint(ctx, model, images, selection) {
   ctx.restore(); rounded(ctx, i, i, w, h, B.innerRadius); ctx.strokeStyle = 'rgba(48,32,19,0.24)'; ctx.lineWidth = 9; ctx.stroke();
   if (selection) {
     const p = (model.items || []).find(item => item.memoryId === selection);
-    if (p) { ctx.save(); ctx.translate(i + p.x, i + p.y); ctx.rotate(p.angle * Math.PI / 180); ctx.strokeStyle = '#396848'; ctx.lineWidth = 6; ctx.setLineDash([15, 12]); ctx.strokeRect(-p.width / 2 - 5, -p.height / 2 - 5, p.width + 10, p.height + 10); ctx.restore(); }
+    if (p) { ctx.save(); ctx.translate(i + p.x, i + p.y); ctx.rotate(p.angle * Math.PI / 180); ctx.strokeStyle = '#D9AD52'; ctx.lineWidth = 6; ctx.setLineDash([15, 12]); ctx.strokeRect(-p.width / 2 - 5, -p.height / 2 - 5, p.width + 10, p.height + 10); ctx.restore(); }
   }
 }
 function loadImage(canvas, path) {
@@ -52,7 +52,7 @@ function paintControls(ctx, handles, screenWidth) {
     ctx.save(); ctx.shadowColor = 'rgba(48,47,43,0.15)'; ctx.shadowBlur = 4 / scale; ctx.shadowOffsetY = 2 / scale;
     ctx.beginPath(); ctx.arc(x, y, 21 / scale, 0, Math.PI * 2); ctx.fillStyle = '#F7F2E9'; ctx.fill();
     ctx.shadowColor = 'transparent'; ctx.lineWidth = 1 / scale; ctx.strokeStyle = '#D9CBAF'; ctx.stroke();
-    ctx.font = `${27 / scale}px sans-serif`; ctx.fillStyle = '#396848'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(handle.icon, x, y); ctx.restore();
+    ctx.font = `${27 / scale}px sans-serif`; ctx.fillStyle = '#4A3C2F'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(handle.icon, x, y); ctx.restore();
   });
 }
 async function loadImages(canvas, items, cache, strict) {

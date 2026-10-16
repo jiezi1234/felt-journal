@@ -4,8 +4,8 @@
   <view wx:elif="{{error}}" class="error">{{error}}<button bindtap="refresh">重试读取</button></view>
   <block wx:else>
     <view class="row board-heading"><view class="section-title">{{dateLabel}}</view><button id="edit-board" bindtap="edit">布置板面</button></view>
-    <felt-board id="board" model="{{model}}" bind:memory="memory" />
-    <view class="caption">{{count ? '共 ' + count + ' 件生活拾遗' : '把一件小事，轻轻贴在这里'}} · 浏览模式</view>
+    <view class="board-sheet"><felt-board id="board" model="{{model}}" bind:memory="memory" />
+    <view class="caption">{{count ? '共 ' + count + ' 件生活拾遗' : '把一件小事，轻轻贴在这里'}} · 浏览模式</view></view>
     <button wx:if="{{count}}" id="export-board" class="primary full space" bindtap="exportBoard">导出 / 分享这一天 ↗</button>
     <button wx:else id="add-memory" class="primary full space" bindtap="sourceSheet">＋ 添加一件记忆</button>
   </block>

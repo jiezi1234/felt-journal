@@ -1,20 +1,22 @@
 .memories-page .title { font-size:25px; margin:16px 0 22px; }
 .filter-paper { margin-top:0; padding:16px; }
-.scope-tabs { padding:4px; border-radius:16px; background:#EEF3EF; }
+.scope-tabs { padding:4px; border-radius:16px; background:#EEECE7; }
 .scope-tabs button { font-size:14px; background:transparent; padding:10px 6px; }
-.scope-tabs button.active,.category-chips button.active { background:#435E4E; color:#FFFFFF; }
-.month-choice { min-height:44px; display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding:8px 6px; color:#435A4E; }
-.month-choice text { font-size:12px; color:#68766C; }
+.scope-tabs button.active,.category-chips button.active { background:#8D6B32; color:#FFFFFF; }
+.month-choice { min-height:44px; display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding:8px 6px; color:#6F5948; }
+.month-choice text { font-size:12px; color:#847A72; }
 .category-chips { display:flex; flex-wrap:wrap; gap:8px; }
-button.category { margin:0; padding:10px 12px; font-size:13px; width:auto; background:#F2F5F3; border-radius:22px; }
+button.category { margin:0; padding:10px 12px; font-size:13px; width:auto; background:#F4F2EE; border-radius:22px; }
 .category-count { margin-left:6px; opacity:.78; font-size:12px; }
 .results-heading { margin:24px 0 14px; display:flex; flex-direction:column; gap:4px; font-size:14px; }
-.date-group { margin-top:18px; }.date-heading { margin-bottom:8px; font-size:14px; color:#65766B; }.date-heading button { font-size:12px; }
-button.memory-row { display:flex; align-items:center; gap:12px; width:100%; text-align:left; margin:0 0 10px; padding:14px 12px; background:#FFFFFF; border:1px solid #E9EEEB; border-radius:18px; }
-.memory-thumb { width:76px; height:76px; flex-shrink:0; border-radius:12px; background:#F0F4F1; display:flex; align-items:center; justify-content:center; }
-.memory-thumb image { width:66px; height:66px; }.missing-thumb { font-size:11px; color:#68766C; }
-.memory-copy { flex:1; min-width:0; }.memory-category { display:inline-block; color:#435A4E; font-size:12px; padding:3px 8px; background:#EEF3EF; border-radius:14px; }
-.memory-excerpt { font-size:14px; color:#263530; line-height:1.6; margin-top:7px; font-weight:400; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; word-break:break-all; }
-.memory-excerpt.muted { color:#68766C; }.memory-arrow { color:#86988B; font-size:22px; flex-shrink:0; }
-.empty-result { text-align:center; padding:28px 18px; }.pagination { margin-top:24px; }.pagination button { font-size:13px; }.page-number { color:#68766C; font-size:12px; white-space:nowrap; }
-.filter-paper { padding:18px; }.scope-tabs button.active { background:#FFFFFF; color:#344C40; box-shadow:0 2px 8px rgba(38,53,48,.04); }.scope-tabs button { border-color:transparent; }.category-chips button.active { background:#E7EFE9; color:#344C40; border-color:#D7E3DA; }.category-chips button { background:#F7F9F8; }.memory-row { box-shadow:0 4px 18px rgba(38,53,48,.02); }.date-group { margin-top:26px; }.results-heading { margin-top:28px; }.memories-page .page-heading .title { font-size:28px; margin:8px 0 10px; }
+.date-group { margin-top:18px; }.date-heading { margin-bottom:8px; font-size:14px; color:#9B8874; }.date-heading button { font-size:12px; }
+button.memory-row { display:flex; align-items:center; gap:12px; width:100%; text-align:left; margin:0 0 10px; padding:14px 12px; background:#FFFFFF; border:1px solid #EFEAE3; border-radius:18px; }
+.memory-thumb { width:76px; height:76px; flex-shrink:0; border-radius:12px; background:#F6F3EC; display:flex; align-items:center; justify-content:center; }
+.memory-thumb image { width:66px; height:66px; }.missing-thumb { font-size:11px; color:#847A72; }
+.memory-copy { flex:1; min-width:0; }.memory-category { display:inline-block; color:#6F5948; font-size:12px; padding:3px 8px; background:#EEECE7; border-radius:14px; }
+.memory-excerpt { font-size:14px; color:#262321; line-height:1.6; margin-top:7px; font-weight:400; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; word-break:break-all; }
+.memory-excerpt.muted { color:#847A72; }.memory-arrow { color:#AD9A86; font-size:22px; flex-shrink:0; }
+.empty-result { text-align:center; padding:28px 18px; }.pagination { margin-top:24px; }.pagination button { font-size:13px; }.page-number { color:#847A72; font-size:12px; white-space:nowrap; }
+.filter-paper { padding:18px; }.scope-tabs button.active { background:#FFFFFF; color:#342E28; box-shadow:0 2px 8px rgba(65,48,36,.04); }.scope-tabs button { border-color:transparent; }.category-chips button.active { background:#FFEDBD; color:#342E28; border-color:#EFDCB0; }.category-chips button { background:#F8F6F1; }.memory-row { box-shadow:0 4px 18px rgba(65,48,36,.02); }.date-group { margin-top:26px; }.results-heading { margin-top:28px; }.memories-page .page-heading .title { font-size:28px; margin:8px 0 10px; }
+
+.filter-paper { border-radius:28px; padding:18px; }.scope-tabs { border-radius:28px; background:#F2EFE9; }.scope-tabs button.active { background:#FFFFFF; color:#6C543F; box-shadow:0 2px 7px rgba(70,52,32,.06); }.category-chips button.active { background:#FFEDBD; color:#6F532E; border-color:#F0D8A0; }button.memory-row { border:1px solid #FFFFFF; border-radius:26px; padding:16px 13px; box-shadow:0 4px 16px rgba(65,48,36,.025); }.memory-thumb { width:80px; height:80px; border-radius:23px; background:linear-gradient(145deg,#FFFCF4,#F1EBDF); }.memory-thumb image { width:72px; height:72px; }.memory-category { color:#896946; background:#FFF3D8; }.memory-excerpt { color:#776454; }.date-heading { padding:0 5px; }.empty-result { border:1px dashed #E1D8CA; }

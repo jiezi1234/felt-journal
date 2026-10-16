@@ -1,9 +1,11 @@
 .themes-page .title { font-size:25px; margin-bottom:12px; }
 .theme-create { margin-top:24px !important; }
-.theme-input { height:52px; border:1px solid #E2E9E4; border-radius:12px; padding:0 12px; margin:20px 0 8px; background:#FAFCFB; font-size:15px; }
+.theme-input { height:52px; border:1px solid #E9E0D3; border-radius:12px; padding:0 12px; margin:20px 0 8px; background:#FEFCF8; font-size:15px; }
 .theme-card { padding:14px; }button.theme-open { display:block; width:100%; margin:0; padding:0; border:0; background:transparent; text-align:left; }
 .theme-cover { border:8px solid #493527; border-radius:18px; min-height:126px; display:flex; align-items:center; justify-content:center; gap:8px; padding:12px; }
 .theme-cover image { width:28%; height:86px; }.theme-heading { margin-top:14px; align-items:flex-start; }.theme-heading > text { flex-shrink:0; }
 .theme-name { font-size:20px; font-weight:600; line-height:1.5; word-break:break-all; }
-.theme-actions { margin-top:12px; border-top:1px solid #E2E9E4; padding-top:8px; }.empty-theme { text-align:center; padding:30px 18px; }
-.theme-create { margin-top:30px !important; }.theme-card { padding:18px; }.theme-heading { margin-top:20px; }.theme-cover { border-width:6px; }.theme-actions { margin-top:18px; padding-top:12px; }.empty-theme { padding:40px 20px; background:linear-gradient(145deg,#FFFFFF,#F1F6F3); }.theme-input { height:54px; border-color:#DDE6DF; }.themes-page .page-heading .title { font-size:28px; }
+.theme-actions { margin-top:12px; border-top:1px solid #E9E0D3; padding-top:8px; }.empty-theme { text-align:center; padding:30px 18px; }
+.theme-create { margin-top:30px !important; }.theme-card { padding:18px; }.theme-heading { margin-top:20px; }.theme-cover { border-width:6px; }.theme-actions { margin-top:18px; padding-top:12px; }.empty-theme { padding:40px 20px; background:linear-gradient(145deg,#FFFFFF,#FFF6DF); }.theme-input { height:54px; border-color:#E8DDC9; }.themes-page .page-heading .title { font-size:28px; }
+
+.theme-card { border-radius:30px; padding:16px; }.theme-name { color:#715643; }.theme-actions { border-top-style:dashed; }.theme-input { border-radius:20px; background:#FCFAF5; }.theme-form { background:linear-gradient(145deg,#FFFFFF,#FFFCF5); }.empty-theme { border:1px dashed #E6DBCA; }.theme-cover { border-radius:22px; }.theme-heading { padding:0 3px; }
