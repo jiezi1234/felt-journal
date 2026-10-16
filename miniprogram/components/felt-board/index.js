@@ -1,21 +1,22 @@
 const renderer = require('../../core/renderer');
 const geometry = require('../../core/geometry');
 const B = require('../../core/config').board;
+const stickerMotion = require('../../core/sticker-motion');
 Component({
-  properties: { model: { type: Object, value: null }, editable: Boolean, selected: String, covered: Boolean, interactive: { type: Boolean, value: true } },
+  properties: { model: { type: Object, value: null }, editable: Boolean, selected: String, covered: Boolean, landingId: String, interactive: { type: Boolean, value: true } },
   data: { height: 210, handles: [], imageError: false, snapshot: '' },
-  observers: { 'model, editable, selected, covered': function () { this.refresh(); } },
+  observers: { 'model, editable, selected, covered, landingId': function () { this.refresh(); } },
   lifetimes: { ready() { this.measure(); }, detached() { this.dead = true; clearTimeout(this.longTimer); } },
   pageLifetimes: { resize() { this.measure(); }, show() { if (this.canvas) this.refresh(); } },
   methods: {
     stop() {},
     measure() {
-      this.createSelectorQuery().select('#feltCanvas').fields({ node: true, size: true, rect: true }).exec(result => {
-        const r = result[0]; if (!r || !r.node || !r.width) return;
-        this.canvas = r.node; this.screenWidth = r.width;
+      this.createSelectorQuery().select('#feltCanvas').fields({ node: true }).select('.board-shell').boundingClientRect().exec(result => {
+        const r = result[0], rect = result[1]; if (this.dead || !r || !r.node || !rect || !rect.width) return;
+        this.canvas = r.node; this.screenWidth = rect.width;
         const dpr = wx.getSystemInfoSync().pixelRatio || 2;
-        this.canvas.width = Math.round(r.width * dpr); this.canvas.height = Math.round(r.width * B.height / B.width * dpr);
-        this.setData({ height: r.width * B.height / B.width }, () => this.refresh());
+        this.canvas.width = Math.round(rect.width * dpr); this.canvas.height = Math.round(rect.width * B.height / B.width * dpr);
+        this.setData({ height: rect.width * B.height / B.width }, () => this.refresh());
       });
     },
     async refresh() {
@@ -26,17 +27,28 @@ Component({
         if (version !== this.version || this.dead) return;
         const ctx = this.canvas.getContext('2d'); ctx.setTransform(this.canvas.width / B.width, 0, 0, this.canvas.height / B.height, 0, 0);
         const selected = (model.items || []).find(p => p.memoryId === this.data.selected);
-        const handles = this.data.editable && selected ? geometry.handles(selected, this.screenWidth) : [];
-        renderer.paint(ctx, model, this.images, this.data.editable ? this.data.selected : '');
+        const handles = this.data.editable && selected && !this.data.landingId ? geometry.handles(selected, this.screenWidth) : [];
+        const visible = this.data.landingId ? Object.assign({}, model, { items: model.items.filter(p => p.memoryId !== this.data.landingId) }) : model;
+        renderer.paint(ctx, visible, this.images, this.data.editable && !this.data.landingId ? this.data.selected : '');
         renderer.paintControls(ctx, handles, this.screenWidth);
         this.setData({ handles, imageError: (model.items || []).some(p => this.images[p.memory.subjectPath].missing) });
         // Native canvas layers can pierce an overlay. Keep the same board visible
         // as a raster while covered, without destroying the canvas or page.
         if (this.data.covered) wx.canvasToTempFilePath({ canvas: this.canvas, fileType: 'png',
-          success: result => { if (!this.dead && this.data.covered && version === this.version) this.setData({ snapshot: result.tempFilePath }); },
-          fail() {}
+          success: result => { if (!this.dead && this.data.covered && version === this.version) this.setData({ snapshot: result.tempFilePath }, () => this.landingReady()); },
+          fail: () => { if (!this.dead && this.data.covered && version === this.version) this.landingReady(); }
         });
-      } catch (_) { this.setData({ imageError: true }); }
+      } catch (_) { if (!this.dead && version === this.version) this.setData({ imageError: true }); }
+    },
+    landingReady() {
+      const id = this.data.landingId;
+      if (!id || this.dead) return;
+      this.createSelectorQuery().select('.board-shell').boundingClientRect(rect => {
+        if (this.dead || this.data.landingId !== id) return;
+        const placement = this.data.model.items.find(item => item.memoryId === id);
+        const target = stickerMotion.landingRect(rect, placement);
+        if (target) this.triggerEvent('landingready', { id, target });
+      }).exec();
     },
     point(touch) { return { x: (touch.clientX - this.rect.left) * B.width / this.screenWidth - B.inset, y: (touch.clientY - this.rect.top) * B.width / this.screenWidth - B.inset }; },
     touchStart(e) {

@@ -6,15 +6,18 @@ const config = require('../core/config');
 const geometry = require('../core/geometry');
 const platform = require('./platform');
 const photo = require('./page-photo');
+const stickerMotion = require('../core/sticker-motion');
 function createBoardEditor(options = {}) { return {
-  data: { embedded: !!options.embedded, sourceStage: false, drawer: '', libraryItems: [], noteText: '', noteCategory: 0, noteError: '', noteHint: '', categories: config.categories, maxText: config.maxText, loading: true, error: '', date: '', dateLabel: '', isTheme: false, editable: false, canEdit: false, selected: '', model: null, count: 0, saveState: '已保存', saveError: '', task: null, colors: config.colors, textures: config.textures, appearanceLabel: '', canUndo: false, canRedo: false, canBringToFront: false, canSendToBack: false, recovering: false, openingLibrary: false },
+  // Placement feedback never changes the saved model or creates another memory.
+  data: { embedded: !!options.embedded, sourceStage: false, drawer: '', libraryItems: [], noteText: '', noteCategory: 0, noteError: '', noteHint: '', categories: config.categories, maxText: config.maxText, loading: true, error: '', date: '', dateLabel: '', isTheme: false, editable: false, canEdit: false, selected: '', model: null, count: 0, saveState: '已保存', saveError: '', task: null, placing: null, colors: config.colors, textures: config.textures, appearanceLabel: '', canUndo: false, canRedo: false, canBringToFront: false, canSendToBack: false, recovering: false, openingLibrary: false },
   onLoad(query) {
     this.store = getStore(); this.date = query.board || query.date || dates.key(); this.wantEdit = query.mode === 'edit'; this.wantAdd = query.add === '1';
   },
   onShow() { this.refresh(); },
+  onResize() { this.stickerLanded(); },
   onReady() { if (this.wantAdd && !this.data.error) { this.wantAdd = false; this.sourceSheet(); } },
-  onHide() { this.cancelGesture(); if (this.dirty) this.persist(); if (this.noteDirty) this.keepNoteDraft(); },
-  onUnload() { if (this.dirty) { this.store.keepDraft(this.draft); this.persist(); } if (this.noteDirty) this.keepNoteDraft(); photo.dispose(this); platform.unloadGuard(false); },
+  onHide() { this.stickerLanded(); this.cancelGesture(); if (this.dirty) this.persist(); if (this.noteDirty) this.keepNoteDraft(); },
+  onUnload() { clearTimeout(this.placementTimer); if (this.dirty) { this.store.keepDraft(this.draft); this.persist(); } if (this.noteDirty) this.keepNoteDraft(); photo.dispose(this); platform.unloadGuard(false); },
   refresh() {
     try {
       if (!isThemeId(this.date) && (!dates.valid(this.date) || this.date > dates.key())) throw new Error('不能进入未来或无效日期');
@@ -49,7 +52,7 @@ function createBoardEditor(options = {}) { return {
     finally { if (!this.disposed) this.setData({ recovering: false }); }
   },
   cancelGesture() { const board = this.selectComponent && this.selectComponent('#board'); if (board) board.touchCancel(); },
-  canAdjust() { return this.data.editable && !this.photoTask && !this.data.recovering && !this.mutating && !this.data.openingLibrary; },
+  canAdjust() { return this.data.editable && !this.photoTask && !this.data.placing && !this.data.recovering && !this.mutating && !this.data.openingLibrary; },
   changed(record = true) {
     if (record && !this.history.record(this.draft)) { this.display(); return !this.dirty || this.persist(); }
     this.dirty = true; this.store.keepDraft(this.draft); platform.unloadGuard(true); this.display(); return this.persist();
@@ -116,13 +119,13 @@ function createBoardEditor(options = {}) { return {
   },
   async sourceSheet() {
     if (this.data.isTheme) return this.library();
-    if (!this.data.canEdit || this.photoTask || this.data.error || this.data.recovering) return;
+    if (!this.data.canEdit || this.photoTask || this.data.placing || this.data.error || this.data.recovering) return;
     if (this.data.embedded) this.setData({ sourceStage: true, drawer: '' });
     else this.setData({ drawer: 'source' });
   },
   camera() { this.add('camera'); }, album() { this.add('album'); },
   add(source) {
-    if (isThemeId(this.date) || this.photoTask || this.data.recovering || this.mutating) return;
+    if (isThemeId(this.date) || this.photoTask || this.data.placing || this.data.recovering || this.mutating) return;
     if (!this.store.canEdit(this.date)) { platform.toast('日期已变化，请关闭卡片后重新记录'); return; }
     this.cancelGesture();
     if (this.draft.placements.length >= config.maxItems) { platform.toast(`每块板最多 ${config.maxItems} 件记忆`); return; }
@@ -130,9 +133,35 @@ function createBoardEditor(options = {}) { return {
     this.setData({ drawer: '' }); photo.begin(this, source, { date: this.date });
   },
   photoDone(id) { this.draft = this.store.board(this.date); this.history.reset(this.draft); this.setData({ selected: id, editable: true, canEdit: true, sourceStage: false }); this.display(); this.notifyChange(); },
-  retryPhoto() { photo.retry(this); }, originalPhoto() { photo.original(this); }, cancelPhoto() { photo.cancel(this); },
+  retryPhoto() { photo.retry(this); }, originalPhoto() { photo.original(this); },
+  cancelPhoto(e) {
+    if (this.data.placing) return;
+    const task = this.photoTask, id = this.data.selected;
+    const memory = task && task.committed && this.store.get().memories[id];
+    const source = memory && stickerMotion.imageRect(e && e.detail && e.detail.rect, memory);
+    if (!source) return photo.cancel(this);
+    const token = (this.placementToken || 0) + 1; this.placementToken = token;
+    this.setData({ placing: { id, path: memory.subjectPath, source, token } });
+    // A missing canvas/image must not leave an invisible, uneditable memory.
+    this.placementTimer = setTimeout(() => this.stickerLanded({ detail: { token } }), 6000);
+  },
+  stickerLifted(e) {
+    if (!this.data.placing || this.disposed || this.data.placing.token !== e.detail.token) return;
+    photo.finish(this, false);
+  },
+  stickerTarget(e) {
+    const placing = this.data.placing;
+    if (!placing || this.disposed || placing.target || placing.id !== e.detail.id || !stickerMotion.validRect(e.detail.target)) return;
+    this.setData({ placing: Object.assign({}, placing, { target: e.detail.target }) });
+  },
+  stickerLanded(e) {
+    const placing = this.data.placing;
+    if (!placing || this.disposed || e && e.detail && e.detail.token !== placing.token) return;
+    clearTimeout(this.placementTimer); photo.finish(this, false); this.setData({ placing: null });
+    if (e) platform.localNotice(this.store).catch(() => {});
+  },
   async library() {
-    if (!this.data.canEdit || this.data.error || this.photoTask || this.data.recovering || this.data.openingLibrary || this.mutating) return;
+    if (!this.data.canEdit || this.data.error || this.photoTask || this.data.placing || this.data.recovering || this.data.openingLibrary || this.mutating) return;
     this.cancelGesture(); if (this.dirty && !this.persist()) return;
     if (this.draft.placements.length >= config.maxItems) { platform.toast(`每块板最多 ${config.maxItems} 件记忆`); return; }
     if (this.data.embedded) {
@@ -160,7 +189,7 @@ function createBoardEditor(options = {}) { return {
     finally { this.mutating = false; }
   },
   exportBoard() {
-    if (!this.data.count || this.photoTask || this.dirty && !this.persist()) return;
+    if (!this.data.count || this.photoTask || this.data.placing || this.dirty && !this.persist()) return;
     wx.navigateTo({ url: `/pages/export/index?${this.data.isTheme ? 'board' : 'date'}=${encodeURIComponent(this.date)}` });
   },
   stop() {},
@@ -202,6 +231,7 @@ function createBoardEditor(options = {}) { return {
     if (this.noteDirty && !this.saveNote()) return;
     this.closing = true;
     try {
+    this.stickerLanded();
     if (this.photoTask) {
       const task = this.photoTask;
       if (!task.committed) {

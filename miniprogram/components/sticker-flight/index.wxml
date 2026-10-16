@@ -1,0 +1,4 @@
+<view wx:if="{{flight}}" id="sticker-flight" class="flight-veil" catchtouchmove="stop" catchtap="stop" aria-label="正在贴到画板">
+  <image wx:if="{{!painted}}" class="flying-sticker" src="{{flight.path}}" mode="aspectFit" style="left:{{flight.source.left}}px;top:{{flight.source.top}}px;width:{{flight.source.width}}px;height:{{flight.source.height}}px;" binderror="failed" />
+  <canvas id="flight-canvas" type="2d" class="flight-canvas" />
+</view>

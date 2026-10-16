@@ -1,6 +1,6 @@
 <view wx:if="{{task}}" id="photo-task" class="{{inline ? 'inline-panel' : 'veil'}}" catchtouchmove="stop">
   <view class="sheet photo-task-sheet {{preview ? 'is-preview' : ''}} {{done ? 'is-done' : ''}} {{failed ? 'is-error' : ''}}">
-    <view id="task-preview" class="photo-stage {{canCompare && !showOriginal ? 'has-subject' : 'has-original'}}">
+    <view id="task-preview" style="visibility:{{lifting ? 'hidden' : 'visible'}};" class="photo-stage {{canCompare && !showOriginal ? 'has-subject' : 'has-original'}}">
       <image wx:if="{{canCompare && !showOriginal}}" id="task-image" class="task-image photo-enter" src="{{displayImage}}" mode="aspectFit" aria-label="照片主体" />
       <image wx:elif="{{displayImage}}" id="task-image" class="task-image photo-enter" src="{{displayImage}}" mode="aspectFit" aria-label="原始照片" />
       <view wx:else class="photo-empty" aria-hidden="true"><view class="empty-camera"><view /></view></view>

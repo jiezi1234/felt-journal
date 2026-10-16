@@ -14,10 +14,11 @@
           <view wx:if="{{error}}" class="error">{{error}}</view>
         </view>
         <block wx:if="{{!sourceStage && !task}}"><include src="../../templates/board-content.wxml" /></block>
-        <photo-panel id="record-photo" inline="{{true}}" continue-label="继续布置" task="{{task}}" bind:retry="retryPhoto" bind:original="originalPhoto" bind:cancel="cancelPhoto" />
+        <photo-panel id="record-photo" inline="{{true}}" lifting="{{!!placing}}" continue-label="继续布置" task="{{task}}" bind:retry="retryPhoto" bind:original="originalPhoto" bind:cancel="cancelPhoto" />
       </view>
     </scroll-view>
     <view wx:if="{{!sourceStage && !task}}" class="record-footer"><button id="finish-record" class="primary full" disabled="{{recovering}}" bindtap="done">完成</button></view>
     <include src="../../templates/board-drawers.wxml" />
   </view>
+  <sticker-flight id="placement-flight" wx:if="{{placing}}" flight="{{placing}}" bind:peeled="stickerLifted" bind:landed="stickerLanded" />
 </view>

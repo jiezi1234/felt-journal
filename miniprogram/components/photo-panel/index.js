@@ -3,8 +3,9 @@ const stageLabels = {
   extracting: '主体提取中…', saving: '保存记忆中…'
 };
 Component({
-  properties: { task: Object, inline: Boolean, continueLabel: { type: String, value: '继续' } },
+  properties: { task: Object, inline: Boolean, lifting: Boolean, continueLabel: { type: String, value: '继续' } },
   data: { showOriginal: false, preview: false, done: false, failed: false, analyzing: false, stageLabel: '', resultLabel: '', displayImage: '', canCompare: false },
+  lifetimes: { detached() { this.dead = true; } },
   observers: {
     task(task) {
       const state = task && task.state || '', original = task && task.original || '';
@@ -24,7 +25,19 @@ Component({
     }
   },
   methods: {
-    retry() { this.triggerEvent('retry'); }, original() { this.triggerEvent('original'); }, cancel() { this.triggerEvent('cancel'); },
+    retry() { this.triggerEvent('retry'); }, original() { this.triggerEvent('original'); },
+    cancel() {
+      if (!this.data.done) { this.triggerEvent('cancel'); return; }
+      const task = this.data.task;
+      if (this.continuing === task) return;
+      this.continuing = task;
+      this.createSelectorQuery().select('#task-image').boundingClientRect(rect => {
+        if (this.continuing !== task) return;
+        this.continuing = null;
+        if (this.dead || this.data.task !== task) return;
+        this.triggerEvent('cancel', { rect });
+      }).exec();
+    },
     compare() {
       if (!this.data.canCompare) return;
       const showOriginal = !this.data.showOriginal;

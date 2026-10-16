@@ -1,1 +1,1 @@
-{ "navigationBarTitleText": "毛毡板", "usingComponents": { "felt-board": "/components/felt-board/index", "felt-swatch": "/components/felt-swatch/index", "photo-panel": "/components/photo-panel/index", "main-nav": "/components/main-nav/index" } }
+{ "navigationBarTitleText": "毛毡板", "usingComponents": { "felt-board": "/components/felt-board/index", "felt-swatch": "/components/felt-swatch/index", "photo-panel": "/components/photo-panel/index", "sticker-flight": "/components/sticker-flight/index", "main-nav": "/components/main-nav/index" } }

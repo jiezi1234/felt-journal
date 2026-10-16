@@ -3,7 +3,7 @@
 <block wx:else>
   <view class="row board-heading"><view><view wx:if="{{!embedded}}" class="section-title">{{dateLabel}}</view><view wx:if="{{editable}}" class="muted">{{saveState}}</view></view><button wx:if="{{editable && !embedded}}" class="primary" disabled="{{task || recovering}}" bindtap="done">完成</button><button wx:elif="{{!editable && canEdit}}" disabled="{{task || recovering}}" bindtap="edit">编辑</button></view>
   <view wx:if="{{saveError}}" class="error">{{saveError}}<button class="ghost" bindtap="retrySave">重试保存</button></view>
-  <felt-board id="board" covered="{{!!drawer || !!task}}" model="{{model}}" editable="{{editable}}" selected="{{selected}}" bind:select="select" bind:change="placementChanged" bind:transform="transform" bind:memory="memory" />
+  <felt-board id="board" covered="{{!!drawer || !!task || !!placing}}" landing-id="{{placing.id || ''}}" model="{{model}}" editable="{{editable}}" selected="{{selected}}" bind:landingready="stickerTarget" bind:select="select" bind:change="placementChanged" bind:transform="transform" bind:memory="memory" />
   <view class="caption">{{count ? count + ' 件记忆' : '暂无记忆'}}{{editable && count ? ' · 拖动布置' : ''}}</view>
   <block wx:if="{{editable}}">
     <view class="editor-toolbar"><button id="add-photo" class="primary" disabled="{{task || recovering}}" bindtap="sourceSheet">{{isTheme ? '＋ 添加记忆' : '＋ 添加照片'}}</button><button id="open-appearance" class="secondary appearance-entry" disabled="{{task || recovering}}" bindtap="openAppearance"><text>板面与纹理　⌃</text><text class="appearance-summary">{{appearanceLabel}}</text></button></view>

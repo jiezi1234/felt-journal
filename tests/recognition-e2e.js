@@ -97,11 +97,31 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     const continueButton = await panel.$('#continue-layout');
     assert.ok(continueButton, 'Continue button renders after saved completion');
     console.log('STEP: completion button found');
-    await continueButton.tap(); await wait(card, data => !data.task && !data.sourceStage);
+    await continueButton.tap();
+    await wait(card, data => !!data.placing);
+    await capture('04-peeling');
+    await wait(card, data => !data.task && !data.sourceStage);
+    const flight = await wait(card, data => data.placing && data.placing.target);
+    assert.equal(flight.placing.id, id);
+    assert.ok(flight.placing.target.width < flight.placing.source.width, 'Sticker shrinks from preview to the board');
+    const board = await card.$('#board');
+    assert.equal((await board.data()).landingId, id);
+    await capture('05-flying');
     await card.callMethod('cancelPhoto');
+    await wait(card, data => !data.placing);
+    assert.equal((await board.data()).landingId, '');
     assert.equal(Object.keys((await readState()).memories).length, 1);
+    checks.push('Continue flies the same saved sticker to measured board coordinates, hides the duplicate during flight and unlocks placement after landing');
     checks.push('real upload/extraction/download produces a transparent saved PNG; original/result comparison preserves the saved file; done persists until continue; same home and one commit');
     await capture('05-arrange');
+    const boardPng = await mini.evaluate(() => new Promise((resolve, reject) => {
+      const board = getCurrentPages().at(-1).selectComponent('#record-card').selectComponent('#board');
+      wx.canvasToTempFilePath({ canvas: board.canvas, fileType: 'png', success: result => {
+        const fs = wx.getFileSystemManager();
+        try { resolve(fs.readFileSync(result.tempFilePath, 'base64')); } catch (error) { reject(error); }
+      }, fail: reject });
+    }));
+    fs.writeFileSync(path.join(output, 'actual-board-canvas.png'), Buffer.from(boardPng, 'base64'));
     console.log('STEP: continued to arrangement on the same home page');
     await (await card.$('#close-record')).tap(); await wait(home, data => !data.editorOpen && data.count === 1);
     await (await home.$('#record-today')).tap(); await wait(home, data => data.editorOpen);
@@ -133,6 +153,6 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
       fs.writeFileSync(path.join(output, 'cleanup.json'), JSON.stringify({ storageRestored: restored, at: new Date().toISOString() }, null, 2));
     }
   }
-  fs.writeFileSync(path.join(output, 'acceptance.json'), JSON.stringify({ passed: true, at: new Date().toISOString(), storageRestored: restored, states, checks, screenshots, limitations: ['System photo picker uses a test fixture', 'Loopback test endpoint; public HTTPS and physical phone not verified', 'Animation screenshots are samples, not frame-accurate comparison with the original APK'] }, null, 2));
+  fs.writeFileSync(path.join(output, 'acceptance.json'), JSON.stringify({ passed: true, at: new Date().toISOString(), storageRestored: restored, states, checks, screenshots, limitations: ['System photo picker uses a test fixture', 'Loopback test endpoint; public HTTPS and physical phone not verified', 'DevTools screenshots can misplace native Canvas layers; actual-board-canvas.png is the direct Canvas export', 'Animation screenshots are samples, not frame-accurate comparison with the original APK'] }, null, 2));
   console.log('PASS:', checks.join('\nPASS: '));
 })().catch(error => { console.error(error.stack || error); process.exitCode = 1; });

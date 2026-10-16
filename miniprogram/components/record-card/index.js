@@ -11,6 +11,6 @@ Component({
     ready() { controller.onShow.call(this); },
     detached() { controller.onUnload.call(this); }
   },
-  pageLifetimes: { hide() { controller.onHide.call(this); }, show() { if (this.store) controller.onShow.call(this); } },
+  pageLifetimes: { hide() { controller.onHide.call(this); }, show() { if (this.store) controller.onShow.call(this); }, resize() { controller.onResize.call(this); } },
   methods
 });

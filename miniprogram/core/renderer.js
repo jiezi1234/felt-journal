@@ -24,7 +24,7 @@ function paint(ctx, model, images, selection) {
       ctx.shadowColor = 'rgba(48,47,43,0.24)'; ctx.shadowBlur = 9; ctx.shadowOffsetY = 5;
       ctx.drawImage(image, -size.width / 2, -size.height / 2, size.width, size.height);
       ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-      // The extraction service supplies its thin contour edge. Draw once so
+      // The extraction service supplies the white sticker contour. Draw once so
       // semitransparent hair/fabric retains its original alpha and photo color.
     } else {
       ctx.fillStyle = '#F7F2E9'; ctx.fillRect(-p.width / 2, -p.height / 2, p.width, p.height);

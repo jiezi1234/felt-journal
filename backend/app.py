@@ -19,7 +19,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
-from PIL import Image, ImageFilter, ImageOps, UnidentifiedImageError
+from PIL import Image, ImageOps, UnidentifiedImageError
 from starlette.concurrency import run_in_threadpool
 from backend.classification import PhotoClassifier
 
@@ -58,13 +58,8 @@ class SubjectExtractor:
             if not bbox:
                 raise ValueError('No subject found')
             result = result.crop(bbox)
-        # A narrow warm edge follows alpha, never a rectangular photo card.
-        result = ImageOps.expand(result, border=5, fill=(0, 0, 0, 0))
-        edge_alpha = result.getchannel('A').filter(ImageFilter.MaxFilter(3))
-        edge = Image.new('RGBA', result.size, (255, 249, 234, 0))
-        edge.putalpha(edge_alpha)
-        edge.alpha_composite(result)
-        return edge
+        from backend.border import white_sticker
+        return white_sticker(result)
 
 
 def clean_alpha(result: Image.Image) -> Image.Image:

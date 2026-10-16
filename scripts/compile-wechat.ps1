@@ -9,7 +9,7 @@ $artifactRoot = Join-Path $projectRoot 'artifacts\compile'
 New-Item -ItemType Directory -Force -Path $artifactRoot | Out-Null
 $routes = (Get-Content -LiteralPath (Join-Path $projectRoot 'miniprogram\app.json') -Raw | ConvertFrom-Json).pages
 $sources = @($routes)
-$sources += @('components/felt-board/index','components/photo-panel/index','components/felt-swatch/index','components/main-nav/index','components/record-card/index','custom-tab-bar/index')
+$sources += @('components/felt-board/index','components/photo-panel/index','components/felt-swatch/index','components/main-nav/index','components/record-card/index','components/sticker-flight/index','custom-tab-bar/index')
 $wxml = @($sources | ForEach-Object { "$_.wxml" })
 $wxml += @('board-content','board-drawers','themes-content') | ForEach-Object { "templates/$_.wxml" }
 Push-Location (Join-Path $projectRoot 'miniprogram')
