@@ -25,16 +25,16 @@
     "borderStyle": "white",
     "list": [
       {
-        "pagePath": "pages/index/index",
-        "text": "今天",
-        "iconPath": "images/navigation/today.png",
-        "selectedIconPath": "images/navigation/today-active.png"
-      },
-      {
         "pagePath": "pages/board-tab/index",
         "text": "主题板",
         "iconPath": "images/navigation/board.png",
         "selectedIconPath": "images/navigation/board-active.png"
+      },
+      {
+        "pagePath": "pages/index/index",
+        "text": "今天",
+        "iconPath": "images/navigation/today.png",
+        "selectedIconPath": "images/navigation/today-active.png"
       },
       {
         "pagePath": "pages/calendar/index",

@@ -1,7 +1,7 @@
 const platform = require('../../services/platform');
 Component({
   properties: { active: String },
-  data: { navigating: false, items: [{ id: 'today', label: '今天' }, { id: 'board', label: '主题板' }, { id: 'calendar', label: '月历时光' }] },
+  data: { navigating: false, items: [{ id: 'board', label: '主题板' }, { id: 'today', label: '今天' }, { id: 'calendar', label: '月历时光' }] },
   lifetimes: { detached() { this.disposed = true; } },
   methods: {
     async open(e) {
