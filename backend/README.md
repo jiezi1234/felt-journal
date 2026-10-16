@@ -42,7 +42,7 @@ backend/.venv/Scripts/python.exe -m backend.verify_nosh path/to/photo.jpg
 4. 修改 `miniprogram/core/config.js` 的 `extraction`：`mode: 'remote'`，`endpoint: 'https://你的域名/extract'`。不要将供应商密钥写入小程序。
 5. 开发工具当前私有配置关闭了 URL 校验；正式验收须重新开启校验后在手机上测试。localhost、局域网 HTTP 和本地测试通过都不能替代 HTTPS 真机接通。
 
-后端已完成服务器内部部署与真实推理验收，公网域名解析、ICP备案、HTTPS 签发及微信域名配置尚未完成，小程序仍保持 `unconfigured`。它会如实显示提取尚未配置，并允许明确选择使用原图；不会把矩形原图标记为提取成功。
+2026-10-16 后端已切换至 `nosh-mnn` 并完成服务器内部真实推理及重启验收，公网域名解析、ICP备案、HTTPS 签发及微信域名配置尚未完成，小程序仍保持 `unconfigured`。它会如实显示提取尚未配置，并允许明确选择使用原图；不会把矩形原图标记为提取成功。
 
 ## 小程序本机真实联网调试
 
@@ -69,17 +69,20 @@ Compose 与 Docker 默认选择 `nosh-mnn`，构建镜像不含 APK 或模型权
 
 ```sh
 docker compose --env-file backend/.env -f backend/compose.yaml up -d --build
-docker compose --env-file backend/.env -f backend/compose.yaml cp backend/.runtime/nosh/main_segment.mnn extractor:/tmp/main_segment.mnn
+docker compose --env-file backend/.env -f backend/compose.yaml exec -T extractor \
+  sh -c 'cat > /tmp/main_segment.mnn' < backend/.runtime/nosh/main_segment.mnn
 docker compose --env-file backend/.env -f backend/compose.yaml exec -T extractor python -m backend.prepare_nosh_model --mnn /tmp/main_segment.mnn
 ```
 
-以上 `cp` 源路径是在执行 Docker 命令的主机上，需先安全传入自己的服务器；模型不通过 Git 传输。容器 `/tmp` 可写，导入目的为持久卷。然后执行真实照片预热与下文的部署验收。原有服务器尚运行 ISNet 的历史验收不代表新版 nosh 引擎已部署，也不代表公网 HTTPS 已接通。
+以上输入文件位于执行 Docker 命令的主机上，需先安全传入自己的服务器；模型不通过 Git 传输。使用标准输入写入可写的 `/tmp`，因为 Docker 会拒绝向此只读根文件系统执行 `docker cp`；导入目的为持久卷。然后执行真实照片预热与下文的部署验收。
 
-## 服务器部署与验收（原 ISNet 配置记录）
+## 服务器部署与验收
 
 已提供 `backend/compose.yaml`、`backend/Caddyfile` 和 `backend/.env.example`。服务器准备 Docker 后，将 `.env.example` 复制为 `.env`，填入计划使用的正式域名，然后从项目根目录执行内部部署：
 
 如果腾讯云服务器访问 Docker Hub 超时，可按[腾讯云官方说明](https://cloud.tencent.com/document/product/1207/45596)在 Docker daemon 配置中添加 `https://mirror.ccs.tencentyun.com` 镜像加速地址。Python 包默认从官方 PyPI 下载；需要使用腾讯云官方软件源时，可在部署用的 `.env` 中增加 `PIP_INDEX_URL=https://mirrors.cloud.tencent.com/pypi/simple`，仅影响镜像构建，不修改依赖版本。
+
+Debian 软件包下载也可单独配置 `DEBIAN_MIRROR=https://mirrors.cloud.tencent.com`，镜像源须提供 `/debian` 和 `/debian-security`。构建为 APT 设置 30 秒下载超时及两次重试。MNN 3.6.1 的 Linux wheel 带有可执行栈标记，实际在 glibc 2.41 上导入失败；Docker 构建使用 [patchelf 的 `--clear-execstack`](https://github.com/NixOS/patchelf/blob/master/patchelf.1) 清除此标记并执行 MNN 导入检查，保留栈不可执行和非 root、只读容器配置。
 
 ```sh
 docker compose --env-file backend/.env -f backend/compose.yaml config --quiet
@@ -124,7 +127,25 @@ docker compose --env-file backend/.env -f backend/compose.yaml --profile public 
 
 公网接通后，将验收脚本的 `--url` 改为正式 HTTPS 域名，去掉 `--internal-download` 再执行，并按真实访问量设置访问频率限制和资源额度。
 
-### 2026-10-15 服务器内部验收记录
+### 2026-10-16 nosh 服务器部署记录
+
+在原腾讯云 2 vCPU / 4 GB 服务器构建实际 Linux 镜像，先以候选容器通过 8 项 nosh 测试及三张真实照片，再切换原 `extractor` 服务。模型在持久卷中按 SHA-256 校验；旧 ISNet 镜像及原环境配置另存为回滚备份，未触发回滚。
+
+| 正式容器实测 | 结果 |
+| --- | --- |
+| 动物照片，包含模型初始化 | 0.54 秒，879×395 RGBA PNG |
+| 2400 万像素食物照片 | 1.38 秒，767×673 RGBA PNG |
+| 植物照片 | 0.69 秒，997×1017 RGBA PNG |
+| 重启后动物照片 | 0.55 秒，879×395 RGBA PNG；持久卷模型正常重载 |
+| 引擎与透明度 | 四次真实上传、推理及下载通过；明确校验 `nosh-mnn`、`modelLoaded: true`、alpha 0–255 |
+| 容器资源 | 前三次请求 cgroup 峰值 448,290,816 字节（约 428 MiB），未发生 OOM；限制 2 CPU / 3 GiB |
+| 运行状态 | `healthy`；UID 10001、只读根文件系统、`unless-stopped`；仅绑定 `127.0.0.1:8787` |
+
+实际使用 Python 3.13、glibc 2.41、MNN 3.6.1、NumPy 2.3.2、OpenCV 4.13.0.92、Pillow 12.2.0。MNN 的两个共享库清除可执行栈标记后，ELF `GNU_STACK` 权限为读写，真实推理通过。模型权重、测试照片、报告与部署环境变量均未提交 Git。
+
+以上为服务器内部顺序请求的少量样例测量，耗时包含上传、处理和结果下载，不含手机公网链路，不能推断并发容量。植物复杂背景残留等质量限制仍存在。域名解析、HTTPS、微信合法域名及手机接入尚未完成，因此未启用公网网关，也未把小程序配置改为可用。
+
+### 2026-10-15 原 ISNet 服务器内部验收记录
 
 腾讯云北京轻量服务器，2 vCPU / 4 GB，Ubuntu 24.04.4 LTS；Docker 29.9.1、Compose 5.6.0。构建并启动实际 Linux 镜像，使用默认 `isnet-general-use` CPU 模型，容器内存上限 3 GiB、重启策略 `unless-stopped`。
 

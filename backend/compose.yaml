@@ -5,6 +5,7 @@ services:
       dockerfile: backend/Dockerfile
       args:
         PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
+        DEBIAN_MIRROR: ${DEBIAN_MIRROR:-http://deb.debian.org}
         FELT_PRELOAD_MODEL: ${FELT_PRELOAD_MODEL:-1}
         FELT_MODEL: ${FELT_MODEL:-nosh-mnn}
     environment:
