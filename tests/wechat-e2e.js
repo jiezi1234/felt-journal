@@ -105,22 +105,25 @@ const realService = process.env.WECHAT_EXTRACTION_ENDPOINT || '';
     checks.push('native undo/redo and front/back buttons; addition resets history; layer changes preserve geometry');
     const beforeAppearance = (await board.data()).model.placements;
     await board.callMethod('select', { detail: { id: '' } });
+    assert.equal((await board.$$('.color')).length, 0, 'Appearance choices stay collapsed');
+    await (await board.$('#open-appearance')).tap(); await wait(board, d => d.drawer === 'appearance');
     assert.equal((await board.$$('.color')).length, 6); assert.equal((await board.$$('.texture')).length, 3);
-    const appearance = await board.$('#appearance'), appearanceTop = await appearance.offset();
-    await mini.callWxMethod('pageScrollTo', { scrollTop: Math.max(0, appearanceTop.top - 20), duration: 0 });
     await (await board.$('#color-4')).tap(); await wait(board, d => d.model.color === '#C4D2D6');
     const longSwatch = await board.$('#swatch-long'); assert.ok(longSwatch, 'Long-fiber sample component must render');
     await (await longSwatch.$('#sample')).tap(); await wait(board, d => d.model.texture === 'long');
+    assert.equal((await longSwatch.data()).color, '#C4D2D6', 'Texture sample follows chosen color');
+    await (await board.$('#close-drawer')).tap(); await wait(board, d => !d.drawer);
     await (await board.$('#undo-layout')).tap(); await wait(board, d => d.model.texture === 'fine');
     await (await board.$('#redo-layout')).tap(); await wait(board, d => d.model.texture === 'long');
+    await (await board.$('#open-appearance')).tap(); await wait(board, d => d.drawer === 'appearance');
     await (await board.$('#texture-cross')).tap(); await wait(board, d => d.model.texture === 'cross' && d.saveState === '已保存');
     assert.equal((await board.data()).appearanceLabel, '雾蓝 · 交织');
     assert.deepEqual((await board.data()).model.placements, beforeAppearance);
-    assert.equal((await longSwatch.data()).color, '#C4D2D6', 'Texture sample follows chosen color');
     if (process.env.WECHAT_APPEARANCE_SCREENSHOTS === '1') {
-      await mini.callWxMethod('pageScrollTo', { scrollTop: Math.max(0, appearanceTop.top - 20), duration: 0 }); await board.waitFor(300);
+      await board.waitFor(300);
       try { await mini.screenshot({ path: path.join(output, 'wechat-appearance.png') }); } catch (error) { console.warn(`Appearance screenshot skipped: ${error.message}`); }
     }
+    await (await board.$('#close-drawer')).tap(); await wait(board, d => !d.drawer);
     await mini.callWxMethod('pageScrollTo', { scrollTop: 0, duration: 0 });
     if (process.env.WECHAT_APPEARANCE_SCREENSHOTS === '1') {
       await board.waitFor(300); try { await mini.screenshot({ path: path.join(output, 'wechat-textured-board.png') }); } catch (error) { console.warn(`Board screenshot skipped: ${error.message}`); }

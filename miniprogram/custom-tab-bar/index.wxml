@@ -1,1 +1,1 @@
-<main-nav id="main-nav" active="{{active}}" />
+<main-nav wx:if="{{!hidden}}" id="main-nav" active="{{active}}" />

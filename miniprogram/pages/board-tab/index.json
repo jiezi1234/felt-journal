@@ -1,1 +1,3 @@
-{ "navigationBarTitleText": "毛毡板", "usingComponents": { "felt-board": "/components/felt-board/index" } }
+{
+  "navigationBarTitleText": "主题板"
+}

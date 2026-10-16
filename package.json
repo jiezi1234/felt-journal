@@ -11,6 +11,7 @@
     "test:share": "node tests/share-e2e.js",
     "test:themes": "node tests/themes-e2e.js",
     "test:navigation": "node tests/navigation-e2e.js",
+    "test:record": "node tests/record-card-e2e.js",
     "dev:extraction": "node scripts/local-extraction.js"
   },
   "devDependencies": {

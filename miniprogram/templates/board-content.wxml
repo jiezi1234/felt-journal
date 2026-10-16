@@ -1,0 +1,19 @@
+<view wx:if="{{loading}}" class="loading">正在读取板面…</view>
+<view wx:elif="{{error}}" class="error">{{error}}<button bindtap="refresh">重试读取</button></view>
+<block wx:else>
+  <view class="row board-heading"><view><view class="section-title">{{embedded ? '拖动照片，布置今天' : dateLabel}}</view><view wx:if="{{editable}}" class="muted">{{saveState}}</view></view><button wx:if="{{editable && !embedded}}" class="primary" disabled="{{task || recovering}}" bindtap="done">完成</button><button wx:elif="{{!editable && canEdit}}" disabled="{{task || recovering}}" bindtap="edit">编辑</button></view>
+  <view wx:if="{{saveError}}" class="error">{{saveError}}<button class="ghost" bindtap="retrySave">重试保存</button></view>
+  <felt-board id="board" covered="{{!!drawer || !!task}}" model="{{model}}" editable="{{editable}}" selected="{{selected}}" bind:select="select" bind:change="placementChanged" bind:transform="transform" bind:memory="memory" />
+  <view class="caption">{{count ? count + ' 件记忆' : isTheme ? '从不同日子，收集同一个主题' : '把一件小事，轻轻贴在这里'}}{{editable && count ? ' · 轻点选中，拖动布置' : ''}}</view>
+  <block wx:if="{{editable}}">
+    <view class="editor-toolbar"><button id="add-photo" class="primary" disabled="{{task || recovering}}" bindtap="sourceSheet">{{isTheme ? '＋ 添加记忆' : '＋ 添加照片'}}</button><button id="open-appearance" class="secondary appearance-entry" disabled="{{task || recovering}}" bindtap="openAppearance"><text>板面与纹理　⌃</text><text class="appearance-summary">{{appearanceLabel}}</text></button></view>
+    <view class="row history-tools"><button id="undo-layout" class="ghost grow" disabled="{{!canUndo || task || recovering}}" bindtap="undo" aria-label="撤销上一步布局调整">↶ 撤销</button><button id="redo-layout" class="ghost grow" disabled="{{!canRedo || task || recovering}}" bindtap="redo" aria-label="重做布局调整">↷ 重做</button></view>
+    <view wx:if="{{selected}}" class="selected-tools">
+      <view class="row selected-heading"><text class="muted">已选中一件记忆</text><button id="edit-memory" class="ghost small" disabled="{{task || recovering}}" bindtap="memory">写记忆 ↗</button></view>
+      <view class="selection-actions"><button id="layer-front" class="secondary" data-direction="front" disabled="{{!canBringToFront || task || recovering}}" bindtap="layer">↑ 置顶</button><button id="layer-back" class="secondary" data-direction="back" disabled="{{!canSendToBack || task || recovering}}" bindtap="layer">↓ 置底</button><button id="remove-placement" class="danger" disabled="{{task || recovering}}" bindtap="remove">移除摆放</button></view>
+    </view>
+    <button id="add-from-library" class="ghost full library-add" disabled="{{task || recovering || openingLibrary}}" bindtap="library">{{isTheme ? '从记忆库继续挑选' : '找回当天未摆放的记忆'}}</button>
+  </block>
+  <button wx:if="{{!editable && count}}" id="export-board" class="primary full space" bindtap="exportBoard">{{isTheme ? '导出 / 分享主题板 ↗' : '导出 / 分享这一天 ↗'}}</button>
+  <button wx:if="{{!editable && !count && canEdit}}" class="primary full space" bindtap="sourceSheet">{{isTheme ? '＋ 从记忆库添加' : '＋ 添加一件记忆'}}</button>
+</block>

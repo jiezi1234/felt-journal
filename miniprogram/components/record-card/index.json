@@ -1,0 +1,8 @@
+{
+  "component": true,
+  "usingComponents": {
+    "felt-board": "/components/felt-board/index",
+    "felt-swatch": "/components/felt-swatch/index",
+    "photo-panel": "/components/photo-panel/index"
+  }
+}

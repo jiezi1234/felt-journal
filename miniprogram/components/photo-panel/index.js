@@ -1,1 +1,1 @@
-Component({ properties: { task: Object }, methods: { retry() { this.triggerEvent('retry'); }, original() { this.triggerEvent('original'); }, cancel() { this.triggerEvent('cancel'); }, settings() { wx.openSetting({}); }, stop() {} } });
+Component({ properties: { task: Object, inline: Boolean }, methods: { retry() { this.triggerEvent('retry'); }, original() { this.triggerEvent('original'); }, cancel() { this.triggerEvent('cancel'); }, settings() { wx.openSetting({}); }, stop() {} } });

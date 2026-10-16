@@ -8,14 +8,20 @@ if (!(Test-Path -LiteralPath $wcc) -or !(Test-Path -LiteralPath $wcsc)) { throw 
 $artifactRoot = Join-Path $projectRoot 'artifacts\compile'
 New-Item -ItemType Directory -Force -Path $artifactRoot | Out-Null
 $routes = (Get-Content -LiteralPath (Join-Path $projectRoot 'miniprogram\app.json') -Raw | ConvertFrom-Json).pages
-$sources = @($routes | ForEach-Object { Join-Path $projectRoot "miniprogram\$_" })
-$sources += @('components/felt-board/index','components/photo-panel/index','components/felt-swatch/index','components/main-nav/index','custom-tab-bar/index') | ForEach-Object { Join-Path $projectRoot "miniprogram\$_" }
+$sources = @($routes)
+$sources += @('components/felt-board/index','components/photo-panel/index','components/felt-swatch/index','components/main-nav/index','components/record-card/index','custom-tab-bar/index')
 $wxml = @($sources | ForEach-Object { "$_.wxml" })
+$wxml += @('board-content','board-drawers','themes-content') | ForEach-Object { "templates/$_.wxml" }
+Push-Location (Join-Path $projectRoot 'miniprogram')
+try {
 & $wcc -o (Join-Path $artifactRoot 'wxml.js') @wxml
 if ($LASTEXITCODE -ne 0) { throw 'WXML 编译失败' }
-$css = @((Join-Path $projectRoot 'miniprogram\app.wxss')) + @($sources | ForEach-Object { "$_.wxss" })
+$css = @('app.wxss') + @($sources | ForEach-Object { "$_.wxss" })
+$sharedStyles = @('styles/board-editor.wxss')
 for ($i = 0; $i -lt $css.Count; $i++) {
-  & $wcsc -o (Join-Path $artifactRoot "wxss-$i.js") $css[$i]
+  $imports = @($css + $sharedStyles | Where-Object { $_ -ne $css[$i] })
+  & $wcsc -o (Join-Path $artifactRoot "wxss-$i.js") $css[$i] @imports
   if ($LASTEXITCODE -ne 0) { throw "WXSS 编译失败: $($css[$i])" }
 }
 Write-Output "PASS: $($wxml.Count) WXML 模板与 $($css.Count) WXSS 样式经微信官方编译器编译通过"
+} finally { Pop-Location }

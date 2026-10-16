@@ -1,1 +1,1 @@
-{ "navigationBarTitleText": "今天", "usingComponents": { "felt-board": "/components/felt-board/index" } }
+{ "navigationBarTitleText": "今天", "usingComponents": { "felt-board": "/components/felt-board/index", "record-card": "/components/record-card/index" } }

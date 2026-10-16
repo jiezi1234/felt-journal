@@ -2,9 +2,9 @@ const renderer = require('../../core/renderer');
 const geometry = require('../../core/geometry');
 const B = require('../../core/config').board;
 Component({
-  properties: { model: { type: Object, value: null }, editable: Boolean, selected: String, interactive: { type: Boolean, value: true } },
-  data: { height: 210, handles: [], imageError: false },
-  observers: { 'model, editable, selected': function () { this.refresh(); } },
+  properties: { model: { type: Object, value: null }, editable: Boolean, selected: String, covered: Boolean, interactive: { type: Boolean, value: true } },
+  data: { height: 210, handles: [], imageError: false, snapshot: '' },
+  observers: { 'model, editable, selected, covered': function () { this.refresh(); } },
   lifetimes: { ready() { this.measure(); }, detached() { this.dead = true; clearTimeout(this.longTimer); } },
   pageLifetimes: { resize() { this.measure(); }, show() { if (this.canvas) this.refresh(); } },
   methods: {
@@ -30,11 +30,17 @@ Component({
         renderer.paint(ctx, model, this.images, this.data.editable ? this.data.selected : '');
         renderer.paintControls(ctx, handles, this.screenWidth);
         this.setData({ handles, imageError: (model.items || []).some(p => this.images[p.memory.subjectPath].missing) });
+        // Native canvas layers can pierce an overlay. Keep the same board visible
+        // as a raster while covered, without destroying the canvas or page.
+        if (this.data.covered) wx.canvasToTempFilePath({ canvas: this.canvas, fileType: 'png',
+          success: result => { if (!this.dead && this.data.covered && version === this.version) this.setData({ snapshot: result.tempFilePath }); },
+          fail() {}
+        });
       } catch (_) { this.setData({ imageError: true }); }
     },
     point(touch) { return { x: (touch.clientX - this.rect.left) * B.width / this.screenWidth - B.inset, y: (touch.clientY - this.rect.top) * B.width / this.screenWidth - B.inset }; },
     touchStart(e) {
-      if (!this.data.interactive || !this.data.model || !e.touches[0]) return;
+      if (this.data.covered || !this.data.interactive || !this.data.model || !e.touches[0]) return;
       const touch = e.touches[0]; this.gestureToken = (this.gestureToken || 0) + 1; const token = this.gestureToken;
       this.createSelectorQuery().select('.board-shell').boundingClientRect(rect => {
         if (!rect || token !== this.gestureToken) return;

@@ -32,7 +32,7 @@
       },
       {
         "pagePath": "pages/board-tab/index",
-        "text": "毛毡板",
+        "text": "主题板",
         "iconPath": "images/navigation/board.png",
         "selectedIconPath": "images/navigation/board-active.png"
       },

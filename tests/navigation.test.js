@@ -20,7 +20,7 @@ function navFixture(t, route) {
   return Object.assign({}, navDefinition.methods, { data: { active: 'board', navigating: false }, setData(value) { Object.assign(this.data, value); } });
 }
 
-test('bottom navigation switches cached tabs, ignores current tab, and takes historical boards to today', async t => {
+test('bottom navigation switches cached tabs, ignores current tab, and opens the theme collection from a child', async t => {
   const nav = navFixture(t, 'pages/board-tab/index'), calls = [];
   platform.call = async (method, options) => calls.push({ method, ...options });
   await nav.open(event('board')); await nav.open(event('unknown')); assert.equal(calls.length, 0);
@@ -55,20 +55,24 @@ function boardFixture(t) {
   return Object.assign({}, boardDefinition, { data: clone(boardDefinition.data), store, setData(value) { Object.assign(this.data, value); } });
 }
 
-test('cached board refreshes saved changes and advances to the new day without creating records', t => {
-  const page = boardFixture(t), originalDate = dates.key(), before = page.store.get(); page.refresh();
-  assert.equal(page.data.date, originalDate);
+test('theme tab excludes daily boards, refreshes renamed themes, and does not create records on day rollover', t => {
+  const page = boardFixture(t), originalDate = dates.key();
+  page.store.saveBoard(page.store.board(originalDate));
+  page.store.createTheme('travel', '旅途');
+  const before = page.store.get(); page.refresh();
+  assert.equal(page.data.isTab, true);
+  assert.deepEqual(page.data.themes.map(b => b.id), ['theme_travel']);
   assert.deepEqual(page.store.get(), before);
-  const board = page.store.board(originalDate); board.color = config.colors[1].value; page.store.saveBoard(board);
-  page.refresh(); assert.equal(page.data.model.color, config.colors[1].value);
+  page.store.renameTheme('theme_travel', '每一次出发');
+  page.refresh(); assert.equal(page.data.themes[0].title, '每一次出发');
   dates.key = () => '2099-01-02'; page.refresh();
-  assert.equal(page.data.date, '2099-01-02'); assert.equal(page.data.count, 0); assert.equal(page.store.get().boards['2099-01-02'], undefined);
+  assert.equal(page.data.themes.length, 1); assert.equal(page.store.get().boards['2099-01-02'], undefined);
 });
 
-test('board tab opens dated edit/add as a child and prevents duplicate openings', async t => {
-  const page = boardFixture(t); page.refresh(); const calls = []; let finish;
+test('theme tab opens its fixed collection as a child and prevents duplicate openings', async t => {
+  const page = boardFixture(t); page.store.createTheme('travel', '旅途'); page.refresh(); const calls = []; let finish;
   platform.call = (method, options) => { calls.push({ method, ...options }); return new Promise(resolve => { finish = resolve; }); };
-  const first = page.openEditor(false); await page.openEditor(true); finish(); await first;
-  platform.call = async (method, options) => calls.push({ method, ...options }); await page.openEditor(true);
-  assert.deepEqual(calls, [{ method: 'navigateTo', url: `/pages/board/index?date=${dates.key()}&mode=edit` }, { method: 'navigateTo', url: `/pages/board/index?date=${dates.key()}&mode=edit&add=1` }]);
+  const first = page.open(event('theme_travel')); await page.open(event('theme_travel')); finish(); await first;
+  assert.deepEqual(calls, [{ method: 'navigateTo', url: '/pages/board/index?board=theme_travel' }]);
+  assert.equal(page.data.working, false);
 });

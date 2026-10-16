@@ -1,30 +1,7 @@
 <view class="page {{!editable && !task && !recovering ? 'with-main-nav' : ''}}">
-  <view class="row"><button class="ghost" bindtap="back">‹ 返回</button><text class="chip">{{isTheme ? '把喜欢的日子放在一起' : editable ? '布置这一天的收藏' : '一日一块毛毡板'}}</text></view>
-  <view wx:if="{{loading}}" class="loading">正在读取板面…</view>
-  <view wx:elif="{{error}}" class="error">{{error}}<button bindtap="refresh">重试读取</button></view>
-  <block wx:else>
-    <view class="row board-heading"><view><view class="section-title">{{dateLabel}}</view><view wx:if="{{editable}}" class="muted">{{saveState}}</view></view><button wx:if="{{editable}}" class="primary" disabled="{{task || recovering}}" bindtap="done">完成</button><button wx:elif="{{canEdit}}" disabled="{{task || recovering}}" bindtap="edit">编辑</button></view>
-    <view wx:if="{{saveError}}" class="error">{{saveError}}<button class="ghost" bindtap="retrySave">重试保存</button></view>
-    <felt-board id="board" model="{{model}}" editable="{{editable}}" selected="{{selected}}" bind:select="select" bind:change="placementChanged" bind:transform="transform" bind:memory="memory" />
-    <view class="caption">{{count ? '共 ' + count + ' 件生活拾遗' : isTheme ? '从记忆库挑选几件，开始这块主题板' : canEdit ? '把一件小事，轻轻贴在这里' : '当天没有摆放'}} · {{editable ? '轻点选中，拖动布置' : '浏览模式'}}</view>
-    <view wx:if="{{editable}}" class="history-tools">
-      <view class="row"><button id="undo-layout" class="secondary grow" disabled="{{!canUndo || task || recovering}}" bindtap="undo" aria-label="撤销上一步布局调整">↶ 撤销</button><button id="redo-layout" class="secondary grow" disabled="{{!canRedo || task || recovering}}" bindtap="redo" aria-label="重做布局调整">↷ 重做</button></view>
-      <view class="muted history-hint">仅撤销本次布局调整。添加、移除摆放或完成编辑会清空撤销记录。</view>
-    </view>
-    <view wx:if="{{editable && selected}}" class="paper selected-tools"><view class="section-title">附着在物件上的记忆</view><view class="row layer-tools"><button id="layer-front" class="secondary grow" data-direction="front" disabled="{{!canBringToFront || task || recovering}}" bindtap="layer">↑ 置顶</button><button id="layer-back" class="secondary grow" data-direction="back" disabled="{{!canSendToBack || task || recovering}}" bindtap="layer">↓ 置底</button></view><view class="row space"><button class="secondary grow" disabled="{{task || recovering}}" bindtap="memory">查看 / 写下记忆</button><button id="remove-placement" class="danger" disabled="{{task || recovering}}" bindtap="remove">仅移除摆放</button></view><view class="muted space">四角按钮：↶ 逆时针 · ↷ 顺时针 · − 缩小 · ＋ 放大</view><view class="muted">同一记忆的照片和文字会同步到其他板面。</view></view>
-    <view wx:if="{{editable}}" id="appearance" class="paper appearance">
-      <view class="row"><view class="section-title">毛毡板面</view><text class="muted">{{appearanceLabel}}</text></view>
-      <view class="muted appearance-hint">为这块板选一份喜欢的底色与肌理</view>
-      <view class="colors"><button wx:for="{{colors}}" wx:key="value" id="color-{{index}}" data-value="{{item.value}}" disabled="{{task || recovering}}" bindtap="color" aria-label="{{item.name + (model.color === item.value ? '，已选' : '')}}" class="color {{model.color === item.value ? 'active' : ''}}"><text class="swatch" style="background:{{item.value}};">{{model.color === item.value ? '✓' : ''}}</text>{{item.name}}</button></view>
-      <view class="divider" /><view class="muted">纹理 · 小样可预览</view>
-      <view class="textures"><button wx:for="{{textures}}" wx:key="value" id="texture-{{item.value}}" data-value="{{item.value}}" disabled="{{task || recovering}}" bindtap="texture" aria-label="{{item.name + (model.texture === item.value ? '，已选' : '')}}" class="texture {{model.texture === item.value ? 'active' : ''}}"><felt-swatch id="swatch-{{item.value}}" color="{{model.color}}" texture="{{item.value}}" /><view class="texture-name">{{model.texture === item.value ? '✓ ' : ''}}{{item.name}}</view><view class="texture-note">{{item.description}}</view></button></view>
-      <view class="muted appearance-hint">选择后自动保存，也可撤销本次调整</view>
-      <view class="divider" /><view wx:if="{{!isTheme}}" class="row"><button class="secondary grow" disabled="{{task || recovering}}" bindtap="camera">◎ 拍照</button><button class="secondary grow" disabled="{{task || recovering}}" bindtap="album">▧ 从相册添加</button></view>
-      <button id="add-from-library" class="secondary full library-add" disabled="{{task || recovering || openingLibrary}}" bindtap="library">{{isTheme ? '＋ 从记忆库添加' : '从记忆库放回当天物件'}}</button>
-    </view>
-    <button wx:if="{{!editable && count}}" id="export-board" class="primary full space" bindtap="exportBoard">{{isTheme ? '导出 / 分享主题板 ↗' : '导出 / 分享这一天 ↗'}}</button>
-    <button wx:if="{{!editable && !count && canEdit}}" class="primary full space" bindtap="sourceSheet">{{isTheme ? '＋ 从记忆库添加' : '＋ 添加一件记忆'}}</button>
-  </block>
+  <view class="row"><button class="ghost" bindtap="back">‹ 返回</button><text class="chip">{{isTheme ? '跨日收藏 · 长期主题' : '每日手账'}}</text></view>
+  <include src="../../templates/board-content.wxml" />
 </view>
-<main-nav wx:if="{{!editable && !task && !recovering}}" id="main-nav" active="board" />
+<include src="../../templates/board-drawers.wxml" />
+<main-nav wx:if="{{!editable && !task && !recovering && !drawer}}" id="main-nav" active="{{isTheme ? 'board' : 'today'}}" />
 <photo-panel task="{{task}}" bind:retry="retryPhoto" bind:original="originalPhoto" bind:cancel="cancelPhoto" />

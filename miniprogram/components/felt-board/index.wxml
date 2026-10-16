@@ -1,5 +1,6 @@
 <view class="board-shell" style="height:{{height}}px;" bindtouchstart="touchStart" catchtouchmove="touchMove" bindtouchend="touchEnd" bindtouchcancel="touchCancel">
-  <canvas type="2d" id="feltCanvas" class="board-canvas" style="height:{{height}}px;" />
-  <button wx:for="{{handles}}" wx:key="op" class="grip" style="{{item.style}}" data-op="{{item.op}}" aria-label="{{item.label}}" catchtouchstart="stop" catchtouchmove="stop" catchtouchend="stop" catchtap="transform">{{item.icon}}</button>
+  <canvas hidden="{{covered}}" type="2d" id="feltCanvas" class="board-canvas" style="height:{{height}}px;" />
+  <image wx:if="{{covered && snapshot}}" class="board-snapshot" src="{{snapshot}}" mode="scaleToFill" style="height:{{height}}px;" />
+  <block wx:if="{{!covered}}"><button wx:for="{{handles}}" wx:key="op" class="grip" style="{{item.style}}" data-op="{{item.op}}" aria-label="{{item.label}}" catchtouchstart="stop" catchtouchmove="stop" catchtouchend="stop" catchtap="transform">{{item.icon}}</button></block>
 </view>
 <view wx:if="{{imageError}}" class="image-warning">有照片无法读取，可进入记忆详情替换</view>

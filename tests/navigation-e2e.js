@@ -68,19 +68,24 @@ const pause = () => new Promise(resolve => setTimeout(resolve, 150));
     checks.push('three local icons and active labels; full-width fixed bottom bar with safe area; scroll leaves final action visible');
     const homeScroll = await home.scrollTop();
     await tap('board'); let board = await route('board-tab'); await nav(board, 'board'); const boardId = board.id;
-    assert.equal((await board.data()).date, dates.key()); assert.equal((await mini.pageStack()).length, 1);
+    assert.equal((await board.data()).isTab, true); assert.equal((await board.data()).themes.length, 0); assert.equal((await mini.pageStack()).length, 1);
     await tap('board'); assert.equal((await mini.currentPage()).id, boardId); assert.equal((await mini.pageStack()).length, 1);
-    await mini.evaluate(() => { getCurrentPages().slice(-1)[0].selectComponent('#board').navigationTestMarker = 'retained-canvas'; });
-    await (await board.$('#edit-board')).tap(); const editor = await route('board'); await wait(editor, data => data.editable);
+    await mini.evaluate(() => { getCurrentPages().slice(-1)[0].navigationTestMarker = 'retained-themes'; });
+    await (await board.$('#new-theme')).tap();
+    await wait(board, data => data.formOpen);
+    await (await board.$('#theme-title')).input('跨日收藏'); await (await board.$('#save-theme')).tap();
+    const editor = await route('board'); await wait(editor, data => data.editable);
+    const themeId = (await editor.data()).date;
     assert.equal(await editor.$('#main-nav'), null); assert.equal((await mini.pageStack()).length, 2);
     await editor.callMethod('color', { currentTarget: { dataset: { value: config.colors[1].value } } });
     await editor.callMethod('back'); board = await route('board-tab'); assert.equal(board.id, boardId); await nav(board, 'board');
-    assert.equal((await board.data()).model.color, config.colors[1].value);
-    checks.push('today board is cached; active tab is a no-op; edit is a child without navigation; return refreshes saved color on the same board tab');
+    assert.equal((await board.data()).themes[0].color, config.colors[1].value);
+    assert.equal((await board.data()).themes[0].title, '跨日收藏');
+    checks.push('theme tab is cached; active tab is a no-op; create/edit opens a child without navigation; return refreshes the same collection list');
     await tap('calendar'); let calendar = await route('calendar'); await nav(calendar, 'calendar'); const calendarId = calendar.id;
     assert.equal((await mini.pageStack()).length, 1); await calendar.callMethod('previous'); const historical = await calendar.data();
     await calendar.callMethod('open', { currentTarget: { dataset: { date: `${historical.year}-${String(historical.month).padStart(2, '0')}-01` } } });
-    board = await route('board'); await nav(board, 'board'); assert.equal((await board.data()).canEdit, false);
+    board = await route('board'); await nav(board, 'today'); assert.equal((await board.data()).canEdit, false);
     await board.callMethod('back'); calendar = await route('calendar'); await nav(calendar, 'calendar');
     assert.equal((await calendar.data()).month, historical.month); assert.equal((await calendar.data()).year, historical.year);
     if (process.env.WECHAT_NAV_SCREENSHOT === '1') {
@@ -96,20 +101,20 @@ const pause = () => new Promise(resolve => setTimeout(resolve, 150));
       assert.equal(page.id, ids[name], `${name} must reuse its existing native page, not reload it`);
       assert.equal((await mini.pageStack()).length, 1);
       if (name === 'calendar') { assert.equal((await page.data()).month, historical.month); assert.equal((await page.data()).year, historical.year); }
-      if (name === 'index') { assert.ok(Math.abs(await page.scrollTop() - homeScroll) <= 1); assert.equal((await page.data()).model.color, config.colors[1].value); }
-      if (name === 'board-tab') assert.equal(await mini.evaluate(() => getCurrentPages().slice(-1)[0].selectComponent('#board').navigationTestMarker), 'retained-canvas');
+      if (name === 'index') { assert.ok(Math.abs(await page.scrollTop() - homeScroll) <= 1); assert.equal((await page.data()).model.color, config.colors[0].value); assert.equal((await page.data()).count, 0); }
+      if (name === 'board-tab') assert.equal(await mini.evaluate(() => getCurrentPages().slice(-1)[0].navigationTestMarker), 'retained-themes');
     }
-    // A historical board's highlighted board item still returns to today's cached tab.
+    // Historical daily boards belong to the daily section; the theme tab remains separate.
     await calendar.callMethod('open', { currentTarget: { dataset: { date: `${historical.year}-${String(historical.month).padStart(2, '0')}-01` } } });
-    board = await route('board'); await nav(board, 'board'); await tap('board'); board = await route('board-tab'); assert.equal(board.id, boardId); assert.equal((await board.data()).date, dates.key());
+    board = await route('board'); await nav(board, 'today'); await tap('board'); board = await route('board-tab'); assert.equal(board.id, boardId); assert.equal((await board.data()).themes[0].id, themeId);
     await tap('today');
     home = await route('index'); await (await home.$('#find-memories')).tap(); const memories = await route('memories'); assert.equal(await memories.$('#main-nav'), null);
     await memories.callMethod('back'); home = await route('index'); await nav(home, 'today');
     const snapshot = JSON.parse(await mini.callWxMethod('getStorageSync', keys[0]));
-    assert.equal(Object.keys(snapshot.memories).length, 0); assert.deepEqual(Object.keys(snapshot.boards), [dates.key()]);
-    assert.equal(snapshot.revision, 1, 'Only the explicit color edit may change journal data');
+    assert.equal(Object.keys(snapshot.memories).length, 0); assert.deepEqual(Object.keys(snapshot.boards), [themeId]);
+    assert.equal(snapshot.revision, 2, 'Only theme creation and the explicit color edit may change journal data');
     assert.equal(errors.length, 0, JSON.stringify(errors));
-    checks.push('repeated tab switches retain native page IDs, board component, home scroll and calendar month; stack depth one; historical tab returns to today; child return and saved data refresh work');
+    checks.push('repeated tab switches retain native page IDs, theme list, home scroll and calendar month; stack depth one; daily and theme data remain independent');
   } finally {
     if (mini) {
       if (backup) {
