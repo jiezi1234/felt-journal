@@ -76,11 +76,12 @@ const output = path.resolve(__dirname, '../artifacts/screen-layout-e2e.json');
     assert.equal(home.rects[1].width, 48); assert.equal(home.rects[1].height, 48);
     assert.equal(await mini.evaluate(() => new Promise(resolve => wx.createSelectorQuery().select('#find-memories').boundingClientRect(resolve).exec())), null);
     await call('primary'); await pause(1200); await inspect('record source card', ['#record-camera', '#record-album'], '#record-card');
-    await call('showBoard', undefined, '#record-card');
-    await call('select', { detail: { id: ids[0] } }, '#record-card');
-    await inspect('record selected editor', ['.editor-stage', '#finish-record', '#remove-placement'], '#record-card');
-    await call('openAppearance', undefined, '#record-card'); await inspect('appearance drawer', ['.drawer-sheet', '.textures'], '#record-card');
-    await call('closeDrawer', undefined, '#record-card'); await call('back', undefined, '#record-card');
+    await call('back', undefined, '#record-card'); await call('openBoard');
+    await call('select', { detail: { id: ids[0] } });
+    const editing = await inspect('today selected editor', ['.today-stage', '#finish-today', '#more-today']);
+    assert.equal(editing.rects[0].height, home.rects[0].height, 'Entering arrangement preserves the existing board geometry');
+    await call('openSelection'); await inspect('sticker actions drawer', ['.drawer-sheet', '#remove-placement']);
+    await call('closeDrawer'); await call('done');
     await route('/pages/calendar/index', true);
     await mini.evaluate(() => { const p = getCurrentPages().slice(-1)[0]; p.year = 2026; p.month = 8; p.refresh(); }); await pause(200);
     await inspect('six-week calendar', ['.calendar-paper', '#find-memories', '#find-month-memories']);
@@ -106,7 +107,7 @@ const output = path.resolve(__dirname, '../artifacts/screen-layout-e2e.json');
     await route('/pages/board/index?date=' + today + '&mode=edit');
     await call('select', { detail: { id: ids[0] } }); await inspect('full board editor', ['.editor-stage', '#remove-placement', '#add-from-library']);
     await call('done'); await inspect('board view', ['.editor-stage', '#export-board']);
-    await call('exportBoard'); await pause(900); await inspect('export', ['.export-paper', '#save-album', '#share-image']);
+    await call('exportBoard'); await pause(900); await inspect('export', ['.export-paper', '#share-appearance', '#save-album', '#share-image']);
   } finally {
     if (mini) {
       if (backup) {

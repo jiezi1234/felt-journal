@@ -1,6 +1,11 @@
 <view class="page screen-page export-page"><view class="screen-header"><button class="ghost back" bindtap="back">‹ 返回</button><view class="title">分享</view><view /></view>
   <view wx:if="{{generating}}" class="loading">正在生成图片…</view>
   <view wx:if="{{error}}" class="error">{{error}}<button wx:if="{{!imagePath || imageExpired}}" id="regenerate-image" class="ghost" disabled="{{generating || saving || sharing}}" bindtap="generate">重新生成</button></view>
+  <view wx:if="{{previewColor}}" id="share-appearance" class="share-appearance">
+    <view class="row"><text class="style-title">分享样式</text><text class="muted">仅用于这次分享</text></view>
+    <view class="share-colors"><button wx:for="{{colors}}" wx:key="value" id="share-color-{{index}}" class="share-color {{previewColor === item.value ? 'active' : ''}}" style="background:{{item.value}};" data-value="{{item.value}}" disabled="{{generating || saving || sharing}}" aria-label="{{item.name + (previewColor === item.value ? '，已选' : '')}}" bindtap="chooseColor">{{previewColor === item.value ? '✓' : ''}}</button></view>
+    <view class="share-textures"><button wx:for="{{textures}}" wx:key="value" id="share-texture-{{item.value}}" class="{{previewTexture === item.value ? 'active' : ''}}" data-value="{{item.value}}" disabled="{{generating || saving || sharing}}" bindtap="chooseTexture">{{item.name}}</button></view>
+  </view>
   <block wx:if="{{imagePath}}">
     <text class="chip">{{imageExpired ? '图片需要重新生成' : albumSaved ? '已保存到相册' : '作品已生成 · 3:2'}}</text>
     <view class="paper export-paper"><image class="preview" src="{{imagePath}}" mode="aspectFit" bindtap="preview" /><view class="row space"><text class="muted">{{dateLabel}}</text><text class="muted">{{count}} 件记忆</text></view></view>

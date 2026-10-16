@@ -10,12 +10,10 @@
       <view class="star-frame" aria-hidden="true"><text class="pill-star">✦</text></view>
       <view class="sweep-label"><text>{{stageLabel}}</text><text class="sweep-ink" aria-hidden="true">{{stageLabel}}</text></view>
     </view>
-    <view wx:if="{{preview}}" class="task-copy"><text class="task-title">照片已就绪</text></view>
     <view wx:if="{{done}}" id="task-done" class="task-copy result-enter" role="status"><text class="task-title">{{resultLabel}}</text></view>
     <view wx:if="{{failed}}" class="task-copy"><text class="task-title">{{task.state === 'saveError' ? '记忆尚未保存' : task.state === 'sourceError' ? '照片尚未准备好' : '主体尚未提取'}}</text></view>
     <view wx:if="{{task.error}}" id="photo-error" class="error">{{task.error}}</view>
     <view class="task-actions">
-      <button wx:if="{{preview}}" id="start-extraction" class="primary" bindtap="retry">开始提取</button>
       <button wx:if="{{done}}" id="continue-layout" class="primary" bindtap="cancel">{{continueLabel}}</button>
       <button wx:if="{{task.state === 'extractError'}}" id="retry-extraction" class="primary" bindtap="retry">重新提取</button>
       <button wx:if="{{task.state === 'saveError'}}" id="retry-photo-save" class="primary" bindtap="retry">重试保存</button>

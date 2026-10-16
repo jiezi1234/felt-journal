@@ -2,7 +2,8 @@
   "navigationBarTitleText": "今天",
   "usingComponents": {
     "felt-board": "/components/felt-board/index",
-    "record-card": "/components/record-card/index"
+    "record-card": "/components/record-card/index",
+    "sticker-flight": "/components/sticker-flight/index"
   },
   "disableScroll": true
 }

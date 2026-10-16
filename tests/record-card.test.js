@@ -102,7 +102,7 @@ test('home opens a component, hides navigation, and refreshes the day only after
   const f = fixture(t), tabs = [];
   platform.syncTab = (page, active, hidden = false) => tabs.push({ active, hidden });
   const home = Object.assign({}, homeDefinition, { data: clone(homeDefinition.data), store: f.store, setData(value) { Object.assign(this.data, value); } });
-  home.refresh(); home.primary(); assert.equal(home.data.editorOpen, true); assert.equal(home.data.startWithPhoto, true);
+  home.refresh(); home.primary(); assert.equal(home.data.editorOpen, true);
   assert.equal(home.data.editorDate, f.date); assert.deepEqual(f.navigation, []);
   dates.key = () => '2099-01-02'; home.primary(); assert.equal(home.data.editorDate, f.date);
   home.closeEditor(); assert.equal(home.data.date, '2099-01-02'); assert.equal(home.data.editorOpen, false);
@@ -116,4 +116,29 @@ test('in-card library paginates all unplaced photos without touching saved data'
   const before = JSON.stringify(f.store.get()); await f.page.library(); const seen = [];
   for (let i = 0; i < 3; i++) { seen.push(...f.page.data.visibleLibraryItems.map(m => m.id)); f.page.libraryNext(); }
   assert.equal(new Set(seen).size, 8); assert.equal(f.page.data.libraryPage, 3); assert.equal(JSON.stringify(f.store.get()), before);
+});
+test('Today owns placement and unlocks its existing board after the photo card closes', t => {
+  const f = fixture(t); platform.syncTab = () => {}; platform.localNotice = async () => {};
+  const home = { ...homeDefinition, store: f.store, data: clone(homeDefinition.data), setData(value) { Object.assign(this.data, value); } };
+  home.refresh(); home.primary();
+  const id = f.store.add('direct-home', f.date, photos('direct-home')), before = JSON.stringify(f.store.get());
+  home.startSticker({ detail: { id, rect: { left: 30, top: 180, width: 300, height: 280 } } });
+  t.after(() => clearTimeout(home.placementTimer));
+  const token = home.data.placing.token;
+  assert.equal(home.data.editorOpen, true); assert.equal(home.canAdjust(), false);
+  home.stickerLifted({ detail: { token } }); assert.equal(home.data.editorOpen, false);
+  home.stickerTarget({ detail: { id, target: { left: 100, top: 300, width: 80, height: 60 } } });
+  assert.equal(home.data.placing.target.top, 300);
+  home.stickerLanded({ detail: { token } }); assert.equal(home.data.placing, null); assert.equal(home.canAdjust(), true);
+  assert.equal(home.data.selected, id); assert.equal(JSON.stringify(f.store.get()), before);
+});
+
+test('Today can retrieve unplaced memories even when no sticker remains on its board', async t => {
+  const f = fixture(t), home = { ...homeDefinition, store: f.store, data: clone(homeDefinition.data), setData(value) { Object.assign(this.data, value); } };
+  const id = f.store.add('unplaced', f.date, photos('unplaced')); f.store.unplace(id, f.date);
+  const before = JSON.stringify(f.store.get());
+  home.refresh(); home.openBoard(); home.openSelection();
+  assert.equal(home.data.editorOpen, false); assert.equal(home.data.editable, true); assert.equal(home.data.drawer, 'selection');
+  await home.library(); assert.ok(f.navigation.includes('navigateTo'));
+  home.onHide(); assert.equal(home.data.drawer, ''); assert.equal(JSON.stringify(f.store.get()), before);
 });

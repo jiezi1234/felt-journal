@@ -30,11 +30,11 @@ function fixture(t) {
   return { page, store, removed, states, guards, completed, date: dates.key(), failSave(value) { failSave = value; }, get requests() { return requests; }, get notices() { return notices; } };
 }
 
-test('selected photo waits for confirmation; committed result stays visible until Continue', async t => {
+test('selected photo starts automatically; committed result stays visible until Continue', async t => {
   const f = fixture(t), p = f.page;
   await photo.begin(p, 'album', { date: f.date });
-  assert.equal(p.data.task.state, 'preview'); assert.match(p.data.task.original, /_original\.png$/);
-  assert.equal(f.requests, 0); assert.equal(Object.keys(f.store.get().memories).length, 0);
+  assert.equal(p.data.task.state, 'done'); assert.match(p.data.task.original, /_original\.png$/);
+  assert.equal(f.requests, 1); assert.equal(f.states.some(s => s.state === 'preview'), false);
   assert.equal(f.states.find(s => s.state === 'persisting').original, '/tmp/original.jpg');
   await photo.retry(p);
   assert.equal(p.data.task.state, 'done'); assert.equal(p.data.task.kind, 'extracted'); assert.equal(p.data.task.committed, true);
@@ -47,11 +47,14 @@ test('selected photo waits for confirmation; committed result stays visible unti
   assert.equal(Object.keys(f.store.get().memories).length, 1); assert.deepEqual(f.removed, []);
 });
 
-test('canceling preview removes its owned photo without invoking extraction', async t => {
-  const f = fixture(t); await photo.begin(f.page, 'camera', { date: f.date });
+test('canceling automatic processing removes its owned photo and ignores a late result', async t => {
+  const f = fixture(t); let complete;
+  extraction.extract = (_, task, stage) => { stage('extracting'); return new Promise(resolve => { complete = resolve; }); };
+  const pending = photo.begin(f.page, 'camera', { date: f.date }); await tick();
   const original = f.page.data.task.original;
   await photo.cancel(f.page);
-  assert.equal(f.page.data.task, null); assert.equal(f.requests, 0); assert.deepEqual(f.removed, [original]);
+  complete('/late.png'); await pending;
+  assert.equal(f.page.data.task, null); assert.deepEqual(f.removed, [original]);
   assert.equal(Object.keys(f.store.get().memories).length, 0);
 });
 
@@ -64,13 +67,13 @@ test('late copy and old callbacks cannot clear a new photo task', async t => {
   await photo.begin(p, 'album', { date: f.date }); const next = p.photoTask;
   finishCopy('/saved/late-original.png'); await firstRun;
   old.onState({ state: 'extractError', error: 'late' }); old.onDone('late'); old.onCancel();
-  assert.equal(p.photoTask, next); assert.equal(p.data.task.state, 'preview'); assert.deepEqual(f.completed, []);
+  assert.equal(p.photoTask, next); assert.equal(p.data.task.state, 'done'); assert.equal(f.completed.length, 1); assert.notEqual(f.completed[0], 'late');
   assert.ok(f.removed.includes('/saved/late-original.png'));
 });
 
 test('retrying save uses the retained result, then exposes a saved completion', async t => {
   const f = fixture(t), p = f.page;
-  await photo.begin(p, 'album', { date: f.date }); f.failSave(true); await photo.retry(p);
+  f.failSave(true); await photo.begin(p, 'album', { date: f.date });
   assert.equal(p.data.task.state, 'saveError'); assert.equal(p.data.task.kind, 'extracted'); assert.ok(p.data.task.subject);
   assert.equal(f.guards.at(-1), true); assert.equal(f.completed.length, 0);
   f.failSave(false); await photo.retry(p);
@@ -87,19 +90,18 @@ test('explicit original fallback finishes with original kind and a single commit
   assert.equal(Object.values(f.store.get().memories)[0].kind, 'original'); assert.equal(f.completed.length, 1);
 });
 
-test('source retry reselects a photo and requires a fresh confirmation', async t => {
+test('source retry reselects a photo and automatically processes it once', async t => {
   const f = fixture(t), p = f.page; let attempts = 0;
   platform.choose = async () => { if (!attempts++) throw new Error('permission denied'); return { path: '/tmp/new.jpg' }; };
   await photo.begin(p, 'camera', { date: f.date }); assert.equal(p.data.task.state, 'sourceError'); assert.equal(p.data.task.permission, true);
   const first = p.photoTask; await photo.retry(p);
-  assert.notEqual(p.photoTask, first); assert.equal(p.data.task.state, 'preview'); assert.equal(f.requests, 0);
+  assert.notEqual(p.photoTask, first); assert.equal(p.data.task.state, 'done'); assert.equal(f.requests, 1);
 });
 
 test('unloading cancels pending work and ignores late results; committed pictures survive unload', async t => {
   const f = fixture(t), p = f.page; let resolve;
-  await photo.begin(p, 'album', { date: f.date });
   extraction.extract = () => new Promise(done => { resolve = done; });
-  const processing = photo.retry(p); await photo.dispose(p); resolve('/tmp/late.png'); await processing;
+  const processing = photo.begin(p, 'album', { date: f.date }); await tick(); await photo.dispose(p); resolve('/tmp/late.png'); await processing;
   assert.equal(p.photoTask, null); assert.equal(p.data.task, null); assert.deepEqual(f.completed, []);
   assert.equal(Object.keys(f.store.get().memories).length, 0);
   await photo.begin(p, 'album', { date: f.date }); assert.equal(p.photoTask, null);
@@ -126,11 +128,13 @@ test('memory close handles completion during confirmation and does not cancel th
   const f = fixture(t), photos = { originalPath: '/old.jpg', subjectPath: '/old.png', width: 400, height: 300, kind: 'extracted' };
   const id = f.store.add('old', f.date, photos), p = Object.assign({}, memoryDefinition, { data: clone(memoryDefinition.data), store: f.store, id,
     setData(update) { Object.assign(this.data, update); } });
-  p.refresh(); await photo.begin(p, 'album', { date: f.date, memoryId: id });
+  p.refresh(); let finishExtraction;
+  extraction.extract = () => new Promise(resolve => { finishExtraction = resolve; });
+  const processing = photo.begin(p, 'album', { date: f.date, memoryId: id }); await tick();
   let confirm, navigations = 0;
   platform.call = method => method === 'showModal' ? new Promise(resolve => { confirm = resolve; }) : Promise.resolve({ width: 400, height: 300 });
   platform.back = () => { navigations++; };
-  const closing = p.back(); await p.back(); await photo.retry(p);
+  const closing = p.back(); await p.back(); finishExtraction('/new-cutout.png'); await processing;
   assert.equal(p.data.task.state, 'done'); assert.notEqual(p.data.memory.subjectPath, '/old.png');
   confirm({ confirm: true }); await closing;
   assert.equal(navigations, 1); assert.equal(p.photoTask, null); assert.equal(p.data.task, null);

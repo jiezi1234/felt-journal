@@ -104,3 +104,17 @@ test('theme exports use the selected theme layout/name and reject a deleted them
   await f.page.generate(); assert.equal(f.page.data.imagePath, '/new-export.png'); assert.equal(f.page.data.dateLabel, '一季的收藏'); assert.equal(f.page.data.isTheme, true);
   f.store.deleteTheme(id); await f.page.generate(); assert.equal(f.page.data.imagePath, ''); assert.match(f.page.data.error, /已被删除/);
 });
+test('share appearance regenerates the preview without changing saved boards or placements', async t => {
+  const f = fixture(t), before = f.disk[KEY], paints = [];
+  renderer.paint = (_, model) => paints.push(clone(model));
+  await f.page.generate();
+  await f.page.chooseColor({ currentTarget: { dataset: { value: '#C3D0BD' } } });
+  await f.page.chooseTexture({ currentTarget: { dataset: { value: 'cross' } } });
+  assert.equal(paints.at(-1).color, '#C3D0BD'); assert.equal(paints.at(-1).texture, 'cross');
+  assert.equal(f.disk[KEY], before);
+  assert.deepEqual(paints[0].items, paints.at(-1).items);
+  const count = paints.length;
+  await f.page.chooseColor({ currentTarget: { dataset: { value: 'invalid' } } });
+  f.page.data.sharing = true; await f.page.chooseTexture({ currentTarget: { dataset: { value: 'fine' } } });
+  assert.equal(paints.length, count);
+});

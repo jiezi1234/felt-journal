@@ -5,7 +5,7 @@ const renderer = require('../../core/renderer');
 const platform = require('../../services/platform');
 Page({
   data: { dateLabel: '', generating: true, error: '', imagePath: '', imageExpired: false, saving: false, albumDenied: false, albumSaved: false, count: 0,
-    sharing: false, shareSupported: false, shareError: '' },
+    sharing: false, shareSupported: false, shareError: '', colors: config.colors, textures: config.textures, previewColor: '', previewTexture: '' },
   onLoad(query) { this.store = getStore(); this.date = query.board || query.date; this.refreshShareSupport(); },
   onReady() { this.generate(); },
   onUnload() { this.disposed = true; },
@@ -20,7 +20,10 @@ Page({
     try {
       if (!isThemeId(this.date) && (!dates.valid(this.date) || this.date > dates.key())) throw new Error('日期无效');
       if (this.store.getDraft(this.date)) throw new Error('当前板面存在未保存的布局，请返回板面先保存');
-      const model = this.store.view(this.date); if (!model.items.length) throw new Error('空板暂时不能导出，先收藏一件生活记忆吧');
+      const saved = this.store.view(this.date); if (!saved.items.length) throw new Error('空板暂时不能导出，先收藏一件生活记忆吧');
+      // Share-only decoration: never write choices back to the journal board.
+      const model = { ...saved, color: this.data.previewColor || saved.color, texture: this.data.previewTexture || saved.texture };
+      this.setData({ previewColor: model.color, previewTexture: model.texture });
       const canvas = await new Promise((resolve, reject) => wx.createSelectorQuery().select('#exportCanvas').fields({ node: true, size: true }).exec(r => r[0] && r[0].node ? resolve(r[0].node) : reject(new Error('画布暂时不可用，请重试'))));
       if (this.disposed) return;
       canvas.width = config.exportWidth; canvas.height = config.exportWidth * config.board.height / config.board.width;
@@ -31,6 +34,12 @@ Page({
       if (!this.disposed) this.setData({ generating: false, imagePath: result.tempFilePath, dateLabel: boardLabel(model), isTheme: model.type === 'theme', count: model.items.length });
     } catch (e) { if (!this.disposed) this.setData({ generating: false, error: platform.message(e, '作品生成失败，请重试') }); }
     finally { this.busy = false; }
+  },
+  chooseColor(e) { return this.chooseAppearance('previewColor', config.colors, e.currentTarget.dataset.value); },
+  chooseTexture(e) { return this.chooseAppearance('previewTexture', config.textures, e.currentTarget.dataset.value); },
+  chooseAppearance(key, choices, value) {
+    if (this.busy || this.data.generating || this.data.saving || this.data.sharing || this.disposed || !choices.some(option => option.value === value) || this.data[key] === value) return;
+    this.setData({ [key]: value }); return this.generate();
   },
   hasImage() {
     if (this.disposed || !this.data.imagePath || this.data.imageExpired || this.data.generating) return false;

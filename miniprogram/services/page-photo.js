@@ -9,7 +9,7 @@ function begin(page, source, options) {
   if (page.disposed || page.photoTask) return;
   page.photoSource = source;
   const task = new PhotoTask(Object.assign({}, options, {
-    store: page.store, requireConfirmation: true,
+    store: page.store, requireConfirmation: false,
     onState(snapshot) { if (current(page, task)) { page.setData({ task: snapshot }); guard(page); } },
     // Refresh the saved model now, while keeping the result visible until Continue.
     // A close/unload must never write an older board draft over the new memory.

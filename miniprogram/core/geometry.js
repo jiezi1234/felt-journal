@@ -37,8 +37,8 @@ function hit(p, x, y) {
   const a = -p.angle * Math.PI / 180, dx = x - p.x, dy = y - p.y;
   return Math.abs(dx * Math.cos(a) - dy * Math.sin(a)) <= p.width / 2 && Math.abs(dx * Math.sin(a) + dy * Math.cos(a)) <= p.height / 2;
 }
-function handles(p, screenWidth) {
-  const s = screenWidth / B.width, e = extent(p), height = screenWidth * B.height / B.width;
+function handles(p, screenWidth, screenHeight = screenWidth * B.height / B.width) {
+  const s = screenWidth / B.width, e = extent(p), height = screenHeight;
   const cx = (B.inset + p.x) * s, cy = (B.inset + p.y) * s;
   const halfW = Math.max(50, e.w * s / 2 + 10), halfH = Math.max(50, e.h * s / 2 + 10);
   const clamp = (n, max) => Math.max(22, Math.min(max - 22, n));

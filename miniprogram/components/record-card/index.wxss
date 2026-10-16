@@ -37,3 +37,7 @@ button.source-existing { margin:4px auto 0; font-size:12px; color:#9A8A7C; }
 .record-card.is-source { height:auto; }.is-source .record-scroll { flex:none; height:230px; min-height:0; }
 .record-card .drawer-sheet { max-height:100%; }.record-card .drawer-scroll { max-height:none; }
 .is-processing .record-body { padding:8px 16px; }
+.record-card { height:min(620px,calc(100vh - 40px - env(safe-area-inset-bottom))); background:#F5F4F0; }
+.record-source { flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; }
+.source-intro { color:#6F5540; font-size:18px; margin-bottom:18px; }
+.source-hint { color:#9A8A7C; font-size:12px; margin-top:18px; }

@@ -14,7 +14,7 @@ const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-
 const output = path.join(root, 'artifacts');
 const realService = process.env.WECHAT_EXTRACTION_ENDPOINT || '';
 (async () => {
-  let mini, backup, testPhoto; const errors = [], checks = [];
+  let mini, backup, testPhoto, pickerMocked = false, modalMocked = false; const errors = [], checks = [];
   async function wait(page, predicate, timeout = 15000) {
     const start = Date.now();
     while (Date.now() - start < timeout) { const data = await page.data(); if (predicate(data)) return data; await new Promise(r => setTimeout(r, 150)); }
@@ -22,7 +22,11 @@ const realService = process.env.WECHAT_EXTRACTION_ENDPOINT || '';
   }
   async function route(expected) {
     const start = Date.now();
-    while (Date.now() - start < 15000) { const page = await mini.currentPage(); if (page && page.path === expected) return page; await new Promise(r => setTimeout(r, 200)); }
+    while (Date.now() - start < 15000) {
+      try { const page = await mini.currentPage(); if (page && page.path === expected) return page; }
+      catch (error) { if (!/getPageMetaByWebviewId|rawPath/.test(error.message)) throw error; }
+      await new Promise(r => setTimeout(r, 200));
+    }
     throw new Error(`Navigation did not reach ${expected}`);
   }
   async function capture(name) {
@@ -52,8 +56,10 @@ const realService = process.env.WECHAT_EXTRACTION_ENDPOINT || '';
     const photoBytes = realService ? fs.readFileSync(process.env.WECHAT_TEST_PHOTO || path.join(output, 'rembg-animal-1.jpg')) : fixture.toBuffer('image/png');
     testPhoto = await mini.evaluate(base64 => { const file = `${wx.env.USER_DATA_PATH}/felt-e2e-fixture.png`; wx.getFileSystemManager().writeFileSync(file, base64, 'base64'); return file; }, photoBytes.toString('base64'));
     await mini.mockWxMethod('chooseMedia', { tempFiles: [{ tempFilePath: testPhoto, size: 3000, fileType: 'image' }], type: 'image' });
+    pickerMocked = true;
     console.log('STEP: local photo picker fixture installed');
-    let home = await mini.reLaunch('/pages/index/index'); await wait(home, d => !d.loading); assert.equal((await home.data()).count, 0); assert.equal((await home.data()).error, '');
+    await mini.callWxMethod('reLaunch', { url: '/pages/index/index' });
+    let home = await route('pages/index/index'); await wait(home, d => !d.loading); assert.equal((await home.data()).count, 0); assert.equal((await home.data()).error, '');
     console.log('STEP: empty home loaded');
     const date = (await home.data()).date;
     await capture('wechat-home-empty.png');
@@ -61,7 +67,6 @@ const realService = process.env.WECHAT_EXTRACTION_ENDPOINT || '';
     console.log('STEP: native board opened');
     const uploadStartedAt = Date.now();
     await board.callMethod('album');
-    await wait(board, d => d.task && d.task.state === 'preview'); await board.callMethod('retryPhoto');
     if (!realService) {
       await wait(board, d => d.task && d.task.state === 'extractError');
       assert.equal((await board.data()).count, 0); await board.callMethod('originalPhoto');
@@ -88,7 +93,6 @@ const realService = process.env.WECHAT_EXTRACTION_ENDPOINT || '';
     await (await board.$('#redo-layout')).tap(); await wait(board, d => d.model.color === '#C3D0BD');
     console.log('STEP: undo/redo buttons saved color, adding overlapping second item');
     await board.callMethod('album');
-    await wait(board, d => d.task && d.task.state === 'preview'); await board.callMethod('retryPhoto');
     if (!realService) { await wait(board, d => d.task && d.task.state === 'extractError'); await board.callMethod('originalPhoto'); }
     await wait(board, d => d.count === 2 && d.task && d.task.state === 'done', realService ? 90000 : 15000);
     await board.callMethod('cancelPhoto'); await wait(board, d => !d.task);
@@ -107,32 +111,8 @@ const realService = process.env.WECHAT_EXTRACTION_ENDPOINT || '';
     assert.deepEqual({ ...frontGeometry, z: 0 }, { ...firstGeometry, z: 0 });
     assert.equal((await board.data()).canBringToFront, false);
     checks.push('native undo/redo and front/back buttons; addition resets history; layer changes preserve geometry');
-    const beforeAppearance = (await board.data()).model.placements;
     await board.callMethod('select', { detail: { id: '' } });
-    assert.equal((await board.$$('.color')).length, 0, 'Appearance choices stay collapsed');
-    await (await board.$('#open-appearance')).tap(); await wait(board, d => d.drawer === 'appearance');
-    assert.equal((await board.$$('.color')).length, 6); assert.equal((await board.$$('.texture')).length, 3);
-    await (await board.$('#color-4')).tap(); await wait(board, d => d.model.color === '#C4D2D6');
-    const longSwatch = await board.$('#swatch-long'); assert.ok(longSwatch, 'Long-fiber sample component must render');
-    await (await longSwatch.$('#sample')).tap(); await wait(board, d => d.model.texture === 'long');
-    assert.equal((await longSwatch.data()).color, '#C4D2D6', 'Texture sample follows chosen color');
-    await (await board.$('#close-drawer')).tap(); await wait(board, d => !d.drawer);
-    await (await board.$('#undo-layout')).tap(); await wait(board, d => d.model.texture === 'fine');
-    await (await board.$('#redo-layout')).tap(); await wait(board, d => d.model.texture === 'long');
-    await (await board.$('#open-appearance')).tap(); await wait(board, d => d.drawer === 'appearance');
-    await (await board.$('#texture-cross')).tap(); await wait(board, d => d.model.texture === 'cross' && d.saveState === '已保存');
-    assert.equal((await board.data()).appearanceLabel, '雾蓝 · 交织');
-    assert.deepEqual((await board.data()).model.placements, beforeAppearance);
-    if (process.env.WECHAT_APPEARANCE_SCREENSHOTS === '1') {
-      await board.waitFor(300);
-      try { await mini.screenshot({ path: path.join(output, 'wechat-appearance.png') }); } catch (error) { console.warn(`Appearance screenshot skipped: ${error.message}`); }
-    }
-    await (await board.$('#close-drawer')).tap(); await wait(board, d => !d.drawer);
-    await mini.callWxMethod('pageScrollTo', { scrollTop: 0, duration: 0 });
-    if (process.env.WECHAT_APPEARANCE_SCREENSHOTS === '1') {
-      await board.waitFor(300); try { await mini.screenshot({ path: path.join(output, 'wechat-textured-board.png') }); } catch (error) { console.warn(`Board screenshot skipped: ${error.message}`); }
-    }
-    checks.push('6 native colors, 3 live texture samples, swatch tap, undo/redo, appearance auto-save without placement changes');
+    assert.equal(await board.$('#open-appearance'), null, 'Board decoration is configured only when sharing');
     await capture('wechat-board-edit.png');
     const savedPlacements = (await board.data()).model.placements;
     console.log('STEP: transforms saved, opening memory detail');
@@ -141,6 +121,7 @@ const realService = process.env.WECHAT_EXTRACTION_ENDPOINT || '';
     let memory = await route('pages/memory/index'); await wait(memory, d => !d.loading);
     await memory.callMethod('edit'); await memory.callMethod('textInput', { detail: { value: '模拟器端到端验收文字' } }); await memory.callMethod('categoryInput', { detail: { value: '1' } }); await memory.callMethod('save');
     assert.equal((await memory.data()).memory.text, '模拟器端到端验收文字');
+    await memory.callMethod('section', { currentTarget: { dataset: { section: 'subject' } } });
     const beforeCrop = (await memory.data()).memory;
     const originalBytes = await mini.evaluate(file => wx.getFileSystemManager().readFileSync(file, 'base64'), beforeCrop.originalPath);
     const originalInfo = await mini.callWxMethod('getImageInfo', { src: beforeCrop.originalPath });
@@ -174,7 +155,8 @@ const realService = process.env.WECHAT_EXTRACTION_ENDPOINT || '';
     }
     await (await memory.$('#adjust-image')).tap(); crop = await route('pages/photo-edit/index'); await wait(crop, d => d.ready && !d.loading);
     await (await crop.$('#source-original')).tap(); await wait(crop, d => d.ready && !d.loading && d.source === 'original'); assert.equal((await crop.data()).dimensions, `${originalInfo.width} × ${originalInfo.height}`);
-    await mini.mockWxMethod('showModal', { confirm: true, cancel: false }); await crop.callMethod('back'); memory = await route('pages/memory/index'); await mini.restoreWxMethod('showModal');
+    await mini.mockWxMethod('showModal', { confirm: true, cancel: false }); modalMocked = true;
+    await crop.callMethod('back'); memory = await route('pages/memory/index'); await mini.restoreWxMethod('showModal'); modalMocked = false;
     assert.equal((await memory.data()).memory.subjectPath, afterCrop.subjectPath, 'Discarding original-source edit preserves saved crop');
     checks.push('native crop corner gesture, square preset, rotation/mirror/reset, PNG save, original bytes preserved and discard without changes');
     await mini.navigateBack(); board = await route('pages/board/index');
@@ -183,14 +165,18 @@ const realService = process.env.WECHAT_EXTRACTION_ENDPOINT || '';
     assert.deepEqual((await board.data()).model.placements, savedPlacements);
     checks.push('four corner native buttons, color save, detail text/category and return; crop preserves full layout');
     console.log('STEP: detail saved, testing relaunch');
-    await mini.reLaunch('/pages/index/index'); home = await route('pages/index/index'); await wait(home, d => !d.loading && !!d.model);
-    assert.equal((await home.data()).count, 2); assert.equal((await home.data()).model.color, '#C4D2D6'); assert.equal((await home.data()).model.texture, 'cross'); assert.deepEqual((await home.data()).model.placements, savedPlacements);
+    await mini.callWxMethod('reLaunch', { url: '/pages/index/index' }); home = await route('pages/index/index'); await wait(home, d => !d.loading && !!d.model);
+    assert.equal((await home.data()).count, 2); assert.equal((await home.data()).model.color, '#C3D0BD'); assert.equal((await home.data()).model.texture, 'fine'); assert.deepEqual((await home.data()).model.placements, savedPlacements);
     assert.equal((await home.data()).model.items[(await home.data()).model.items.length - 1].memoryId, id);
     assert.equal((await home.data()).model.items.find(p => p.memoryId === id).memory.subjectPath, afterCrop.subjectPath);
     await capture('wechat-home-saved.png'); checks.push('relaunch reloads same image, placement and color');
     board = await mini.navigateTo(`/pages/board/index?date=${date}`); await wait(board, d => !d.loading);
     console.log('STEP: restored layout, generating native canvas export');
-    await board.callMethod('exportBoard'); const exported = await route('pages/export/index'); const generated = await wait(exported, d => !d.generating);
+    const beforeShare = await mini.callWxMethod('getStorageSync', keys[0]);
+    await board.callMethod('exportBoard'); const exported = await route('pages/export/index'); await wait(exported, d => !d.generating);
+    await (await exported.$('#share-color-4')).tap(); await wait(exported, d => !d.generating && d.previewColor === '#C4D2D6');
+    await (await exported.$('#share-texture-cross')).tap(); const generated = await wait(exported, d => !d.generating && d.previewTexture === 'cross');
+    assert.equal(await mini.callWxMethod('getStorageSync', keys[0]), beforeShare);
     assert.equal(generated.error, ''); assert.ok(generated.imagePath);
     const info = await mini.callWxMethod('getImageInfo', { src: generated.imagePath }); assert.equal(info.width, 1800); assert.equal(info.height, 1200); assert.equal(generated.albumSaved, false);
     const exportedBytes = Buffer.from(await mini.evaluate(file => wx.getFileSystemManager().readFileSync(file, 'base64'), generated.imagePath), 'base64');
@@ -204,10 +190,10 @@ const realService = process.env.WECHAT_EXTRACTION_ENDPOINT || '';
     }
     const selectedError = materialError('cross'), defaultError = materialError('fine');
     assert.ok(selectedError < defaultError && selectedError < 2, `Export must contain selected texture: selected=${selectedError}, default=${defaultError}`);
-    checks.push('relaunch keeps new color/texture; real exported pixels match selected material');
+    checks.push('share-only color/texture leaves stored boards unchanged; real exported pixels match selected material');
     await capture('wechat-export.png'); checks.push('real WeChat Canvas 1800x1200 export with generated/album states separated');
     console.log('STEP: export generated, checking calendar');
-    await mini.reLaunch('/pages/calendar/index'); let calendar = await route('pages/calendar/index'); await wait(calendar, d => !d.loading && !!d.cells);
+    await mini.callWxMethod('reLaunch', { url: '/pages/calendar/index' }); let calendar = await route('pages/calendar/index'); await wait(calendar, d => !d.loading && !!d.cells);
     let cal = await calendar.data(); assert.equal(cal.cells.find(c => c.date === date).images.length, 2); assert.equal(cal.cells.length % 7, 0);
     assert.equal(cal.cells.find(c => c.date === date).images.find(image => image.id === id).path, afterCrop.subjectPath);
     assert.deepEqual(cal.cells.find(c => c.date === date).images.map(image => image.id), [id, secondId], 'Layer changes must not reorder calendar previews');
@@ -221,8 +207,8 @@ const realService = process.env.WECHAT_EXTRACTION_ENDPOINT || '';
     console.log('PASS:', checks.join('\nPASS: '));
   } catch (error) { console.error('E2E failure before cleanup:', error.stack || error); throw error; } finally {
     if (mini) {
-      await mini.restoreWxMethod('chooseMedia').catch(() => {});
-      await mini.restoreWxMethod('showModal').catch(() => {});
+      if (pickerMocked) await mini.restoreWxMethod('chooseMedia').catch(() => {});
+      if (modalMocked) await mini.restoreWxMethod('showModal').catch(() => {});
       if (backup) {
         // Clean up only test-owned files while the isolated test snapshot exists.
         await mini.evaluate(key => {

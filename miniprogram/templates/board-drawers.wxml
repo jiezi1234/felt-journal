@@ -1,18 +1,15 @@
 <view wx:if="{{drawer}}" class="drawer-veil" catchtouchmove="stop">
   <view class="drawer-scrim" bindtap="closeDrawer" />
-  <view class="drawer-sheet" role="dialog" aria-modal="true" aria-label="{{drawer === 'appearance' ? '板面与纹理' : drawer === 'note' ? '写下记忆' : drawer === 'library' ? '找回当天记忆' : '添加照片'}}">
+  <view class="drawer-sheet" role="dialog" aria-modal="true" aria-label="{{drawer === 'selection' ? '布置贴纸' : drawer === 'note' ? '写下记忆' : drawer === 'library' ? '找回当天记忆' : '添加照片'}}">
     <view class="drawer-handle" aria-hidden="true" />
-    <view class="row drawer-heading"><view class="section-title">{{drawer === 'appearance' ? '板面与纹理' : drawer === 'note' ? '文字 / 分类' : drawer === 'library' ? '当天记忆' : '添加照片'}}</view><button id="close-drawer" class="ghost" aria-label="收起抽屉" bindtap="closeDrawer">收起 ⌄</button></view>
+    <view class="row drawer-heading"><view class="section-title">{{drawer === 'selection' ? '布置贴纸' : drawer === 'note' ? '文字 / 分类' : drawer === 'library' ? '当天记忆' : '添加照片'}}</view><button id="close-drawer" class="ghost" aria-label="收起抽屉" bindtap="closeDrawer">收起 ⌄</button></view>
     <view class="drawer-scroll">
       <view class="drawer-content">
-        <block wx:if="{{drawer === 'appearance'}}">
-          <view id="appearance" class="appearance"><view class="muted">底色</view>
-            <view class="colors"><button wx:for="{{colors}}" wx:key="value" id="color-{{index}}" data-value="{{item.value}}" disabled="{{task || recovering}}" bindtap="color" aria-label="{{item.name + (model.color === item.value ? '，已选' : '')}}" class="color {{model.color === item.value ? 'active' : ''}}"><text class="swatch" style="background:{{item.value}};">{{model.color === item.value ? '✓' : ''}}</text>{{item.name}}</button></view>
-            <view class="divider" /><view class="muted">纹理</view>
-            <view class="textures"><button wx:for="{{textures}}" wx:key="value" id="texture-{{item.value}}" data-value="{{item.value}}" disabled="{{task || recovering}}" bindtap="texture" aria-label="{{item.name + (model.texture === item.value ? '，已选' : '')}}" class="texture {{model.texture === item.value ? 'active' : ''}}"><felt-swatch id="swatch-{{item.value}}" color="{{model.color}}" texture="{{item.value}}" /><view class="texture-name">{{model.texture === item.value ? '✓ ' : ''}}{{item.name}}</view></button></view>
-            <view wx:if="{{saveError}}" class="error">{{saveError}}<button bindtap="retrySave">重试保存</button></view><view wx:else class="caption">自动保存</view>
-          </view>
-        </block>
+        <view wx:if="{{drawer === 'selection'}}" class="source-actions">
+          <button id="edit-memory" class="secondary full" disabled="{{!selected}}" bindtap="memory">文字 / 分类</button>
+          <view class="row"><button id="layer-front" class="secondary grow" data-direction="front" disabled="{{!canBringToFront}}" bindtap="layer">↑ 置顶</button><button id="layer-back" class="secondary grow" data-direction="back" disabled="{{!canSendToBack}}" bindtap="layer">↓ 置底</button></view>
+          <button id="remove-placement" class="danger full" disabled="{{!selected}}" bindtap="remove">移除摆放</button><button id="add-from-library" class="ghost full" bindtap="library">找回当天记忆</button>
+        </view>
         <view wx:elif="{{drawer === 'source'}}" class="source-actions"><button id="source-camera" class="primary full" bindtap="camera">◎ 拍照</button><button id="source-album" class="secondary full" bindtap="album">▧ 相册</button></view>
         <block wx:elif="{{drawer === 'note'}}">
           <textarea id="record-note" class="record-note" value="{{noteText}}" placeholder="记点什么（选填）" maxlength="{{maxText}}" bindinput="noteInput" />

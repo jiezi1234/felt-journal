@@ -39,7 +39,7 @@ const output = path.resolve(process.env.WECHAT_STICKER_OUTPUT || 'artifacts/stic
     const start = Date.now(); let capturedPeel = false, capturedFlight = false, started = false;
     while (Date.now() - start < 6800) {
       const snapshot = await mini.evaluate(() => {
-        const c = getCurrentPages().at(-1).selectComponent('#record-card'), b = c.selectComponent('#board'), f = c.selectComponent('#placement-flight');
+        const c = getCurrentPages().at(-1), b = c.selectComponent('#today-board'), f = c.selectComponent('#placement-flight');
         return { placing: c.data.placing, task: !!c.data.task, phase: f && f.data.phase, painted: f && f.data.painted, flightExists: !!f, flightType: f && f.is, drawType: f && typeof f.draw,
           compositedMesh: !!(f && f.shadowLayer), legacyRenderer: !!(f && f.shadow), canvasOrigin: f && f.origin,
           board: b && { landingId: b.data.landingId, snapshot: !!b.data.snapshot, width: b.screenWidth, canvas: !!b.canvas, height: b.data.height } };
@@ -55,7 +55,8 @@ const output = path.resolve(process.env.WECHAT_STICKER_OUTPUT || 'artifacts/stic
     fs.writeFileSync(path.join(output, 'native-frames.json'), JSON.stringify({ frames, errors }, null, 2));
     assert.ok(capturedPeel, 'Canvas rendered the source peel'); assert.ok(capturedFlight, 'Canvas reached the measured board target');
     assert.ok(frames.some(frame => frame.compositedMesh), 'DevTools loaded the current renderer');
-    assert.equal(frames.at(-1).placing, null); assert.equal((await card.data()).count, 1);
+    assert.equal(frames.at(-1).placing, null); assert.equal((await home.data()).count, 1);
+    assert.equal(await home.$('#record-card'), null); assert.equal((await home.data()).editable, true);
     const saved = JSON.parse(await mini.callWxMethod('getStorageSync', keys[0])); assert.equal(Object.keys(saved.memories).length, 1);
     assert.equal(errors.length, 0, JSON.stringify(errors));
     console.log('PASS: native peel -> measured flight -> landing, no duplicate memory');

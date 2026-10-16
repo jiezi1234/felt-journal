@@ -14,7 +14,7 @@ Component({
     measure() {
       this.createSelectorQuery().select('#feltCanvas').fields({ node: true }).select('.board-viewport').boundingClientRect().exec(result => {
         const r = result[0], rect = result[1]; if (this.dead || !r || !r.node || !rect || !rect.width) return;
-        const tall = this.data.layout === 'tall' && !this.data.editable;
+        const tall = this.data.layout === 'tall';
         const width = this.data.layout === 'fit' && rect.height ? Math.min(rect.width, rect.height * B.width / B.height) : rect.width;
         const height = tall ? Math.max(width * B.height / B.width, rect.height) : width * B.height / B.width;
         if (this.canvas === r.node && Math.abs(this.screenWidth - width) < 0.5 && Math.abs(this.data.height - height) < 0.5) return;
@@ -35,8 +35,8 @@ Component({
         const display = dimensions === B ? model : viewport.present(model, this.screenWidth, this.data.height).model;
         this.displayModel = display;
         const ctx = this.canvas.getContext('2d'); ctx.setTransform(this.canvas.width / dimensions.width, 0, 0, this.canvas.height / dimensions.height, 0, 0);
-        const selected = (model.items || []).find(p => p.memoryId === this.data.selected);
-        const handles = this.data.editable && selected && !this.data.landingId ? geometry.handles(selected, this.screenWidth) : [];
+        const selected = (display.items || []).find(p => p.memoryId === this.data.selected);
+        const handles = this.data.editable && selected && !this.data.landingId ? geometry.handles(selected, this.screenWidth, this.data.height) : [];
         const visible = this.data.landingId ? Object.assign({}, display, { items: display.items.filter(p => p.memoryId !== this.data.landingId) }) : display;
         renderer.paint(ctx, visible, this.images, this.data.editable && !this.data.landingId ? this.data.selected : '', dimensions);
         renderer.paintControls(ctx, handles, this.screenWidth);
@@ -54,7 +54,7 @@ Component({
       if (!id || this.dead) return;
       this.createSelectorQuery().select('.board-shell').boundingClientRect(rect => {
         if (this.dead || this.data.landingId !== id) return;
-        const placement = this.data.model.items.find(item => item.memoryId === id);
+        const placement = (this.displayModel || this.data.model).items.find(item => item.memoryId === id);
         const target = stickerMotion.landingRect(rect, placement);
         if (target) this.triggerEvent('landingready', { id, target });
       }).exec();
@@ -66,7 +66,8 @@ Component({
       this.createSelectorQuery().select('.board-shell').boundingClientRect(rect => {
         if (!rect || token !== this.gestureToken) return;
         this.rect = rect;
-        const point = this.point(touch), item = ((this.displayModel || this.data.model).items || []).slice().reverse().find(p => geometry.hit(p, point.x, point.y));
+        const point = this.point(touch), hit = ((this.displayModel || this.data.model).items || []).slice().reverse().find(p => geometry.hit(p, point.x, point.y));
+        const item = hit && this.data.model.items.find(p => p.id === hit.id);
         this.gesture = { point, item, moved: false, long: false };
         if (this.data.editable && item) {
           this.triggerEvent('select', { id: item.memoryId });
@@ -79,7 +80,8 @@ Component({
       const point = this.point(e.touches[0]), dx = point.x - g.point.x, dy = point.y - g.point.y;
       if (Math.hypot(dx, dy) * this.screenWidth / B.width > 6) { g.moved = true; clearTimeout(this.longTimer); }
       if (!g.moved || !g.item || !this.data.editable || g.long) return;
-      const next = geometry.fit(Object.assign({}, g.item, { x: g.item.x + dx, y: g.item.y + dy }));
+      const ratio = this.data.layout === 'tall' ? viewport.verticalRatio(this.screenWidth, this.data.height) : 1;
+      const next = geometry.fit(Object.assign({}, g.item, { x: g.item.x + dx, y: g.item.y + dy / ratio }));
       g.next = next; this.dragModel = Object.assign({}, this.data.model, { items: this.data.model.items.map(p => p.id === next.id ? next : p) }); this.refresh();
     },
     touchEnd() {

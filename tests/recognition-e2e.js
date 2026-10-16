@@ -33,6 +33,11 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     await mini.screenshot({ path: path.join(output, name + '.png') }); screenshots.push(name);
   }
   async function readState() { return JSON.parse(await mini.callWxMethod('getStorageSync', keys[0])); }
+  async function route(name) {
+    const start = Date.now();
+    while (Date.now() - start < 15000) { const page = await mini.currentPage(); if (page.path === `pages/${name}/index`) return page; await pause(100); }
+    throw new Error(`Did not reach ${name}`);
+  }
   try {
     mini = await automator.connect({ wsEndpoint: process.env.WECHAT_AUTOMATION_URL || 'ws://127.0.0.1:9420' });
     mini.on('exception', error => errors.push(error));
@@ -54,23 +59,21 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     await (await home.$('#record-today')).tap(); await wait(home, data => data.editorOpen);
     let card = await home.$('#record-card'); await wait(card, data => !data.loading);
     await capture('01-start');
-    await (await card.$('#record-album')).tap(); await wait(card, data => data.task && data.task.state === 'preview');
-    let panel = await card.$('#record-photo');
-    assert.ok(await panel.$('#start-extraction'));
-    assert.equal(Object.keys((await readState()).memories).length, 0);
-    await capture('02-preview');
-    await card.callMethod('cancelPhoto'); await wait(card, data => !data.task);
-    assert.equal(Object.keys((await readState()).memories).length, 0);
-    checks.push('preview waits for an explicit start; cancelling preview creates no record');
-    await (await card.$('#record-album')).tap(); await wait(card, data => data.task && data.task.state === 'preview');
-    panel = await card.$('#record-photo');
-    await (await panel.$('#start-extraction')).tap();
-    console.log('STEP: explicit start sent to actual service');
+    const sourceSize = await (await card.$('.record-card')).size();
+    await (await card.$('#record-album')).tap();
+    console.log('STEP: photo selection automatically sent to actual service');
     await wait(card, data => data.task && ['uploading', 'extracting', 'saving', 'done'].includes(data.task.state));
     if ((await card.data()).task.state !== 'done') {
       await capture('03-processing-a'); await pause(220); await capture('03-processing-b');
     }
     const result = await wait(card, data => data.task && data.task.state === 'done' && data.count === 1, 90000);
+    const resultSize = await (await card.$('.record-card')).size();
+    assert.ok(Math.abs(sourceSize.height - resultSize.height) < 2, 'Selection and processing remain in the same sized card');
+    assert.equal(await card.$('#board'), null, 'Photo card never contains another felt board');
+    let panel = await card.$('#record-photo');
+    assert.equal(await panel.$('#start-extraction'), null);
+    assert.equal(states.includes('preview'), false);
+    checks.push('selecting a photo starts processing automatically in the same card without a start button');
     assert.equal(result.task.committed, true); assert.equal(result.task.kind, 'extracted');
     const id = result.selected, saved = (await readState()).memories[id];
     assert.ok(id && saved); assert.equal(saved.kind, 'extracted');
@@ -79,9 +82,13 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     fs.writeFileSync(path.join(output, 'actual-cutout.png'), imageBytes);
     const image = await loadImage(imageBytes), canvas = createCanvas(image.width, image.height), ctx = canvas.getContext('2d');
     ctx.drawImage(image, 0, 0); const pixels = ctx.getImageData(0, 0, image.width, image.height).data;
-    let transparent = 0, opaque = 0;
-    for (let i = 3; i < pixels.length; i += 4) { if (pixels[i] === 0) transparent++; if (pixels[i] === 255) opaque++; }
+    let transparent = 0, opaque = 0, white = 0;
+    for (let i = 3; i < pixels.length; i += 4) {
+      if (pixels[i] === 0) transparent++; if (pixels[i] === 255) opaque++;
+      if (pixels[i] === 255 && pixels[i - 1] === 255 && pixels[i - 2] === 255 && pixels[i - 3] === 255) white++;
+    }
     assert.ok(transparent > 0 && opaque > 0, 'Actual saved result must contain both transparent and foreground pixels');
+    assert.ok(white > 200, 'Saved sticker retains its opaque white decoration');
     await pause(1100); assert.equal((await card.data()).task.state, 'done');
     panel = await card.$('#record-photo');
     await (await panel.$('#compare-photo')).tap(); await wait(panel, data => data.showOriginal);
@@ -98,24 +105,23 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     assert.ok(continueButton, 'Continue button renders after saved completion');
     console.log('STEP: completion button found');
     await continueButton.tap();
-    await wait(card, data => !!data.placing);
+    await wait(home, data => !!data.placing);
     await capture('04-peeling');
-    await wait(card, data => !data.task && !data.sourceStage);
-    const flight = await wait(card, data => data.placing && data.placing.target);
+    const flight = await wait(home, data => !data.editorOpen && data.placing && data.placing.target);
     assert.equal(flight.placing.id, id);
     assert.ok(flight.placing.target.width < flight.placing.source.width, 'Sticker shrinks from preview to the board');
-    const board = await card.$('#board');
+    const board = await home.$('#today-board');
     assert.equal((await board.data()).landingId, id);
     await capture('05-flying');
-    await card.callMethod('cancelPhoto');
-    await wait(card, data => !data.placing);
+    await wait(home, data => !data.placing && !data.editorOpen);
     assert.equal((await board.data()).landingId, '');
     assert.equal(Object.keys((await readState()).memories).length, 1);
-    checks.push('Continue flies the same saved sticker to measured board coordinates, hides the duplicate during flight and unlocks placement after landing');
+    assert.equal(await home.$('#record-card'), null); assert.equal((await home.data()).editable, true);
+    checks.push('Start arranging closes the photo card and flies onto the existing Today board, with one record and editable landing');
     checks.push('real upload/extraction/download produces a transparent saved PNG; original/result comparison preserves the saved file; done persists until continue; same home and one commit');
     await capture('05-arrange');
     const boardPng = await mini.evaluate(() => new Promise((resolve, reject) => {
-      const board = getCurrentPages().at(-1).selectComponent('#record-card').selectComponent('#board');
+      const board = getCurrentPages().at(-1).selectComponent('#today-board');
       wx.canvasToTempFilePath({ canvas: board.canvas, fileType: 'png', success: result => {
         const fs = wx.getFileSystemManager();
         try { resolve(fs.readFileSync(result.tempFilePath, 'base64')); } catch (error) { reject(error); }
@@ -123,12 +129,40 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     }));
     fs.writeFileSync(path.join(output, 'actual-board-canvas.png'), Buffer.from(boardPng, 'base64'));
     console.log('STEP: continued to arrangement on the same home page');
-    await (await card.$('#close-record')).tap(); await wait(home, data => !data.editorOpen && data.count === 1);
+    const originalPlacement = (await readState()).boards[saved.date].placements[0];
+    await home.callMethod('transform', { detail: { op: 'cw' } });
+    assert.notEqual((await readState()).boards[saved.date].placements[0].angle, originalPlacement.angle);
+    await home.callMethod('undo');
+    assert.deepEqual((await readState()).boards[saved.date].placements[0], originalPlacement);
+    const center = () => mini.evaluate(() => new Promise(resolve => {
+      const b = getCurrentPages().at(-1).selectComponent('#today-board');
+      b.createSelectorQuery().select('.board-shell').boundingClientRect(r => {
+        const item = b.displayModel.items[0], scale = r.width / 1500;
+        resolve({ x: r.left + (item.x + 45) * scale, y: r.top + (item.y + 45) * scale });
+      }).exec();
+    }));
+    const startCenter = await center(), shell = await board.$('.board-shell');
+    const finger = { identifier: 0, clientX: startCenter.x, clientY: startCenter.y };
+    await shell.touchstart({ touches: [finger] }); await pause(150);
+    await shell.touchmove({ touches: [{ ...finger, clientY: finger.clientY + 24 }] });
+    await shell.touchend({ touches: [] }); await pause(250);
+    const endCenter = await center();
+    assert.ok(Math.abs(endCenter.y - startCenter.y - 24) < 1, 'Portrait board drag follows the finger without vertical stretching');
+    await home.callMethod('undo');
+    assert.deepEqual((await readState()).boards[saved.date].placements[0], originalPlacement);
+    const beforeShare = JSON.stringify(await readState());
+    await (await home.$('#export-today')).tap();
+    const share = await route('export'); await wait(share, d => !d.generating && !!d.imagePath);
+    const firstImage = (await share.data()).imagePath;
+    await (await share.$('#share-color-1')).tap(); await wait(share, d => !d.generating && !!d.imagePath && d.imagePath !== firstImage);
+    await (await share.$('#share-texture-cross')).tap(); await wait(share, d => !d.generating && d.previewTexture === 'cross');
+    assert.equal(JSON.stringify(await readState()), beforeShare);
+    await capture('06-share-style'); await share.callMethod('back'); await route('index');
+    checks.push('Today supports rotation, exact-distance portrait dragging and undo; color/texture choices exist only on share and never change saved board data');
     await (await home.$('#record-today')).tap(); await wait(home, data => data.editorOpen);
     card = await home.$('#record-card'); await wait(card, data => !data.loading);
     assert.equal((await card.data()).task, null);
-    await (await card.$('#record-album')).tap(); await wait(card, data => data.task && data.task.state === 'preview');
-    await card.callMethod('retryPhoto');
+    await (await card.$('#record-album')).tap();
     await wait(card, data => data.task && ['uploading', 'extracting'].includes(data.task.state));
     await card.callMethod('cancelPhoto'); await wait(card, data => !data.task);
     await pause(1500); assert.equal(Object.keys((await readState()).memories).length, 1);
