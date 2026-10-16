@@ -6,3 +6,12 @@
 .export-paper { padding:18px; background:linear-gradient(150deg,#FFFFFF,#FFF9E9); }.export-actions { margin-top:30px; gap:12px; }.share-error { background:#FBF4F2; }.export-paper .row { gap:16px; }.export-paper .row text:first-child { min-width:0; overflow-wrap:anywhere; }
 
 .export-paper { border-radius:30px; padding:18px; background:linear-gradient(145deg,#FFFFFF,#FFFCF3); }.preview { border-radius:22px; }.share-hint { color:#96816B; }.export-actions .secondary { background:#FFFFFF; }.export-actions .primary { min-height:54px; }
+
+.export-page { gap:10px; }.export-page .screen-header { margin:0; }
+.export-page>.chip { flex-shrink:0; align-self:flex-start; }
+.export-page .export-paper { flex:1; min-height:0; display:flex; flex-direction:column; margin:0; padding:12px; }
+.export-page .preview { flex:1; min-height:0; height:0; }
+.export-page .export-paper .row { flex-shrink:0; margin-top:8px; }.export-paper .muted { font-size:11px; }
+.export-page .export-actions { flex-shrink:0; margin:0; gap:8px; }
+.export-page .share-error { padding:6px 10px; font-size:12px; }
+.export-page .share-hint { font-size:11px; }

@@ -4,7 +4,7 @@ const config = require('../../core/config');
 const platform = require('../../services/platform');
 const photo = require('../../services/page-photo');
 Page({
-  data: { loading: true, error: '', memory: null, editing: false, text: '', category: 0, categories: config.categories, maxText: config.maxText, saveError: '', contentStatus: '', task: null, originalMissing: false, subjectMissing: false, backLabel: '返回原板' },
+  data: { loading: true, error: '', memory: null, editing: false, section: 'subject', text: '', category: 0, categories: config.categories, maxText: config.maxText, saveError: '', contentStatus: '', task: null, originalMissing: false, subjectMissing: false, backLabel: '返回原板' },
   onLoad(query) { this.store = getStore(); this.id = query.id; if (query.from === 'memories') this.setData({ backLabel: '返回筛选结果' }); else if (query.from === 'theme') this.setData({ backLabel: '返回主题板' }); },
   onShow() { this.refresh(); },
   onUnload() { if (this.dirty) this.store.keepMemoryDraft(this.id, { text: this.data.text, category: this.data.category }); photo.dispose(this); platform.unloadGuard(false); },
@@ -21,13 +21,14 @@ Page({
       if (!this.checkedDraft) { this.checkedDraft = true; this.recoverDraft(); }
     } catch (e) { this.setData({ loading: false, error: platform.message(e) }); }
   },
-  edit() { this.setData({ editing: true }); },
+  section(e) { const section = e.currentTarget.dataset.section; if (['original', 'subject', 'note'].includes(section)) this.setData({ section }); },
+  edit() { this.setData({ editing: true, section: 'note' }); },
   async recoverDraft() {
     const draft = this.store.getMemoryDraft(this.id); if (!draft) return;
     if (draft.text === this.data.memory.text && config.categories[draft.category] === this.data.memory.category) { this.store.clearMemoryDraft(this.id); return; }
     const result = await platform.call('showModal', { title: '发现未保存的文字', content: '是否恢复上次未保存的记忆文字和分类？', confirmText: '恢复', cancelText: '放弃' });
     if (this.disposed) return;
-    if (result.confirm) { this.dirty = true; this.setData({ editing: true, text: draft.text, category: draft.category }); platform.unloadGuard(true); }
+    if (result.confirm) { this.dirty = true; this.setData({ editing: true, section: 'note', text: draft.text, category: draft.category }); platform.unloadGuard(true); }
     else this.store.clearMemoryDraft(this.id);
   },
   keepContentDraft() { this.store.keepMemoryDraft(this.id, { text: this.data.text, category: this.data.category }); platform.unloadGuard(true); },

@@ -1,1 +1,4 @@
-{ "navigationBarTitleText": "主题板" }
+{
+  "navigationBarTitleText": "主题板",
+  "disableScroll": true
+}

@@ -109,3 +109,11 @@ test('home opens a component, hides navigation, and refreshes the day only after
   assert.deepEqual(tabs, [{ active: 'today', hidden: true }, { active: 'today', hidden: false }]);
   assert.equal(f.store.get().boards['2099-01-02'], undefined);
 });
+
+test('in-card library paginates all unplaced photos without touching saved data', async t => {
+  const f = fixture(t);
+  for (let i = 0; i < 8; i++) { const id = f.store.add('page_' + i, f.date, photos('page_' + i)); f.store.unplace(id, f.date); }
+  const before = JSON.stringify(f.store.get()); await f.page.library(); const seen = [];
+  for (let i = 0; i < 3; i++) { seen.push(...f.page.data.visibleLibraryItems.map(m => m.id)); f.page.libraryNext(); }
+  assert.equal(new Set(seen).size, 8); assert.equal(f.page.data.libraryPage, 3); assert.equal(JSON.stringify(f.store.get()), before);
+});

@@ -64,3 +64,12 @@ test('theme board layout/removal are independent; undo cannot put the removed me
   await p.library(); const request = f.calls.at(-1); assert.match(request.options.url, /target=theme_one/);
   f.store.place(f.past, theme); request.options.events.placed({ id: f.past, boardId: theme }); p.onShow(); assert.equal(p.data.selected, f.past); assert.equal(p.data.editable, true);
 });
+
+test('theme pagination reaches every board and clamps after deleting the last page', async t => {
+  const f = fixture(t), p = f.page(themes, { memoryId: '' });
+  for (let i = 0; i < 5; i++) f.store.createTheme('paging_' + i, '主题 ' + i);
+  p.refresh(); const raw = f.disk[KEY], seen = [];
+  for (let i = 0; i < 5; i++) { assert.equal(p.data.visibleThemes.length, 1); seen.push(p.data.visibleThemes[0].id); p.next(); }
+  assert.equal(new Set(seen).size, 5); assert.equal(f.disk[KEY], raw); assert.equal(p.data.page, 5);
+  await p.remove(event(p.data.visibleThemes[0].id)); assert.equal(p.data.page, 4); assert.equal(p.data.pageCount, 4); assert.equal(p.data.visibleThemes.length, 1);
+});

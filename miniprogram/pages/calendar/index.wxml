@@ -1,12 +1,11 @@
-<view class="page with-main-nav calendar-page">
+<view class="page screen-page with-main-nav calendar-page">
   <view class="row calendar-top"><view class="section-title">月历</view><button class="ghost" bindtap="current">当月 ↗</button></view>
   <view class="row month"><button aria-label="上个月" bindtap="previous">‹</button><text class="section-title">{{year}}年 {{month}}月</text><button aria-label="下个月" disabled="{{!canNext}}" bindtap="next">›</button></view>
   <view wx:if="{{loading}}" class="loading">加载中…</view><view wx:elif="{{error}}" class="error">{{error}}<button bindtap="refresh">重试读取</button></view>
   <block wx:else>
     <view class="paper calendar-paper"><view class="week"><text wx:for="{{weekdays}}" wx:key="*this">{{item}}</text></view>
-      <view class="grid"><view wx:for="{{cells}}" wx:key="id" wx:for-index="cellIndex" class="day {{item.today ? 'today' : ''}} {{item.future ? 'future' : ''}} {{item.blank ? 'blank' : ''}}" data-date="{{item.date}}" bindtap="open"><view wx:if="{{!item.blank}}" class="number">{{item.day}}<text wx:if="{{item.today}}" class="today-dot" /></view><view class="mini-images"><block wx:for="{{item.images}}" wx:for-item="preview" wx:for-index="imageIndex" wx:key="id"><image wx:if="{{!preview.missing}}" src="{{preview.path}}" mode="aspectFit" data-cell="{{cellIndex}}" data-image="{{imageIndex}}" binderror="imageError" /><text wx:else class="missing">▧</text></block></view></view></view>
+      <view class="grid" style="grid-template-rows:repeat({{cells.length / 7}}, minmax(0, 1fr));"><view wx:for="{{cells}}" wx:key="id" wx:for-index="cellIndex" class="day {{item.today ? 'today' : ''}} {{item.future ? 'future' : ''}} {{item.blank ? 'blank' : ''}}" data-date="{{item.date}}" bindtap="open"><view wx:if="{{!item.blank}}" class="number">{{item.day}}<text wx:if="{{item.today}}" class="today-dot" /></view><view class="mini-images"><block wx:for="{{item.images}}" wx:for-item="preview" wx:for-index="imageIndex" wx:key="id"><image wx:if="{{!preview.missing}}" src="{{preview.path}}" mode="aspectFit" data-cell="{{cellIndex}}" data-image="{{imageIndex}}" binderror="imageError" /><text wx:else class="missing">▧</text></block></view></view></view>
     </view>
-    <button id="find-month-memories" class="secondary full space" bindtap="memories">本月记忆 ↗</button>
-    <view class="month-summary"><view class="stat-block"><view class="stat">{{itemCount}}</view><view class="stat-label">件记忆</view></view><view class="stat-block"><view class="stat">{{dayCount}}</view><view class="stat-label">天记录</view></view></view>
+    <view class="month-summary"><button id="find-month-memories" class="ghost month-stats" bindtap="memories" aria-label="查看本月记忆"><text>{{itemCount}} 件记忆</text><text class="muted">{{dayCount}} 天记录</text></button><button id="find-memories" class="secondary" bindtap="categories">记忆分类 ↗</button></view>
   </block>
 </view>

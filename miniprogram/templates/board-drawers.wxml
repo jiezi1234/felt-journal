@@ -3,7 +3,7 @@
   <view class="drawer-sheet" role="dialog" aria-modal="true" aria-label="{{drawer === 'appearance' ? '板面与纹理' : drawer === 'note' ? '写下记忆' : drawer === 'library' ? '找回当天记忆' : '添加照片'}}">
     <view class="drawer-handle" aria-hidden="true" />
     <view class="row drawer-heading"><view class="section-title">{{drawer === 'appearance' ? '板面与纹理' : drawer === 'note' ? '文字 / 分类' : drawer === 'library' ? '当天记忆' : '添加照片'}}</view><button id="close-drawer" class="ghost" aria-label="收起抽屉" bindtap="closeDrawer">收起 ⌄</button></view>
-    <scroll-view scroll-y class="drawer-scroll" enhanced bounces="{{false}}">
+    <view class="drawer-scroll">
       <view class="drawer-content">
         <block wx:if="{{drawer === 'appearance'}}">
           <view id="appearance" class="appearance"><view class="muted">底色</view>
@@ -23,9 +23,10 @@
         </block>
         <block wx:elif="{{drawer === 'library'}}">
           <view wx:if="{{!libraryItems.length}}" class="empty-library">暂无未摆放记忆</view>
-          <button wx:for="{{libraryItems}}" wx:key="id" class="library-memory" data-id="{{item.id}}" bindtap="placeFromLibrary"><image src="{{item.path}}" mode="aspectFit" /><view><text class="muted">{{item.category}}</text><view wx:if="{{item.text}}" class="library-copy">{{item.text}}</view></view><text>＋</text></button>
+          <button wx:for="{{visibleLibraryItems}}" wx:key="id" class="library-memory" data-id="{{item.id}}" bindtap="placeFromLibrary"><image src="{{item.path}}" mode="aspectFit" /><view><text class="muted">{{item.category}}</text><view wx:if="{{item.text}}" class="library-copy">{{item.text}}</view></view><text>＋</text></button>
+          <view wx:if="{{libraryPageCount > 1}}" class="library-pagination"><button class="ghost" disabled="{{libraryPage <= 1}}" bindtap="libraryPrevious">‹</button><text>{{libraryPage}} / {{libraryPageCount}}</text><button class="ghost" disabled="{{libraryPage >= libraryPageCount}}" bindtap="libraryNext">›</button></view>
         </block>
       </view>
-    </scroll-view>
+    </view>
   </view>
 </view>

@@ -19,3 +19,26 @@ button.color[disabled],button.texture[disabled] { opacity:.55; }
 .selected-tools { margin-top:8px; padding:8px 14px 14px; background:#FFFFFF; border:1px solid #EEE8DE; border-radius:22px; }.selected-heading .muted { font-size:11px; }.selection-actions { display:flex; gap:8px; }.selection-actions>button { flex:1; width:0; min-width:0; padding:10px 3px; font-size:12px; }.library-add { font-size:12px; margin-top:10px !important; }
 .drawer-veil { position:fixed; inset:0; z-index:140; display:flex; align-items:flex-end; justify-content:center; padding:0 12px calc(12px + env(safe-area-inset-bottom)); }.drawer-scrim { position:absolute; inset:0; background:rgba(43,35,28,.28); }.drawer-sheet { position:relative; width:100%; max-width:520px; max-height:80vh; background:#FFFDFA; border:1px solid #FFFFFF; border-radius:30px; box-shadow:0 -6px 28px rgba(50,38,24,.1); overflow:hidden; }.drawer-handle { width:34px; height:4px; border-radius:3px; margin:10px auto 0; background:#DED7CC; }.drawer-heading { padding:6px 20px 8px; border-bottom:1px solid #F0EAE1; }.drawer-heading .section-title { font-size:19px; }.drawer-heading .ghost { font-size:12px; }.drawer-scroll { max-height:64vh; }.drawer-content { padding:18px 20px 24px; }.drawer-content .appearance { margin:0; }.drawer-content .caption { margin:18px 0 0; }.source-actions { display:flex; flex-direction:column; gap:14px; }
 .record-note { width:100%; min-height:120px; padding:14px; border:1px solid #E8DDC9; background:#FFFFFF; border-radius:18px; line-height:1.8; font-size:15px; }.note-count { text-align:right; margin:8px 0; font-size:11px; }.note-picker { padding:12px 14px; border-radius:18px; background:#FFF3D6; color:#80613D; font-size:13px; }.empty-library { padding:22px 0; text-align:center; color:#7D6851; font-size:14px; }.empty-library .muted { margin-top:10px; font-size:12px; }button.library-memory { display:flex; align-items:center; gap:12px; width:100%; padding:10px; margin-bottom:10px; text-align:left; border-radius:20px; background:#FFFFFF; } .library-memory image { width:54px; height:54px; flex-shrink:0; }.library-memory>view { flex:1; min-width:0; }.library-copy { font-size:13px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+
+/* Keep controls visible while the canvas takes the remaining space. */
+.board-page { gap:6px; }.board-page>.row { flex-shrink:0; }
+.board-page .board-heading,.record-body .board-heading { flex-shrink:0; margin:0; min-height:32px; }
+.board-page .board-heading .section-title { font-size:17px; max-height:52px; overflow:hidden; }
+.editor-stage { flex:1; min-height:0; }
+.board-page .caption,.record-body .caption { flex-shrink:0; margin:2px 0; font-size:11px; }
+.editor-toolbar,.history-tools,.selected-tools,.library-add { flex-shrink:0; }
+.board-page .editor-toolbar>button,.record-body .editor-toolbar>button { min-height:44px; padding:6px; font-size:12px; }
+.board-page .history-tools,.record-body .history-tools { margin:0; }
+.history-tools button { min-height:36px; padding:7px 6px; }
+.board-page .selected-tools,.record-body .selected-tools { margin:0; padding:0 8px 6px; border-radius:16px; }
+.selected-heading .ghost { min-height:30px; padding:4px; font-size:11px; }
+.selection-actions>button { min-height:36px; padding:7px 2px; font-size:11px; }
+.board-page .library-add,.record-body .library-add { min-height:32px; padding:5px; margin-top:0 !important; }
+.board-page .board-export { margin-top:4px; flex-shrink:0; }
+.drawer-scroll { max-height:none; }.drawer-content { padding:12px 16px 16px; }.drawer-heading { padding:4px 16px; }
+.drawer-content .colors { margin-top:8px; gap:6px; }.drawer-content .color { min-height:36px; padding:7px 2px; font-size:12px; }
+.drawer-content .divider { margin:12px 0; }.drawer-content .caption { margin:10px 0 0; }
+.drawer-content .record-note { height:110px; min-height:0; }.drawer-content .note-count { margin:4px 0; }.drawer-content .space { margin-top:10px; }
+.library-pagination { display:flex; align-items:center; justify-content:space-between; }.library-pagination text { font-size:12px; color:#95877D; }
+.library-pagination button { min-height:36px; padding:6px 20px; }
+@media (max-height:570px) { .drawer-content { padding:8px 14px 10px; }.drawer-content .texture-name { margin-top:3px; }.drawer-content .record-note { height:84px; }.drawer-content .color { min-height:32px; padding:4px 2px; } }

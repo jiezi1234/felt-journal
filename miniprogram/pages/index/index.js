@@ -24,6 +24,5 @@ Page({
   editorChanged() { /* Keep the underlying page and its scroll in place until closing. */ },
   closeEditor() { this.setData({ editorOpen: false }); platform.syncTab(this, 'today'); this.refresh(); },
   openMemory(e) { if (e.detail && e.detail.id) wx.navigateTo({ url: `/pages/memory/index?id=${encodeURIComponent(e.detail.id)}` }); },
-  exportToday() { if (this.data.count) wx.navigateTo({ url: `/pages/export/index?date=${this.data.date}` }); },
-  memories() { wx.navigateTo({ url: '/pages/memories/index' }); }
+  exportToday() { if (this.data.count) wx.navigateTo({ url: `/pages/export/index?date=${this.data.date}` }); }
 });

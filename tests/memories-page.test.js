@@ -16,7 +16,7 @@ function fixture(t, count = 25) {
 }
 test('filters, time range and pagination only read storage and keep conditions on return', t => {
   const { page: p, store, disk } = fixture(t), raw = disk[KEY], saved = store.get();
-  p.category(event({ category: '饮食' })); p.next(); assert.equal(p.data.page, 2); assert.equal(p.data.groups[0].items.length, 5);
+  p.category(event({ category: '饮食' })); p.next(); assert.equal(p.data.page, 2); assert.equal(p.data.groups[0].items.length, 4);
   p.onShow(); assert.equal(p.data.page, 2); assert.equal(p.data.category, '饮食'); assert.equal(p.data.scope, 'all');
   p.month({ detail: { value: '2024-02' } }); assert.equal(p.data.scope, 'month'); assert.equal(p.data.page, 1); assert.equal(p.data.total, 25);
   p.month({ detail: { value: '2024-01' } }); assert.equal(p.data.total, 0); assert.equal(p.data.month, '2024-01');
@@ -24,9 +24,9 @@ test('filters, time range and pagination only read storage and keep conditions o
   assert.equal(disk[KEY], raw); assert.deepEqual(store.get(), saved);
 });
 test('detail category edits and deletions refresh counts/results and clamp an empty last page', t => {
-  const { page: p, store, ids } = fixture(t, 21); p.category(event({ category: '饮食' })); p.next(); assert.equal(p.data.page, 2);
+  const { page: p, store, ids } = fixture(t, 5); p.category(event({ category: '饮食' })); p.next(); assert.equal(p.data.page, 2);
   const lastId = p.data.groups[0].items[0].id; store.edit(lastId, '转到自然分类', '自然'); p.onShow();
-  assert.equal(p.data.category, '饮食'); assert.equal(p.data.total, 20); assert.equal(p.data.page, 1); assert.equal(p.data.categories.find(c => c.value === '自然').count, 1);
+  assert.equal(p.data.category, '饮食'); assert.equal(p.data.total, 4); assert.equal(p.data.page, 1); assert.equal(p.data.categories.find(c => c.value === '自然').count, 1);
   p.category(event({ category: '自然' })); assert.equal(p.data.total, 1); store.remove(lastId); p.onShow();
   assert.equal(p.data.total, 0); assert.equal(p.data.category, '自然'); assert.equal(p.data.hasNext, false); assert.match(p.data.emptyTitle, /自然/);
   p.clearCategory(); assert.equal(p.data.total, ids.length - 1);
@@ -59,4 +59,14 @@ test('empty categories, month switching and invalid input keep consistent select
   p.clearCategory(); assert.equal(p.data.total, 25); p.scope(event({ scope: 'month' })); assert.equal(p.data.total, 0);
   p.month({ detail: { value: '2024-02' } }); assert.equal(p.data.total, 25); p.next(); assert.equal(p.data.page, 2);
   p.category(event({ category: '未分类' })); assert.equal(p.data.page, 1); assert.equal(p.data.total, 0);
+});
+
+test('small-window resize keeps the current result in view and restores four-item pages', t => {
+  const { page: p, disk } = fixture(t, 9), raw = disk[KEY];
+  const originalWx = global.wx; t.after(() => { global.wx = originalWx; });
+  p.next(); const first = p.data.groups[0].items[0].id;
+  global.wx = { getWindowInfo: () => ({ windowHeight: 504 }) }; p.onResize();
+  assert.equal(p.data.pageSize, 2); assert.equal(p.data.page, 3); assert.equal(p.data.groups[0].items[0].id, first);
+  global.wx.getWindowInfo = () => ({ windowHeight: 753 }); p.onResize();
+  assert.equal(p.data.pageSize, 4); assert.equal(p.data.page, 2); assert.equal(p.data.groups[0].items[0].id, first); assert.equal(disk[KEY], raw);
 });

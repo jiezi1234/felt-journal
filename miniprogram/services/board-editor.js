@@ -9,7 +9,7 @@ const photo = require('./page-photo');
 const stickerMotion = require('../core/sticker-motion');
 function createBoardEditor(options = {}) { return {
   // Placement feedback never changes the saved model or creates another memory.
-  data: { embedded: !!options.embedded, sourceStage: false, drawer: '', libraryItems: [], noteText: '', noteCategory: 0, noteError: '', noteHint: '', categories: config.categories, maxText: config.maxText, loading: true, error: '', date: '', dateLabel: '', isTheme: false, editable: false, canEdit: false, selected: '', model: null, count: 0, saveState: '已保存', saveError: '', task: null, placing: null, colors: config.colors, textures: config.textures, appearanceLabel: '', canUndo: false, canRedo: false, canBringToFront: false, canSendToBack: false, recovering: false, openingLibrary: false },
+  data: { embedded: !!options.embedded, sourceStage: false, drawer: '', libraryItems: [], visibleLibraryItems: [], libraryPage: 1, libraryPageCount: 1, noteText: '', noteCategory: 0, noteError: '', noteHint: '', categories: config.categories, maxText: config.maxText, loading: true, error: '', date: '', dateLabel: '', isTheme: false, editable: false, canEdit: false, selected: '', model: null, count: 0, saveState: '已保存', saveError: '', task: null, placing: null, colors: config.colors, textures: config.textures, appearanceLabel: '', canUndo: false, canRedo: false, canBringToFront: false, canSendToBack: false, recovering: false, openingLibrary: false },
   onLoad(query) {
     this.store = getStore(); this.date = query.board || query.date || dates.key(); this.wantEdit = query.mode === 'edit'; this.wantAdd = query.add === '1';
   },
@@ -167,7 +167,7 @@ function createBoardEditor(options = {}) { return {
     if (this.data.embedded) {
       const used = new Set(this.draft.placements.map(p => p.memoryId));
       const items = Object.values(this.store.get().memories).filter(m => m.date === this.date && !used.has(m.id)).sort((a,b) => b.createdAt - a.createdAt).map(m => ({ id: m.id, path: m.subjectPath, text: m.text, category: m.category }));
-      this.setData({ drawer: 'library', libraryItems: items }); return;
+      this.setData({ drawer: 'library', libraryItems: items, visibleLibraryItems: items.slice(0, 3), libraryPage: 1, libraryPageCount: Math.max(1, Math.ceil(items.length / 3)) }); return;
     }
     this.setData({ openingLibrary: true });
     try {
@@ -194,6 +194,8 @@ function createBoardEditor(options = {}) { return {
   },
   stop() {},
   showBoard() { if (!this.photoTask) this.setData({ sourceStage: false }); },
+  libraryPrevious() { this.libraryTurn(-1); }, libraryNext() { this.libraryTurn(1); },
+  libraryTurn(offset) { const page = Math.max(1, Math.min(this.data.libraryPageCount, this.data.libraryPage + offset)); this.setData({ libraryPage: page, visibleLibraryItems: this.data.libraryItems.slice((page - 1) * 3, page * 3) }); },
   openAppearance() { if (this.canAdjust()) { this.cancelGesture(); this.setData({ drawer: 'appearance' }); } },
   closeDrawer() { if (this.noteDirty && !this.saveNote()) return; this.setData({ drawer: '' }); },
   notifyChange() { if (this.data.embedded && this.triggerEvent && !this.disposed) this.triggerEvent('change'); },

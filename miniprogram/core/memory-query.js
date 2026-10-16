@@ -19,15 +19,16 @@ function query(state, options = {}, today = dates.key()) {
   const scoped = Object.values(state.memories).filter(m => m.date <= today && (!day || m.date === day) && (!filter.month || m.date.startsWith(`${filter.month}-`)));
   scoped.forEach(m => { counts[m.category]++; });
   const matching = scoped.filter(m => !filter.category || m.category === filter.category).sort(compare);
-  const total = matching.length, pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const pageSize = Number.isInteger(options.pageSize) && options.pageSize > 0 ? Math.min(PAGE_SIZE, options.pageSize) : PAGE_SIZE;
+  const total = matching.length, pageCount = Math.max(1, Math.ceil(total / pageSize));
   const requested = Number.isInteger(options.page) ? options.page : 1, page = Math.max(1, Math.min(pageCount, requested));
   const groups = [];
-  matching.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).forEach(m => {
+  matching.slice((page - 1) * pageSize, page * pageSize).forEach(m => {
     let group = groups[groups.length - 1];
     if (!group || group.date !== m.date) { group = { date: m.date, label: dates.label(m.date), items: [] }; groups.push(group); }
     group.items.push({ id: m.id, date: m.date, category: m.category, path: m.subjectPath, excerpt: excerpt(m.text), missing: false });
   });
   return { ...filter, categories: categoryNames.map(name => ({ value: name, name: name || '全部', count: name ? counts[name] : scoped.length })), groups,
-    total, scopeTotal: scoped.length, page, pageCount, pageSize: PAGE_SIZE, hasPrevious: page > 1, hasNext: page < pageCount };
+    total, scopeTotal: scoped.length, page, pageCount, pageSize, hasPrevious: page > 1, hasNext: page < pageCount };
 }
 module.exports = { query, normalize, validMonth, PAGE_SIZE };

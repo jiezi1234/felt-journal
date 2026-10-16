@@ -1,9 +1,9 @@
-<view class="page"><button class="ghost back" bindtap="back">‹ 返回毛毡板</button><view class="page-heading"><view class="title">分享</view></view>
+<view class="page screen-page export-page"><view class="screen-header"><button class="ghost back" bindtap="back">‹ 返回</button><view class="title">分享</view><view /></view>
   <view wx:if="{{generating}}" class="loading">正在生成图片…</view>
   <view wx:if="{{error}}" class="error">{{error}}<button wx:if="{{!imagePath || imageExpired}}" id="regenerate-image" class="ghost" disabled="{{generating || saving || sharing}}" bindtap="generate">重新生成</button></view>
   <block wx:if="{{imagePath}}">
     <text class="chip">{{imageExpired ? '图片需要重新生成' : albumSaved ? '已保存到相册' : '作品已生成 · 3:2'}}</text>
-    <view class="paper export-paper"><image class="preview" src="{{imagePath}}" mode="widthFix" bindtap="preview" /><view class="row space"><text class="muted">{{dateLabel}}</text><text class="muted">{{count}} 件记忆</text></view></view>
+    <view class="paper export-paper"><image class="preview" src="{{imagePath}}" mode="aspectFit" bindtap="preview" /><view class="row space"><text class="muted">{{dateLabel}}</text><text class="muted">{{count}} 件记忆</text></view></view>
     <view class="export-actions">
       <button id="share-image" class="primary full" loading="{{sharing}}" disabled="{{generating || saving || sharing || imageExpired || !shareSupported}}" bindtap="shareImage">{{sharing ? '正在打开分享面板' : '分享到微信'}}</button>
       <view wx:if="{{shareError}}" id="share-error" class="share-error">{{shareError}}</view>

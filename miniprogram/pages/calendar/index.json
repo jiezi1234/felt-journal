@@ -1,1 +1,4 @@
-{ "navigationBarTitleText": "时光回顾" }
+{
+  "navigationBarTitleText": "时光回顾",
+  "disableScroll": true
+}

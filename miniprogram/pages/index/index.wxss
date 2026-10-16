@@ -1,7 +1,10 @@
-.today-sheet { position:relative; background:linear-gradient(140deg,#FFFFFF,#FEFDFB); border:1px solid #FFFFFF; border-radius:32px; padding:18px 16px 16px 26px; box-shadow:0 6px 24px rgba(65,48,36,.04); }
-.home-meta { margin-bottom:14px; padding-bottom:10px; border-bottom:1px dashed #E9E2D9; flex-wrap:wrap; gap:6px 12px; }
-.sheet-date { color:#766457; font-size:13px; }.home-actions { display:flex; align-items:center; gap:8px; margin-left:auto; }.home-actions button.ghost { font-size:12px; padding:8px 4px; }
-.memory-count { color:#9B8E82; font-size:10px; flex-shrink:0; }.memory-count text { font-size:23px; font-weight:600; color:#806347; margin-right:4px; }
-.today-sheet .record-button { margin-top:18px; letter-spacing:.8px; }.record-star { font-size:22px; font-weight:400; line-height:16px; vertical-align:-1px; margin-right:8px; }
-button.memories-link { margin-top:16px; color:#9A8A7E; font-size:12px; }
-@media (max-width:350px) { .today-sheet { padding-right:12px; padding-left:23px; }.sheet-date { font-size:12px; } }
+.page.home-page { padding-left:12px; padding-right:12px; gap:8px; }
+.home-meta { flex-shrink:0; min-height:44px; padding:0 6px; gap:6px; }
+.sheet-date { color:#766457; font-size:12px; white-space:nowrap; }
+.memory-count { margin-left:10px; color:#A5998D; font-size:11px; }
+.home-actions { display:flex; align-items:center; gap:4px; }
+.home-actions button.ghost { font-size:12px; padding:10px 6px; }
+.today-stage { flex:1; min-height:0; }
+.record-dock { height:56px; flex-shrink:0; display:flex; justify-content:flex-end; padding:0 8px; }
+button.record-fab { width:56px; min-width:56px; height:56px; min-height:56px; padding:0; border-radius:50%; font-size:34px; font-weight:400; line-height:52px; box-shadow:0 5px 15px rgba(38,35,33,.16); }
+@media (max-width:350px) { .memory-count { margin-left:6px; }.home-actions { gap:0; } }

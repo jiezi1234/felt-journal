@@ -38,3 +38,10 @@ button.cancel { min-height:40px; padding:10px 8px; background:transparent; color
 @keyframes text-sweep { from { background-position:-100px 0; } to { background-position:calc(100% + 100px) 0; } }
 @media (max-width:350px) { .veil { padding:16px 12px; }.sheet { padding:16px 14px 12px; }.photo-stage,.inline-panel .photo-stage { height:238px; }.is-error .photo-stage,.inline-panel .is-error .photo-stage { height:185px; }.task-title { font-size:18px; } }
 @media (max-height:650px) { .photo-stage,.inline-panel .photo-stage { height:220px; }.is-error .photo-stage,.inline-panel .is-error .photo-stage { height:172px; } }
+
+.sheet { height:86vh; max-height:680px; display:flex; flex-direction:column; overflow:visible; }
+.photo-stage,.is-error .photo-stage { flex:1; min-height:0; height:0; margin-bottom:10px; }
+.task-copy,.analyzing-pill,.error,.task-actions { flex-shrink:0; }.task-copy { margin:8px 0; }.error { margin:6px 0; }
+.inline-panel { height:100%; }.inline-panel .sheet { height:100%; max-height:none; }
+.inline-panel .photo-stage,.inline-panel .is-error .photo-stage { flex:1; min-height:0; height:0; }
+.task-actions button { margin-top:6px; }

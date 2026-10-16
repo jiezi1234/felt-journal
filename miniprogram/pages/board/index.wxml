@@ -1,4 +1,4 @@
-<view class="page {{!editable && !task && !recovering ? 'with-main-nav' : ''}}">
+<view class="page screen-page board-page {{!editable && !task && !recovering ? 'with-main-nav' : ''}}">
   <view class="row"><button class="ghost" bindtap="back">‹ 返回</button><text class="chip">{{isTheme ? '主题板' : '每日手账'}}</text></view>
   <include src="../../templates/board-content.wxml" />
 </view>

@@ -13,7 +13,8 @@
     "test:navigation": "node tests/navigation-e2e.js",
     "test:record": "node tests/record-card-e2e.js",
     "test:recognition": "node tests/recognition-e2e.js",
-    "dev:extraction": "node scripts/local-extraction.js"
+    "dev:extraction": "node scripts/local-extraction.js",
+    "test:layout": "node tests/screen-layout-e2e.js"
   },
   "devDependencies": {
     "@napi-rs/canvas": "0.1.80",

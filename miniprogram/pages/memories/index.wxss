@@ -1,22 +1,23 @@
-.memories-page .title { font-size:25px; margin:16px 0 22px; }
-.filter-paper { margin-top:0; padding:16px; }
-.scope-tabs { padding:4px; border-radius:16px; background:#EEECE7; }
-.scope-tabs button { font-size:14px; background:transparent; padding:10px 6px; }
-.scope-tabs button.active,.category-chips button.active { background:#8D6B32; color:#FFFFFF; }
-.month-choice { min-height:44px; display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding:8px 6px; color:#6F5948; }
-.month-choice text { font-size:12px; color:#847A72; }
-.category-chips { display:flex; flex-wrap:wrap; gap:8px; }
-button.category { margin:0; padding:10px 12px; font-size:13px; width:auto; background:#F4F2EE; border-radius:22px; }
-.category-count { margin-left:6px; opacity:.78; font-size:12px; }
-.results-heading { margin:24px 0 14px; display:flex; flex-direction:column; gap:4px; font-size:14px; }
-.date-group { margin-top:18px; }.date-heading { margin-bottom:8px; font-size:14px; color:#9B8874; }.date-heading button { font-size:12px; }
-button.memory-row { display:flex; align-items:center; gap:12px; width:100%; text-align:left; margin:0 0 10px; padding:14px 12px; background:#FFFFFF; border:1px solid #EFEAE3; border-radius:18px; }
-.memory-thumb { width:76px; height:76px; flex-shrink:0; border-radius:12px; background:#F6F3EC; display:flex; align-items:center; justify-content:center; }
-.memory-thumb image { width:66px; height:66px; }.missing-thumb { font-size:11px; color:#847A72; }
-.memory-copy { flex:1; min-width:0; }.memory-category { display:inline-block; color:#6F5948; font-size:12px; padding:3px 8px; background:#EEECE7; border-radius:14px; }
-.memory-excerpt { font-size:14px; color:#262321; line-height:1.6; margin-top:7px; font-weight:400; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; word-break:break-all; }
-.memory-excerpt.muted { color:#847A72; }.memory-arrow { color:#AD9A86; font-size:22px; flex-shrink:0; }
-.empty-result { text-align:center; padding:28px 18px; }.pagination { margin-top:24px; }.pagination button { font-size:13px; }.page-number { color:#847A72; font-size:12px; white-space:nowrap; }
-.filter-paper { padding:18px; }.scope-tabs button.active { background:#FFFFFF; color:#342E28; box-shadow:0 2px 8px rgba(65,48,36,.04); }.scope-tabs button { border-color:transparent; }.category-chips button.active { background:#FFEDBD; color:#342E28; border-color:#EFDCB0; }.category-chips button { background:#F8F6F1; }.memory-row { box-shadow:0 4px 18px rgba(65,48,36,.02); }.date-group { margin-top:26px; }.results-heading { margin-top:28px; }.memories-page .page-heading .title { font-size:28px; margin:8px 0 10px; }
-
-.filter-paper { border-radius:28px; padding:18px; }.scope-tabs { border-radius:28px; background:#F2EFE9; }.scope-tabs button.active { background:#FFFFFF; color:#6C543F; box-shadow:0 2px 7px rgba(70,52,32,.06); }.category-chips button.active { background:#FFEDBD; color:#6F532E; border-color:#F0D8A0; }button.memory-row { border:1px solid #FFFFFF; border-radius:26px; padding:16px 13px; box-shadow:0 4px 16px rgba(65,48,36,.025); }.memory-thumb { width:80px; height:80px; border-radius:23px; background:linear-gradient(145deg,#FFFCF4,#F1EBDF); }.memory-thumb image { width:72px; height:72px; }.memory-category { color:#896946; background:#FFF3D8; }.memory-excerpt { color:#776454; }.date-heading { padding:0 5px; }.empty-result { border:1px dashed #E1D8CA; }
+.header-spacer { width:52px; }.target-label { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:6px; flex-shrink:0; }
+.paper.filter-paper { margin:0; padding:8px; flex-shrink:0; border-radius:24px; }
+.scope-tabs { gap:2px; padding:2px; border-radius:24px; background:#F2EFE9; }
+.scope-tabs button { min-height:40px; padding:8px 4px; font-size:12px; border:0; background:transparent; }
+.scope-tabs button.active { background:#FFFFFF; color:#6C543F; }
+.month-choice { display:flex; align-items:center; justify-content:space-between; height:40px; padding:0 12px; color:#79614B; font-size:12px; }
+.category-chips { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px; margin-top:6px; }
+button.category { width:100%; min-width:0; min-height:34px; padding:6px 0; font-size:11px; border:0; background:#FAF9F6; border-radius:16px; }
+.category-chips button.active { background:#FFEDBD; color:#6F532E; }
+.category-count { margin-left:3px; font-size:10px; opacity:.65; }
+.results-heading { padding:8px 4px; font-size:11px; color:#95877D; flex-shrink:0; }
+.memory-grid { flex:1; min-height:0; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); grid-template-rows:repeat(2,minmax(0,1fr)); gap:8px; }
+.memory-tile { min-height:0; min-width:0; display:flex; flex-direction:column; padding:8px; border-radius:22px; background:#FFFFFF; }
+button.memory-row { min-height:0; flex:1; display:flex; flex-direction:column; width:100%; padding:0; border:0; background:transparent; border-radius:14px; text-align:left; }
+.memory-thumb { width:100%; flex:1; min-height:0; display:flex; align-items:center; justify-content:center; border-radius:14px; background:linear-gradient(145deg,#FFFCF4,#F4EFE6); }
+.memory-thumb image { width:90%; height:90%; }.missing-thumb { font-size:11px; color:#847A72; }
+.memory-copy { width:100%; display:flex; justify-content:space-between; align-items:center; flex-shrink:0; padding:4px 3px 0; }
+.memory-category { font-size:11px; color:#896946; }.memory-copy .muted { font-size:10px; }
+.memory-excerpt { width:100%; font-size:11px; line-height:17px; color:#776454; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; padding:0 3px; }
+button.memory-date { flex-shrink:0; min-height:32px; height:32px; line-height:24px; padding:4px 0; font-size:10px; color:#9B8874; width:100%; text-align:left; }
+.paper.empty-result { flex:1; min-height:0; margin:0; display:flex; flex-direction:column; justify-content:center; text-align:center; padding:14px; }
+.empty-result .section-title { font-size:16px; }
+@media (max-height:570px) { .memory-grid { gap:6px; }.memory-tile { padding:5px; }.memory-excerpt { display:none; }.screen-pagination button { font-size:12px; }.category-chips { gap:2px; } }

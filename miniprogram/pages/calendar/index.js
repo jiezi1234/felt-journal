@@ -29,5 +29,6 @@ Page({
     this.setData({ [`cells[${cell}].images[${image}].missing`]: true });
   },
   memories() { wx.navigateTo({ url: `/pages/memories/index?month=${this.year}-${String(this.month).padStart(2, '0')}` }); },
+  categories() { wx.navigateTo({ url: '/pages/memories/index' }); },
   back() { platform.back(); }
 });

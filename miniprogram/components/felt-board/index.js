@@ -2,21 +2,27 @@ const renderer = require('../../core/renderer');
 const geometry = require('../../core/geometry');
 const B = require('../../core/config').board;
 const stickerMotion = require('../../core/sticker-motion');
+const viewport = require('../../core/board-viewport');
 Component({
-  properties: { model: { type: Object, value: null }, editable: Boolean, selected: String, covered: Boolean, landingId: String, interactive: { type: Boolean, value: true } },
-  data: { height: 210, handles: [], imageError: false, snapshot: '' },
-  observers: { 'model, editable, selected, covered, landingId': function () { this.refresh(); } },
+  properties: { model: { type: Object, value: null }, layout: String, editable: Boolean, selected: String, covered: Boolean, landingId: String, interactive: { type: Boolean, value: true } },
+  data: { height: 210, width: 0, handles: [], imageError: false, snapshot: '' },
+  observers: { 'model, editable, selected, covered, landingId': function () { this.refresh(); if (this.data.layout) wx.nextTick(() => this.measure()); }, layout() { this.measure(); } },
   lifetimes: { ready() { this.measure(); }, detached() { this.dead = true; clearTimeout(this.longTimer); } },
   pageLifetimes: { resize() { this.measure(); }, show() { if (this.canvas) this.refresh(); } },
   methods: {
     stop() {},
     measure() {
-      this.createSelectorQuery().select('#feltCanvas').fields({ node: true }).select('.board-shell').boundingClientRect().exec(result => {
+      this.createSelectorQuery().select('#feltCanvas').fields({ node: true }).select('.board-viewport').boundingClientRect().exec(result => {
         const r = result[0], rect = result[1]; if (this.dead || !r || !r.node || !rect || !rect.width) return;
-        this.canvas = r.node; this.screenWidth = rect.width;
+        const tall = this.data.layout === 'tall' && !this.data.editable;
+        const width = this.data.layout === 'fit' && rect.height ? Math.min(rect.width, rect.height * B.width / B.height) : rect.width;
+        const height = tall ? Math.max(width * B.height / B.width, rect.height) : width * B.height / B.width;
+        if (this.canvas === r.node && Math.abs(this.screenWidth - width) < 0.5 && Math.abs(this.data.height - height) < 0.5) return;
+        this.canvas = r.node; this.screenWidth = width;
+        this.dimensions = tall ? viewport.present({ items: [] }, width, height).dimensions : B;
         const dpr = wx.getSystemInfoSync().pixelRatio || 2;
-        this.canvas.width = Math.round(rect.width * dpr); this.canvas.height = Math.round(rect.width * B.height / B.width * dpr);
-        this.setData({ height: rect.width * B.height / B.width }, () => this.refresh());
+        this.canvas.width = Math.round(width * dpr); this.canvas.height = Math.round(height * dpr);
+        this.setData({ height, width }, () => this.refresh());
       });
     },
     async refresh() {
@@ -25,11 +31,14 @@ Component({
       try {
         this.images = await renderer.loadImages(this.canvas, model.items || [], this.images, false);
         if (version !== this.version || this.dead) return;
-        const ctx = this.canvas.getContext('2d'); ctx.setTransform(this.canvas.width / B.width, 0, 0, this.canvas.height / B.height, 0, 0);
+        const dimensions = this.dimensions || B;
+        const display = dimensions === B ? model : viewport.present(model, this.screenWidth, this.data.height).model;
+        this.displayModel = display;
+        const ctx = this.canvas.getContext('2d'); ctx.setTransform(this.canvas.width / dimensions.width, 0, 0, this.canvas.height / dimensions.height, 0, 0);
         const selected = (model.items || []).find(p => p.memoryId === this.data.selected);
         const handles = this.data.editable && selected && !this.data.landingId ? geometry.handles(selected, this.screenWidth) : [];
-        const visible = this.data.landingId ? Object.assign({}, model, { items: model.items.filter(p => p.memoryId !== this.data.landingId) }) : model;
-        renderer.paint(ctx, visible, this.images, this.data.editable && !this.data.landingId ? this.data.selected : '');
+        const visible = this.data.landingId ? Object.assign({}, display, { items: display.items.filter(p => p.memoryId !== this.data.landingId) }) : display;
+        renderer.paint(ctx, visible, this.images, this.data.editable && !this.data.landingId ? this.data.selected : '', dimensions);
         renderer.paintControls(ctx, handles, this.screenWidth);
         this.setData({ handles, imageError: (model.items || []).some(p => this.images[p.memory.subjectPath].missing) });
         // Native canvas layers can pierce an overlay. Keep the same board visible
@@ -57,7 +66,7 @@ Component({
       this.createSelectorQuery().select('.board-shell').boundingClientRect(rect => {
         if (!rect || token !== this.gestureToken) return;
         this.rect = rect;
-        const point = this.point(touch), item = (this.data.model.items || []).slice().reverse().find(p => geometry.hit(p, point.x, point.y));
+        const point = this.point(touch), item = ((this.displayModel || this.data.model).items || []).slice().reverse().find(p => geometry.hit(p, point.x, point.y));
         this.gesture = { point, item, moved: false, long: false };
         if (this.data.editable && item) {
           this.triggerEvent('select', { id: item.memoryId });

@@ -14,3 +14,11 @@
 .source-tabs button { border-color:transparent; }.source-tabs button.active { background:#FFFFFF; color:#342E28; box-shadow:0 2px 8px rgba(65,48,36,.04); }.ratio-row button.active { background:#FFEDBD; color:#342E28; border-color:#EFDCB0; }.crop-stage { border:1px solid #EEE7DE; }.crop-page .page-heading .title { font-size:26px; }.tools-row { flex-wrap:wrap; }
 
 .source-tabs { border-radius:30px; background:#EEEAE2; }.source-tabs button.active { color:#70563F; }.ratio-row button.active { background:#FFEDBD; border-color:#EDCF89; color:#72542E; }.crop-stage { border-radius:26px; border:3px solid #FFFFFF; box-shadow:0 4px 14px rgba(68,52,36,.05); }.tools-row button { background:#FFFFFF; }.source-hint { padding:0 4px; }
+
+.crop-page { gap:6px; }.crop-page>.row,.crop-page>.caption,.crop-page>.ratio-row,.crop-page>.tools-row,.crop-page>button,.crop-page>.source-hint { flex-shrink:0; }
+.crop-page .source-hint { font-size:11px; margin:0 0 2px; }
+.crop-page .source-tabs button { padding:8px 4px; min-height:40px; font-size:12px; }
+.crop-page .crop-stage { flex:1; min-height:0; height:0; }.crop-page .crop-canvas { height:100%; }
+.crop-page .caption { margin:0; font-size:11px; }.crop-page .tools-row { margin:0; flex-wrap:nowrap; }
+.crop-page .ratio-row button,.crop-page .tools-row button { min-height:40px; padding:9px 2px; font-size:12px; }
+.crop-page .row>.muted { font-size:10px; }.crop-page .save-image { margin:0; min-height:46px; padding:10px; }

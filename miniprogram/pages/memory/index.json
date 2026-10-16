@@ -1,1 +1,7 @@
-{ "navigationBarTitleText": "这一刻", "usingComponents": { "photo-panel": "/components/photo-panel/index" } }
+{
+  "navigationBarTitleText": "这一刻",
+  "usingComponents": {
+    "photo-panel": "/components/photo-panel/index"
+  },
+  "disableScroll": true
+}

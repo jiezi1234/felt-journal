@@ -3,7 +3,7 @@
   <view class="record-card {{sourceStage ? 'is-source' : ''}} {{task ? 'is-processing' : ''}}" role="dialog" aria-modal="true" aria-label="{{sourceStage ? '记录今天' : '布置今日毛毡板'}}">
     <view class="record-handle" aria-hidden="true" />
     <view class="row record-header {{task ? 'task-header' : ''}}"><view><view wx:if="{{!task}}" class="section-title">{{sourceStage ? '记录今天' : '今天的毛毡板'}}</view><text class="muted record-date">{{dateLabel}}</text></view><button id="close-record" class="record-close" aria-label="关闭记录卡片" bindtap="back">×</button></view>
-    <scroll-view scroll-y class="record-scroll" enhanced bounces="{{false}}">
+    <view class="record-scroll">
       <view class="record-body">
         <view wx:if="{{sourceStage && !task}}" class="record-source">
           <view class="source-actions">
@@ -14,9 +14,9 @@
           <view wx:if="{{error}}" class="error">{{error}}</view>
         </view>
         <block wx:if="{{!sourceStage && !task}}"><include src="../../templates/board-content.wxml" /></block>
-        <photo-panel id="record-photo" inline="{{true}}" lifting="{{!!placing}}" continue-label="继续布置" task="{{task}}" bind:retry="retryPhoto" bind:original="originalPhoto" bind:cancel="cancelPhoto" />
+        <photo-panel wx:if="{{task}}" id="record-photo" style="height:100%; min-height:0;" inline="{{true}}" lifting="{{!!placing}}" continue-label="继续布置" task="{{task}}" bind:retry="retryPhoto" bind:original="originalPhoto" bind:cancel="cancelPhoto" />
       </view>
-    </scroll-view>
+    </view>
     <view wx:if="{{!sourceStage && !task}}" class="record-footer"><button id="finish-record" class="primary full" disabled="{{recovering}}" bindtap="done">完成</button></view>
     <include src="../../templates/board-drawers.wxml" />
   </view>

@@ -63,7 +63,7 @@ const pause = () => new Promise(resolve => setTimeout(resolve, 150));
     }
     await mini.callWxMethod('pageScrollTo', { scrollTop: 10000, duration: 0 }); await home.waitFor(300);
     const scrolled = await navRect(); assert.ok(Math.abs(scrolled.top - first.top) <= 1, 'Navigation must remain fixed when the page scrolls');
-    const lastButton = await mini.evaluate(() => new Promise(resolve => wx.createSelectorQuery().select('#find-memories').boundingClientRect(resolve).exec()));
+    const lastButton = await mini.evaluate(() => new Promise(resolve => wx.createSelectorQuery().select('#record-today').boundingClientRect(resolve).exec()));
     assert.ok(lastButton.bottom <= scrolled.top - 16, `Last action must be above navigation: ${lastButton.bottom}/${scrolled.top}`);
     checks.push('three local icons and active labels; full-width fixed bottom bar with safe area; scroll leaves final action visible');
     const homeScroll = await home.scrollTop();
@@ -107,9 +107,9 @@ const pause = () => new Promise(resolve => setTimeout(resolve, 150));
     // Historical daily boards belong to the daily section; the theme tab remains separate.
     await calendar.callMethod('open', { currentTarget: { dataset: { date: `${historical.year}-${String(historical.month).padStart(2, '0')}-01` } } });
     board = await route('board'); await nav(board, 'today'); await tap('board'); board = await route('board-tab'); assert.equal(board.id, boardId); assert.equal((await board.data()).themes[0].id, themeId);
-    await tap('today');
-    home = await route('index'); await (await home.$('#find-memories')).tap(); const memories = await route('memories'); assert.equal(await memories.$('#main-nav'), null);
-    await memories.callMethod('back'); home = await route('index'); await nav(home, 'today');
+    await tap('calendar');
+    calendar = await route('calendar'); await (await calendar.$('#find-memories')).tap(); const memories = await route('memories'); assert.equal(await memories.$('#main-nav'), null);
+    await memories.callMethod('back'); calendar = await route('calendar'); await nav(calendar, 'calendar');
     const snapshot = JSON.parse(await mini.callWxMethod('getStorageSync', keys[0]));
     assert.equal(Object.keys(snapshot.memories).length, 0); assert.deepEqual(Object.keys(snapshot.boards), [themeId]);
     assert.equal(snapshot.revision, 2, 'Only theme creation and the explicit color edit may change journal data');

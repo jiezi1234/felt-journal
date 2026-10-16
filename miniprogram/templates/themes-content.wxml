@@ -1,24 +1,26 @@
-<view class="page themes-page {{isTab ? 'with-main-nav' : ''}}">
-  <view wx:if="{{!isTab}}" class="row"><button class="ghost" bindtap="back">‹ 返回</button></view>
-  <view class="page-heading"><view class="title">{{selecting ? '选择主题板' : '主题板'}}</view></view>
+<view class="page screen-page themes-page {{isTab ? 'with-main-nav' : ''}}">
+  <view class="screen-header"><button wx:if="{{!isTab}}" class="ghost" bindtap="back">‹ 返回</button><view class="title">{{selecting ? '选择主题板' : '主题板'}}</view><button id="new-theme" class="primary theme-create" disabled="{{working || loading || !!error}}" bindtap="create">＋ 新建</button></view>
   <view wx:if="{{loading}}" class="loading">加载中…</view>
   <view wx:elif="{{error}}" class="error">{{error}}<button class="ghost" bindtap="refresh">重试读取</button></view>
   <block wx:else>
-    <button id="new-theme" class="primary full theme-create" disabled="{{working}}" bindtap="create">＋ 新建主题板</button>
-    <view wx:if="{{formOpen}}" class="paper theme-form">
-      <view class="section-title">{{editingId ? '重命名' : '主题名称'}}</view>
-      <input id="theme-title" class="theme-input" value="{{title}}" maxlength="{{maxTitle}}" placeholder="如：旅行、美食" disabled="{{working}}" bindinput="input" />
-      <view class="muted">最多 {{maxTitle}} 个字</view><view wx:if="{{formError}}" class="error">{{formError}}</view>
-      <view class="row space"><button id="cancel-theme" class="secondary grow" disabled="{{working}}" bindtap="cancelForm">取消</button><button id="save-theme" class="primary grow" loading="{{working}}" disabled="{{working}}" bindtap="save">{{editingId ? '保存名称' : selecting ? '创建并放入' : '创建主题板'}}</button></view>
-    </view>
-    <view wx:if="{{!themes.length && !formOpen}}" class="paper empty-theme"><view class="muted">暂无主题板</view></view>
-    <view wx:for="{{themes}}" wx:key="id" class="paper theme-card">
+    <view wx:if="{{!themes.length}}" class="paper empty-theme"><view class="muted">暂无主题板</view></view>
+    <view wx:for="{{visibleThemes}}" wx:key="id" class="paper theme-card">
       <button class="theme-open" data-id="{{item.id}}" disabled="{{working || (selecting && (item.placed || item.count >= maxItems))}}" bindtap="open">
-        <view class="theme-cover" style="background:{{item.color}};"><image wx:for="{{item.images}}" wx:for-item="photo" wx:key="id" src="{{photo.path}}" mode="aspectFit" lazy-load /><text wx:if="{{!item.images.length}}" class="muted">暂无记忆</text></view>
+        <view class="theme-cover" style="background:{{item.color}};"><image wx:for="{{item.images}}" wx:for-item="photo" wx:key="id" src="{{photo.path}}" mode="aspectFit" /><text wx:if="{{!item.images.length}}" class="muted">暂无记忆</text></view>
         <view class="row theme-heading"><view class="theme-name">{{item.title}}</view><text class="muted">{{item.count}} / {{maxItems}}</text></view>
         <view wx:if="{{selecting}}" class="muted">{{item.placed ? '✓ 已添加' : item.count >= maxItems ? '已满' : '＋ 添加到此板'}}</view>
       </button>
       <view wx:if="{{!selecting}}" class="row theme-actions"><button class="ghost small" data-id="{{item.id}}" disabled="{{working}}" bindtap="rename">重命名</button><button class="danger small" data-id="{{item.id}}" disabled="{{working}}" bindtap="remove">删除板面</button></view>
     </view>
+    <view wx:if="{{themes.length}}" class="screen-pagination"><button id="previous-theme" class="ghost" disabled="{{page <= 1 || working}}" bindtap="previous" aria-label="上一块主题板">‹</button><text>{{page}} / {{pageCount}}</text><button id="next-theme" class="ghost" disabled="{{page >= pageCount || working}}" bindtap="next" aria-label="下一块主题板">›</button></view>
   </block>
+</view>
+<view wx:if="{{formOpen}}" class="theme-form-overlay" catchtouchmove="stop">
+  <view class="theme-form-scrim" bindtap="cancelForm" />
+  <view class="paper theme-form" role="dialog" aria-modal="true" aria-label="{{editingId ? '重命名主题板' : '新建主题板'}}">
+    <view class="section-title">{{editingId ? '重命名' : '主题名称'}}</view>
+    <input id="theme-title" class="theme-input" value="{{title}}" maxlength="{{maxTitle}}" placeholder="如：旅行、美食" disabled="{{working}}" bindinput="input" />
+    <view wx:if="{{formError}}" class="error">{{formError}}</view>
+    <view class="row"><button id="cancel-theme" class="secondary grow" disabled="{{working}}" bindtap="cancelForm">取消</button><button id="save-theme" class="primary grow" loading="{{working}}" disabled="{{working}}" bindtap="save">{{editingId ? '保存' : selecting ? '创建并放入' : '创建'}}</button></view>
+  </view>
 </view>

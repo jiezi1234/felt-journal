@@ -1,6 +1,5 @@
-<view class="page crop-page">
+<view class="page screen-page crop-page">
   <view class="row"><button class="ghost" bindtap="back">‹ 返回记忆</button><button class="ghost" disabled="{{!ready || loading || saving || !dirty}}" bindtap="save">{{saving ? '保存中…' : '保存'}}</button></view>
-  <view class="page-heading"><view class="title">裁剪图片</view></view>
   <view class="row source-tabs">
     <button id="source-subject" class="grow {{source === 'subject' ? 'active' : ''}}" disabled="{{saving || loading}}" data-source="subject" bindtap="source">当前物件</button>
     <button id="source-original" class="grow {{source === 'original' ? 'active' : ''}}" disabled="{{saving || loading}}" data-source="original" bindtap="source">原始照片</button>
@@ -15,10 +14,8 @@
   <view class="caption">拖动边角裁剪 · 拖动框内移动</view>
   <view class="ratio-row"><button wx:for="{{ratios}}" wx:key="name" id="ratio-{{index}}" class="{{ratio === item.value ? 'active' : ''}}" disabled="{{!ready || loading || saving}}" data-ratio="{{item.value}}" bindtap="ratio">{{item.name}}</button></view>
   <view class="tools-row space"><button id="rotate-image" class="secondary" disabled="{{!ready || loading || saving}}" bindtap="rotate">↻ 旋转 90°</button><button id="mirror-image" class="secondary" disabled="{{!ready || loading || saving}}" bindtap="mirror">水平镜像</button><button id="reset-image" class="ghost" disabled="{{!ready || loading || saving}}" bindtap="reset">重置本次</button></view>
-  <view class="divider" />
   <view class="row"><text class="muted">{{ready ? '裁剪后 ' + dimensions + ' px' : '请选择可读取的图片'}}</text><text class="muted">{{dirty ? '尚未保存' : '未作调整'}}</text></view>
   <view wx:if="{{saveError}}" class="error">{{saveError}}</view>
-  <button id="save-image" class="primary full space" disabled="{{!ready || loading || saving || !dirty}}" loading="{{saving}}" bindtap="save">{{saving ? '正在保存…' : '保存到原物件'}}</button>
-  <view class="caption">保留原图及板上布局</view>
+  <button id="save-image" class="primary full space save-image" disabled="{{!ready || loading || saving || !dirty}}" loading="{{saving}}" bindtap="save">{{saving ? '正在保存…' : '保存到原物件'}}</button>
 </view>
 <canvas type="2d" id="outputCanvas" class="output-canvas" />

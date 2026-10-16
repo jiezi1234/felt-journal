@@ -8,7 +8,8 @@ function rounded(ctx, x, y, w, h, r) {
   ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath();
 }
 function contain(p, image) { const scale = Math.min(p.width / image.width, p.height / image.height); return { width: image.width * scale, height: image.height * scale }; }
-function paint(ctx, model, images, selection) {
+function paint(ctx, model, images, selection, dimensions = B) {
+  const B = dimensions;
   ctx.clearRect(0, 0, B.width, B.height); ctx.fillStyle = '#E8EDE7'; ctx.fillRect(0, 0, B.width, B.height);
   rounded(ctx, 0, 0, B.width, B.height, B.radius); ctx.fillStyle = '#493527'; ctx.fill();
   rounded(ctx, 7, 7, B.width - 14, B.height - 14, B.radius - 7); ctx.strokeStyle = '#725841'; ctx.lineWidth = 5; ctx.stroke();

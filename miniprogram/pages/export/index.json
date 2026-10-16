@@ -1,1 +1,4 @@
-{ "navigationBarTitleText": "收藏与分享" }
+{
+  "navigationBarTitleText": "收藏与分享",
+  "disableScroll": true
+}

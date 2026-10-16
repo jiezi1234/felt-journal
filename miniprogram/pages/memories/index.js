@@ -4,20 +4,28 @@ const search = require('../../core/memory-query');
 const platform = require('../../services/platform');
 Page({
   data: { loading: true, error: '', scope: 'all', month: '', monthLabel: '', maxMonth: '', category: '', categories: [], groups: [], total: 0, scopeTotal: 0,
-    page: 1, pageCount: 1, hasPrevious: false, hasNext: false, opening: false, summary: '', emptyTitle: '', emptyHint: '', targetId: '', targetTitle: '', targetDaily: false, placing: false },
+    page: 1, pageCount: 1, pageSize: 4, hasPrevious: false, hasNext: false, opening: false, summary: '', emptyTitle: '', emptyHint: '', targetId: '', targetTitle: '', targetDaily: false, placing: false },
   onLoad(options = {}) {
     this.store = getStore(); this.missingPaths = new Set(); this.target = options.target || '';
     const today = dates.key(), filter = search.normalize(options, today);
     this.setData({ category: filter.category, scope: filter.month ? 'month' : 'all', month: filter.month || today.slice(0, 7), maxMonth: today.slice(0, 7) });
+    this.resizeResults();
   },
   onShow() { this.refresh(); },
+  onResize() { this.resizeResults(); this.refresh(); },
+  resizeResults() {
+    if (typeof wx === 'undefined') return;
+    const info = wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync(), pageSize = info.windowHeight < 600 ? 2 : 4;
+    const page = Math.floor((this.data.page - 1) * this.data.pageSize / pageSize) + 1;
+    this.setData({ pageSize, page });
+  },
   onUnload() { this.disposed = true; },
   refresh() {
     try {
       const today = dates.key(), month = search.validMonth(this.data.month, today) ? this.data.month : today.slice(0, 7);
       const state = this.store.load(), target = this.target ? this.store.board(this.target) : null, targetDaily = !!target && target.type !== 'theme';
       if (target && !this.store.canEdit(target.id)) throw new Error('当前板面暂不能添加记忆');
-      const result = search.query(state, { category: this.data.category, date: targetDaily ? target.date : '', month: !targetDaily && this.data.scope === 'month' ? month : '', page: this.data.page }, today);
+      const result = search.query(state, { category: this.data.category, date: targetDaily ? target.date : '', month: !targetDaily && this.data.scope === 'month' ? month : '', page: this.data.page, pageSize: this.data.pageSize }, today);
       const monthLabel = `${month.slice(0, 4)}年${Number(month.slice(5))}月`, period = targetDaily ? boardLabel(target) : this.data.scope === 'month' ? monthLabel : '全部时间';
       result.groups.forEach(group => group.items.forEach(item => { item.missing = this.missingPaths.has(item.path); item.placed = !!target && target.placements.some(p => p.memoryId === item.id); }));
       const emptyTitle = result.category ? `还没有「${result.category}」记忆` : result.month ? '这个月还没有记录' : '从一张照片开始收藏';
@@ -49,7 +57,6 @@ Page({
   turn(offset) {
     if (this.data.loading || this.data.error || offset < 0 && !this.data.hasPrevious || offset > 0 && !this.data.hasNext) return;
     this.setData({ page: this.data.page + offset }); this.refresh();
-    platform.call('pageScrollTo', { selector: '#results', duration: 0 }).catch(() => {});
   },
   imageError(e) {
     const { id, path } = e.currentTarget.dataset;

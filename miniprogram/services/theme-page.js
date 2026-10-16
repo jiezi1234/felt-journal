@@ -3,7 +3,7 @@ const { newId } = require('./photo-task');
 const config = require('../core/config');
 const platform = require('./platform');
 function createThemePage(options = {}) { return {
-  data: { isTab: !!options.tab, loading: true, error: '', themes: [], selecting: false, working: false, formOpen: false, editingId: '', title: '', formError: '', maxTitle: config.maxBoardTitle, maxItems: config.maxItems },
+  data: { isTab: !!options.tab, loading: true, error: '', themes: [], visibleThemes: [], page: 1, pageCount: 1, selecting: false, working: false, formOpen: false, editingId: '', title: '', formError: '', maxTitle: config.maxBoardTitle, maxItems: config.maxItems },
   onLoad(options = {}) { this.store = getStore(); this.memoryId = options.memory || ''; this.setData({ selecting: !!this.memoryId }); },
   onShow() { if (options.tab) platform.syncTab(this, 'board'); this.refresh(); }, onUnload() { this.disposed = true; },
   refresh() {
@@ -14,9 +14,13 @@ function createThemePage(options = {}) { return {
         id: b.id, title: b.title, color: b.color, count: b.placements.length, placed: b.placements.some(p => p.memoryId === this.memoryId),
         images: b.placements.slice(0, 3).map(p => ({ id: p.memoryId, path: state.memories[p.memoryId].subjectPath }))
       }));
-      this.setData({ themes, loading: false, error: '' });
+      const pageCount = Math.max(1, themes.length), page = Math.min(this.data.page, pageCount);
+      this.setData({ themes, visibleThemes: themes.slice(page - 1, page), page, pageCount, loading: false, error: '' });
     } catch (error) { this.setData({ loading: false, error: platform.message(error, '主题板读取失败，请重试'), themes: [] }); }
   },
+  previous() { this.turn(-1); }, next() { this.turn(1); },
+  turn(offset) { if (this.data.working) return; this.setData({ page: Math.max(1, Math.min(this.data.pageCount, this.data.page + offset)) }); this.refresh(); },
+  stop() {},
   create() { if (this.data.working || this.data.error) return; this.createId = newId(); this.setData({ formOpen: true, editingId: '', title: '', formError: '' }); },
   rename(e) { if (this.data.working) return; const item = this.data.themes.find(t => t.id === e.currentTarget.dataset.id); if (item) this.setData({ formOpen: true, editingId: item.id, title: item.title, formError: '' }); },
   input(e) { this.setData({ title: e.detail.value }); },
@@ -29,7 +33,7 @@ function createThemePage(options = {}) { return {
       if (editing) this.store.renameTheme(editing, this.data.title);
       else this.store.createTheme(this.createId, this.data.title, this.memoryId);
       const id = editing || `theme_${this.createId}`;
-      this.setData({ formOpen: false, title: '', editingId: '' }); this.refresh();
+      this.setData({ formOpen: false, title: '', editingId: '', page: 1 }); this.refresh();
       if (!editing) {
         if (this.memoryId) { platform.toast('已放入主题板'); platform.back(); }
         else await platform.call('navigateTo', { url: `/pages/board/index?board=${id}&mode=edit` });

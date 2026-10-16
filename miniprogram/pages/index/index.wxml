@@ -1,15 +1,13 @@
-<view class="page with-main-nav home-page">
+<view class="page screen-page with-main-nav home-page">
   <view wx:if="{{loading}}" class="loading">加载中…</view>
   <view wx:elif="{{error}}" class="error">{{error}}<button class="ghost" bindtap="refresh">重新读取</button></view>
   <block wx:else>
-    <view class="today-sheet">
-      <view class="sheet-binding" aria-hidden="true"><view/><view/><view/><view/><view/><view/></view>
-      <view class="row home-meta"><view class="sheet-date">{{dateLabel}}</view><view class="home-actions"><view class="memory-count"><text>{{count}}</text> 件</view><button id="arrange-today" class="ghost" bindtap="openBoard">布置 ⌃</button></view></view>
-      <felt-board id="today-board" covered="{{editorOpen}}" model="{{model}}" bind:memory="openMemory" bind:boardtap="openBoard" />
-      <button id="record-today" class="primary full record-button" bindtap="primary"><text class="record-star">＋</text>{{count ? '再记一件' : '记录今天'}}</button>
-      <button wx:if="{{count}}" id="export-today" class="ghost full" bindtap="exportToday">分享 ↗</button>
+    <view class="row home-meta">
+      <view class="sheet-date">{{dateLabel}}<text class="memory-count">{{count}} 件</text></view>
+      <view class="home-actions"><button wx:if="{{count}}" id="export-today" class="ghost" bindtap="exportToday">分享 ↗</button><button id="arrange-today" class="ghost" bindtap="openBoard">布置 ⌃</button></view>
     </view>
-    <button id="find-memories" class="ghost full memories-link" bindtap="memories">记忆分类 ↗</button>
+    <view class="today-stage"><felt-board id="today-board" layout="tall" style="height:100%;" covered="{{editorOpen}}" model="{{model}}" bind:memory="openMemory" bind:boardtap="openBoard" /></view>
+    <view class="record-dock"><button id="record-today" class="primary record-fab" aria-label="{{count ? '再记一件' : '记录今天'}}" bindtap="primary">＋</button></view>
   </block>
 </view>
 <record-card wx:if="{{editorOpen}}" id="record-card" board-id="{{editorDate}}" start-with-photo="{{startWithPhoto}}" bind:close="closeEditor" bind:change="editorChanged" />
