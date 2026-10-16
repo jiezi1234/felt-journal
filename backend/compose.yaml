@@ -6,9 +6,10 @@ services:
       args:
         PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
         FELT_PRELOAD_MODEL: ${FELT_PRELOAD_MODEL:-1}
+        FELT_MODEL: ${FELT_MODEL:-nosh-mnn}
     environment:
       FELT_PUBLIC_BASE_URL: https://${FELT_DOMAIN:?Set FELT_DOMAIN in backend/.env}
-      FELT_MODEL: isnet-general-use
+      FELT_MODEL: ${FELT_MODEL:-nosh-mnn}
       OMP_NUM_THREADS: '2'
     expose:
       - '8787'

@@ -24,7 +24,7 @@ from starlette.concurrency import run_in_threadpool
 RUNTIME = Path(__file__).resolve().parent / '.runtime'
 os.environ.setdefault('U2NET_HOME', str(RUNTIME / 'models'))
 os.environ.setdefault('OMP_NUM_THREADS', '2')
-DEFAULT_MODEL = 'isnet-general-use'
+DEFAULT_MODEL = 'nosh-mnn'
 MAX_BYTES = 15 * 1024 * 1024
 MAX_PIXELS = 24_000_000
 TTL_SECONDS = 900
@@ -38,19 +38,24 @@ class SubjectExtractor:
 
     def __call__(self, image: Image.Image) -> Image.Image:
         # The ML backend is loaded only when a real photo is processed.
-        from rembg import new_session, remove
-        if self.session is None:
-            self.session = new_session(self.model_name, providers=['CPUExecutionProvider'])
-        result = remove(image, session=self.session).convert('RGBA')
-        result = clean_alpha(result)
-        alpha = result.getchannel('A')
-        low, high = alpha.getextrema()
-        if high < 32 or low > 250:
-            raise ValueError('No usable subject mask')
-        bbox = alpha.point(lambda value: 255 if value > 8 else 0).getbbox()
-        if not bbox:
-            raise ValueError('No subject found')
-        result = result.crop(bbox)
+        if self.model_name == 'nosh-mnn':
+            from backend.nosh import NoshSegmenter
+            if self.session is None:
+                self.session = NoshSegmenter()
+            result = self.session(image)
+        else:
+            from rembg import new_session, remove
+            if self.session is None:
+                self.session = new_session(self.model_name, providers=['CPUExecutionProvider'])
+            result = clean_alpha(remove(image, session=self.session).convert('RGBA'))
+            alpha = result.getchannel('A')
+            low, high = alpha.getextrema()
+            if high < 32 or low > 250:
+                raise ValueError('No usable subject mask')
+            bbox = alpha.point(lambda value: 255 if value > 8 else 0).getbbox()
+            if not bbox:
+                raise ValueError('No subject found')
+            result = result.crop(bbox)
         # A narrow warm edge follows alpha, never a rectangular photo card.
         result = ImageOps.expand(result, border=5, fill=(0, 0, 0, 0))
         edge_alpha = result.getchannel('A').filter(ImageFilter.MaxFilter(3))

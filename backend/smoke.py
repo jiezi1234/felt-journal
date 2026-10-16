@@ -27,7 +27,7 @@ def main():
         assert alpha.getextrema() == (0, 255), 'Result must include transparent background and opaque subject'
         target = Path('artifacts/real-subject.png')
         target.write_bytes(download.content)
-        report = {'status': 'passed', 'engine': 'rembg/' + client.get('/health').json()['model'] + ' CPU', 'sample': str(photo), 'seconds': round(time.perf_counter() - started, 2), 'width': result.width, 'height': result.height, 'alphaMinMax': alpha.getextrema(), 'result': str(target), 'scope': 'local real inference and API test; HTTPS deployment and phone quality checks pending'}
+        report = {'status': 'passed', 'engine': client.get('/health').json()['model'] + ' CPU', 'sample': str(photo), 'seconds': round(time.perf_counter() - started, 2), 'width': result.width, 'height': result.height, 'alphaMinMax': alpha.getextrema(), 'result': str(target), 'scope': 'local real inference and API test; HTTPS deployment and phone quality checks pending'}
         Path('artifacts/extraction-smoke.json').write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
         print(json.dumps(report, ensure_ascii=False))
 

@@ -1,6 +1,6 @@
 # 主体提取服务
 
-这是小程序 P0 的真实图片处理后端；记忆、板面和照片的长期记录仍保存在用户设备上。实现使用 [rembg 的 Python 库接口](https://github.com/danielgatis/rembg#usage-as-a-library)，模型在本机/自有服务器执行，无需供应商 API 密钥。默认模型为 `isnet-general-use`，可以通过 `FELT_MODEL` 替换。对照公开样例后，当前模型比最初的轻量 `u2netp` 更好地保留了食物及植物主要轮廓，并加入孤立弱背景清理。复杂多主体、玻璃、毛发和低对比背景仍可能有残留或误透明，不能保证任意照片效果。
+这是小程序 P0 的真实图片处理后端；记忆、板面和照片的长期记录仍保存在用户设备上。默认引擎为 `nosh-mnn`：独立运行用户提供的 nosh 1.3.0 主体分割模型，并复现其原生两轮推理及 Java 遮罩/裁剪流程，无需小红书 SDK 或供应商 API。模型须从本地 APK 或已校验的 MNN 文件导入，不随源码发布。`FELT_MODEL=isnet-general-use` 可显式选择原有 rembg 引擎，失败时不会自动切换引擎。实现依据和限制见 [nosh 主体提取实现](../docs/nosh主体提取实现.md)。复杂植物、多主体、玻璃、毛发和低对比背景仍可能有残留或误透明，不能保证任意照片效果。
 
 ## 本地启动
 
@@ -9,14 +9,24 @@ Python 3.11–3.13，从项目根目录执行：
 ```powershell
 python -m venv backend/.venv
 backend/.venv/Scripts/python.exe -m pip install -r backend/requirements-dev.txt
+backend/.venv/Scripts/python.exe -m backend.prepare_nosh_model --apk "D:\path\to\nosh.apk.1"
 backend/.venv/Scripts/python.exe -m uvicorn backend.app:app --host 127.0.0.1 --port 8787
 ```
 
-`GET /health` 返回进程状态；`modelLoaded: false` 表示模型尚未初始化，不能据此宣称照片提取已验证。缺少模型文件时，第一次处理会下载模型到 `backend/.runtime/models`，部署前应预热，避免首张照片超时。Dockerfile 默认在构建时预下载模型，也支持离线导入；模型准备层位于业务源码复制之前，源码修改不会导致该层重复下载。
+`GET /health` 返回进程状态；`modelLoaded: false` 表示模型尚未初始化，不能据此宣称照片提取已验证。`nosh-mnn` 不下载模型，缺少或哈希不符时提取返回 503。默认缓存为 `backend/.runtime/nosh/main_segment.mnn`，可用 `FELT_NOSH_MODEL` 指定路径。导入工具校验原 asset 和解码模型 SHA-256。选择 rembg 时才保留原有首次下载和构建预下载行为。
+
+真实模型与上传/下载检查（图片和报告仅写入被忽略的 `artifacts/nosh`）：
+
+```powershell
+backend/.venv/Scripts/python.exe -m unittest backend.test_app backend.test_nosh -v
+backend/.venv/Scripts/python.exe -m backend.verify_nosh path/to/photo.jpg
+```
+
+对运行中的服务可加 `--url http://127.0.0.1:8787`。若使用其他测试端口，先将该服务的 `FELT_PUBLIC_BASE_URL` 设置为相同地址；验证器会检查引擎和下载 origin，避免误测旧服务。
 
 ## 接口
 
-`POST /extract`，`multipart/form-data`，一项 `photo` 文件，可附带 `taskId` 字段。限制 15 MB、24 百万像素；接受 JPEG（含相机 MPO 容器的第一张 JPEG）、PNG、WEBP，应用 EXIF 方向并将最长边限制到 2048 后推理。返回：
+`POST /extract`，`multipart/form-data`，一项 `photo` 文件，可附带 `taskId` 字段。限制 15 MB、24 百万像素；接受 JPEG（含相机 MPO 容器的第一张 JPEG）、PNG、WEBP，应用 EXIF 方向。入口最长边 2048；nosh 流程再限制到 1600，模型每次输入 224×224，遮罩恢复到处理图尺寸。返回：
 
 ```json
 {"cutoutUrl":"https://你的域名/cutouts/随机令牌.png","expiresIn":900}
@@ -53,7 +63,19 @@ npm run test:e2e
 
 选图返回使用公开照片作为测试输入；`wx.uploadFile`、真实 CPU 模型、`wx.downloadFile`、持久文件、记忆提交和重新打开均为真实执行。报告为 `artifacts/wechat-real-extraction-e2e.json`。当前机器本地服务已运行，开发者工具本机开关已启用；重启电脑后需重新启动 Python 服务。
 
-## 服务器部署与验收
+## nosh 模型离线部署
+
+Compose 与 Docker 默认选择 `nosh-mnn`，构建镜像不含 APK 或模型权重。先在本机运行上面的导入工具，再将校验后的模型导入服务器持久卷：
+
+```sh
+docker compose --env-file backend/.env -f backend/compose.yaml up -d --build
+docker compose --env-file backend/.env -f backend/compose.yaml cp backend/.runtime/nosh/main_segment.mnn extractor:/tmp/main_segment.mnn
+docker compose --env-file backend/.env -f backend/compose.yaml exec -T extractor python -m backend.prepare_nosh_model --mnn /tmp/main_segment.mnn
+```
+
+以上 `cp` 源路径是在执行 Docker 命令的主机上，需先安全传入自己的服务器；模型不通过 Git 传输。容器 `/tmp` 可写，导入目的为持久卷。然后执行真实照片预热与下文的部署验收。原有服务器尚运行 ISNet 的历史验收不代表新版 nosh 引擎已部署，也不代表公网 HTTPS 已接通。
+
+## 服务器部署与验收（原 ISNet 配置记录）
 
 已提供 `backend/compose.yaml`、`backend/Caddyfile` 和 `backend/.env.example`。服务器准备 Docker 后，将 `.env.example` 复制为 `.env`，填入计划使用的正式域名，然后从项目根目录执行内部部署：
 
@@ -65,7 +87,7 @@ docker compose --env-file backend/.env -f backend/compose.yaml up -d --build
 curl --fail http://127.0.0.1:8787/health
 ```
 
-若 GitHub 模型下载不可达，可在 `.env` 设置 `FELT_PRELOAD_MODEL=0` 后构建并启动内部服务，再导入从 [rembg 官方发布页](https://github.com/danielgatis/rembg/releases/tag/v0.0.0)下载的 `isnet-general-use.onnx`。当前固定版本的文件 SHA-256 为 `60920e99c45464f2ba57bee2ad08c919a52bbf852739e96947fbb4358c0d964a`，须先核验再导入：
+以下 ISNet 步骤仅在 `.env` 明确设置 `FELT_MODEL=isnet-general-use` 时适用。若 GitHub 模型下载不可达，可设置 `FELT_PRELOAD_MODEL=0` 后构建并启动内部服务，再导入从 [rembg 官方发布页](https://github.com/danielgatis/rembg/releases/tag/v0.0.0)下载的 `isnet-general-use.onnx`。当前固定版本的文件 SHA-256 为 `60920e99c45464f2ba57bee2ad08c919a52bbf852739e96947fbb4358c0d964a`，须先核验再导入：
 
 ```sh
 printf '%s  %s\n' '60920e99c45464f2ba57bee2ad08c919a52bbf852739e96947fbb4358c0d964a' '/path/to/isnet-general-use.onnx' | sha256sum --check
