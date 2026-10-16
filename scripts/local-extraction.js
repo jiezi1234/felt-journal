@@ -1,9 +1,11 @@
 const automator = require('miniprogram-automator');
 const key = require('../miniprogram/services/extraction-config').DEVELOPMENT_KEY;
 (async () => {
-  const off = process.argv.includes('--off'), endpoint = 'http://127.0.0.1:8787/extract';
+  const off = process.argv.includes('--off'), endpoint = process.env.WECHAT_EXTRACTION_ENDPOINT || 'http://127.0.0.1:8787/extract';
   if (!off) {
-    const response = await fetch('http://127.0.0.1:8787/health');
+    const match = /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/extract$/.exec(endpoint);
+    if (!match || Number(match[1]) > 65535) throw new Error('本机调试地址必须是有效的 127.0.0.1 端口与 /extract 路径');
+    const response = await fetch(endpoint.replace(/\/extract$/, '/health'));
     if (!response.ok) throw new Error('本地主体提取服务尚未启动');
   }
   const mini = await automator.connect({ wsEndpoint: process.env.WECHAT_AUTOMATION_URL || 'ws://127.0.0.1:9420' });
