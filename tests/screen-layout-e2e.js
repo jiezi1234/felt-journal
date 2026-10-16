@@ -33,9 +33,10 @@ const output = path.resolve(__dirname, '../artifacts/screen-layout-e2e.json');
     const result = await mini.evaluate((selectors, component) => new Promise(resolve => {
       const p = getCurrentPages().slice(-1)[0], target = component ? p.selectComponent(component) : null;
       const q = target ? target.createSelectorQuery() : wx.createSelectorQuery();
-      q.selectAll('button').boundingClientRect();
+      const buttonSelectors = ['.primary', '.secondary', '.ghost', '.danger', '.source-button', '.record-close', '.theme-open', '.category', '.memory-row', '.memory-date'];
+      buttonSelectors.forEach(selector => q.selectAll(selector).boundingClientRect());
       selectors.forEach(selector => q.select(selector).boundingClientRect());
-      q.exec(values => resolve({ route: p.route, viewport: wx.getSystemInfoSync().windowHeight, buttons: values[0], rects: values.slice(1), error: (target || p).data.error || '' }));
+      q.exec(values => resolve({ route: p.route, viewport: wx.getSystemInfoSync().windowHeight, buttons: values.slice(0, buttonSelectors.length).flat(), rects: values.slice(buttonSelectors.length), error: (target || p).data.error || '' }));
     }), selectors, component);
     assert.equal(result.error, '', name + ' error');
     for (const rect of result.buttons.filter(r => r.height && r.width)) {
@@ -68,9 +69,11 @@ const output = path.resolve(__dirname, '../artifacts/screen-layout-e2e.json');
     store.commit(state => { state.localNoticeSeen = true; });
     await mini.evaluate((keys, value) => { keys.forEach(key => wx.removeStorageSync(key)); wx.setStorageSync(keys[0], value); }, keys, disk[keys[0]]);
     await mini.evaluate(() => wx.reLaunch({ url: '/pages/index/index' })); await pause(700);
-    const home = await inspect('today', ['.today-stage', '#record-today', '#arrange-today']);
+    const home = await inspect('today', ['.today-stage', '#record-today', '#arrange-today', '.today-sheet', '.sheet-binding']);
     assert.ok(home.rects[0].height > home.rects[0].width, 'home board should use the portrait space');
-    assert.equal(home.rects[1].width, 56); assert.equal(home.rects[1].height, 56);
+    assert.ok(home.rects[3].left < home.rects[4].left && home.rects[4].right < home.rects[0].left, 'notebook binding stays beside the board');
+    assert.ok(home.rects[0].bottom < home.rects[3].bottom && home.rects[3].bottom < home.rects[1].top, 'board stays inside the paper; add button stays outside');
+    assert.equal(home.rects[1].width, 48); assert.equal(home.rects[1].height, 48);
     assert.equal(await mini.evaluate(() => new Promise(resolve => wx.createSelectorQuery().select('#find-memories').boundingClientRect(resolve).exec())), null);
     await call('primary'); await pause(1200); await inspect('record source card', ['#record-camera', '#record-album'], '#record-card');
     await call('showBoard', undefined, '#record-card');

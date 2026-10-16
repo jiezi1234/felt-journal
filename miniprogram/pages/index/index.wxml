@@ -2,11 +2,14 @@
   <view wx:if="{{loading}}" class="loading">加载中…</view>
   <view wx:elif="{{error}}" class="error">{{error}}<button class="ghost" bindtap="refresh">重新读取</button></view>
   <block wx:else>
-    <view class="row home-meta">
-      <view class="sheet-date">{{dateLabel}}<text class="memory-count">{{count}} 件</text></view>
-      <view class="home-actions"><button wx:if="{{count}}" id="export-today" class="ghost" bindtap="exportToday">分享 ↗</button><button id="arrange-today" class="ghost" bindtap="openBoard">布置 ⌃</button></view>
+    <view class="today-sheet">
+      <view class="sheet-binding" aria-hidden="true"><view/><view/><view/><view/><view/><view/></view>
+      <view class="row home-meta">
+        <view class="sheet-date">{{dateLabel}}<text class="memory-count">{{count}} 件</text></view>
+        <view class="home-actions"><button wx:if="{{count}}" id="export-today" class="ghost" bindtap="exportToday">分享 ↗</button><button id="arrange-today" class="ghost" bindtap="openBoard">布置 ⌃</button></view>
+      </view>
+      <view class="today-stage"><felt-board id="today-board" layout="tall" style="height:100%;" covered="{{editorOpen}}" model="{{model}}" bind:memory="openMemory" bind:boardtap="openBoard" /></view>
     </view>
-    <view class="today-stage"><felt-board id="today-board" layout="tall" style="height:100%;" covered="{{editorOpen}}" model="{{model}}" bind:memory="openMemory" bind:boardtap="openBoard" /></view>
     <view class="record-dock"><button id="record-today" class="primary record-fab" aria-label="{{count ? '再记一件' : '记录今天'}}" bindtap="primary">＋</button></view>
   </block>
 </view>
