@@ -71,8 +71,22 @@ Page({
     finally { this.openingThemes = false; }
   },
   async back() {
-    if (this.photoTask) { const r = await platform.call('showModal', { title: '取消照片替换？', content: '离开会取消本次处理，原照片和布局保持不变。', confirmText: '离开' }); if (!r.confirm) return; await this.photoTask.cancel(); }
-    if (this.dirty && !this.save()) return;
-    platform.unloadGuard(false); platform.back();
+    if (this.closing) return;
+    this.closing = true;
+    try {
+      const task = this.photoTask;
+      if (task) {
+        if (!task.committed) {
+          const r = await platform.call('showModal', { title: '取消照片替换？', content: '离开会取消本次处理，原照片和布局保持不变。', confirmText: '离开' });
+          if (!r.confirm || this.disposed || this.photoTask && this.photoTask !== task) return;
+        }
+        if (this.photoTask === task) {
+          if (task.committed) photo.finish(this, false);
+          else await task.cancel();
+        }
+      }
+      if (this.disposed || this.dirty && !this.save()) return;
+      platform.unloadGuard(false); platform.back();
+    } finally { this.closing = false; }
   }
 });

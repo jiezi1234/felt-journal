@@ -1,7 +1,28 @@
-<view wx:if="{{task}}" class="{{inline ? 'inline-panel' : 'veil'}}" catchtouchmove="stop"><view class="sheet">
-  <view class="title">{{task.state === 'extractError' ? '照片主体还未提取' : task.state === 'saveError' ? '记录尚未保存' : task.state === 'sourceError' ? '照片尚未准备好' : task.state === 'saving' ? '正在保存记忆' : task.state === 'choosing' ? '请选择一张照片' : task.state === 'persisting' ? '正在保存原图' : task.state === 'uploading' ? '正在上传照片' : '正在获取照片主体'}}</view>
-  <view wx:if="{{task.original}}" class="previews"><view><image src="{{task.original}}" mode="aspectFit" /><text>原始照片</text></view><text class="arrow">→</text><view><image wx:if="{{task.subject}}" src="{{task.subject}}" mode="aspectFit" /><view wx:else class="placeholder">等待处理结果</view><text>物件预览</text></view></view>
-  <view wx:if="{{task.error}}" class="error">{{task.error}}</view>
-  <button wx:if="{{task.state === 'extractError'}}" class="primary" bindtap="retry">重新提取</button><button wx:if="{{task.state === 'saveError'}}" class="primary" bindtap="retry">重试保存</button><button wx:if="{{task.state === 'sourceError'}}" class="primary" bindtap="retry">重新选图</button>
-  <button wx:if="{{task.state === 'extractError'}}" class="secondary" bindtap="original">使用原图继续（保留矩形）</button><button wx:if="{{task.permission}}" class="secondary" bindtap="settings">打开权限设置</button><button class="cancel" bindtap="cancel">取消并返回</button>
-</view></view>
+<view wx:if="{{task}}" id="photo-task" class="{{inline ? 'inline-panel' : 'veil'}}" catchtouchmove="stop">
+  <view class="sheet photo-task-sheet {{preview ? 'is-preview' : ''}} {{done ? 'is-done' : ''}} {{failed ? 'is-error' : ''}}">
+    <view id="task-preview" class="photo-stage {{canCompare && !showOriginal ? 'has-subject' : 'has-original'}}">
+      <image wx:if="{{canCompare && !showOriginal}}" id="task-image" class="task-image photo-enter" src="{{displayImage}}" mode="aspectFit" aria-label="照片主体" />
+      <image wx:elif="{{displayImage}}" id="task-image" class="task-image photo-enter" src="{{displayImage}}" mode="aspectFit" aria-label="原始照片" />
+      <view wx:else class="photo-empty" aria-hidden="true"><view class="empty-camera"><view /></view></view>
+      <button wx:if="{{canCompare}}" id="compare-photo" class="compare-photo" bindtap="compare" aria-label="{{showOriginal ? '查看主体' : '查看原图'}}">{{showOriginal ? '看主体' : '看原图'}}</button>
+    </view>
+    <view wx:if="{{analyzing}}" id="analyzing-pill" class="analyzing-pill" role="status" aria-label="{{stageLabel}}">
+      <view class="star-frame" aria-hidden="true"><text class="pill-star">✦</text></view>
+      <view class="sweep-label"><text>{{stageLabel}}</text><text class="sweep-ink" aria-hidden="true">{{stageLabel}}</text></view>
+    </view>
+    <view wx:if="{{preview}}" class="task-copy"><text class="task-title">照片已就绪</text></view>
+    <view wx:if="{{done}}" id="task-done" class="task-copy result-enter" role="status"><text class="task-title">{{resultLabel}}</text></view>
+    <view wx:if="{{failed}}" class="task-copy"><text class="task-title">{{task.state === 'saveError' ? '记忆尚未保存' : task.state === 'sourceError' ? '照片尚未准备好' : '主体尚未提取'}}</text></view>
+    <view wx:if="{{task.error}}" id="photo-error" class="error">{{task.error}}</view>
+    <view class="task-actions">
+      <button wx:if="{{preview}}" id="start-extraction" class="primary" bindtap="retry">开始提取</button>
+      <button wx:if="{{done}}" id="continue-layout" class="primary" bindtap="cancel">{{continueLabel}}</button>
+      <button wx:if="{{task.state === 'extractError'}}" id="retry-extraction" class="primary" bindtap="retry">重新提取</button>
+      <button wx:if="{{task.state === 'saveError'}}" id="retry-photo-save" class="primary" bindtap="retry">重试保存</button>
+      <button wx:if="{{task.state === 'sourceError'}}" id="reselect-photo" class="primary" bindtap="retry">重新选图</button>
+      <button wx:if="{{task.state === 'extractError'}}" id="keep-original" class="secondary" bindtap="original">使用原图继续</button>
+      <button wx:if="{{task.permission}}" id="photo-permission" class="secondary" bindtap="settings">打开权限设置</button>
+      <button wx:if="{{!done}}" id="cancel-photo" class="cancel" bindtap="cancel">{{analyzing ? '取消处理' : '返回'}}</button>
+    </view>
+  </view>
+</view>

@@ -204,9 +204,14 @@ function createBoardEditor(options = {}) { return {
     try {
     if (this.photoTask) {
       const task = this.photoTask;
-      const r = await platform.call('showModal', { title: '取消照片处理？', content: '照片还没有保存，离开会取消本次处理。', confirmText: '离开', confirmColor: '#4D7D5B' });
-      if (!r.confirm || this.disposed) return;
-      if (this.photoTask === task) await task.cancel();
+      if (!task.committed) {
+        const r = await platform.call('showModal', { title: '取消照片处理？', content: '照片还没有保存，离开会取消本次处理。', confirmText: '离开', confirmColor: '#4D7D5B' });
+        if (!r.confirm || this.disposed || this.photoTask && this.photoTask !== task) return;
+      }
+      if (this.photoTask === task) {
+        if (task.committed) photo.finish(this, false);
+        else await task.cancel();
+      }
     }
     if (this.disposed) return;
     if (this.dirty && !this.persist()) {

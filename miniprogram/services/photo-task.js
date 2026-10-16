@@ -6,14 +6,18 @@ class PhotoTask {
   constructor(options) {
     Object.assign(this, options); this.id = newId(); this.cancelled = false; this.owned = []; this.busy = false; this.committed = false;
   }
-  stage(state, error) { if (!this.cancelled) this.onState({ state, error: error || '', permission: /权限/.test(error || ''), original: this.originalPath || '', subject: this.subjectPath || '' }); }
+  stage(state, error) {
+    if (this.cancelled) return;
+    this.state = state;
+    this.onState({ state, error: error || '', permission: /权限/.test(error || ''), original: this.originalPath || this.photo && this.photo.path || '', subject: this.subjectPath || this.result || '', kind: this.kind || '', committed: this.committed });
+  }
   check() { if (this.cancelled) throw new Error('处理已取消'); }
   async own(path, role) {
     const saved = await platform.persist(path, `${this.id}_${role}`);
     this.owned.push(saved); this.check(); return saved;
   }
   async start(source) {
-    if (this.busy) return; this.busy = true;
+    if (this.busy || this.cancelled || this.committed) return; this.busy = true;
     try {
       this.stage('choosing');
       this.photo = await platform.choose(source); this.check();
@@ -24,7 +28,9 @@ class PhotoTask {
       if (/cancel/i.test(e.errMsg || '') || this.cancelled) { await this.cancel(); return; }
       this.stage('sourceError', platform.message(e, '照片读取或保存失败，请重选照片')); return;
     }
-    this.busy = false; return this.process(false);
+    this.busy = false;
+    if (this.requireConfirmation) { this.stage('preview'); return; }
+    return this.process(false);
   }
   async process(useOriginal) {
     if (this.busy || this.cancelled || this.committed) return;
@@ -66,8 +72,9 @@ class PhotoTask {
   }
   async cancel() {
     if (this.committed) return;
+    const notify = !this.cancelled;
     this.cancelled = true; if (this.abort) this.abort();
-    await this.cleanup(); this.onCancel();
+    await this.cleanup(); if (notify) this.onCancel();
   }
 }
 module.exports = { PhotoTask, newId };
