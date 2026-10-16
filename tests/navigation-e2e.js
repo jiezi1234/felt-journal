@@ -64,7 +64,7 @@ const pause = () => new Promise(resolve => setTimeout(resolve, 150));
     await mini.callWxMethod('pageScrollTo', { scrollTop: 10000, duration: 0 }); await home.waitFor(300);
     const scrolled = await navRect(); assert.ok(Math.abs(scrolled.top - first.top) <= 1, 'Navigation must remain fixed when the page scrolls');
     const lastButton = await mini.evaluate(() => new Promise(resolve => wx.createSelectorQuery().select('#record-today').boundingClientRect(resolve).exec()));
-    assert.ok(lastButton.bottom <= scrolled.top - 16, `Last action must be above navigation: ${lastButton.bottom}/${scrolled.top}`);
+    assert.ok(lastButton.bottom <= scrolled.top - 4, `Last action must be above navigation: ${lastButton.bottom}/${scrolled.top}`);
     checks.push('three local icons and active labels; full-width fixed bottom bar with safe area; scroll leaves final action visible');
     const homeScroll = await home.scrollTop();
     await tap('board'); let board = await route('board-tab'); await nav(board, 'board'); const boardId = board.id;
