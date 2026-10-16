@@ -3,11 +3,5 @@
 .sheet-date { color:#766457; font-size:13px; }.home-actions { display:flex; align-items:center; gap:8px; margin-left:auto; }.home-actions button.ghost { font-size:12px; padding:8px 4px; }
 .memory-count { color:#9B8E82; font-size:10px; flex-shrink:0; }.memory-count text { font-size:23px; font-weight:600; color:#806347; margin-right:4px; }
 .today-sheet .record-button { margin-top:18px; letter-spacing:.8px; }.record-star { font-size:22px; font-weight:400; line-height:16px; vertical-align:-1px; margin-right:8px; }
-.recent-section { margin-top:26px; padding:0 2px; }.section-link { font-size:12px; }
-.recent-grid { display:flex; flex-wrap:wrap; gap:14px 12px; margin-top:14px; }.recent-item { width:calc(50% - 6px); background:#FFFFFF; border-radius:23px; padding:10px 10px 13px; }
-.space-small { margin-top:12px; font-size:11px; color:#725D4E; }.recent-item .muted { font-size:10px; margin-top:2px; color:#9A8A7E; }
-.empty-recent { margin-top:12px; padding:20px 18px; text-align:center; font-size:12px; }
-.collection-links { display:flex; gap:12px; margin-top:22px; }button.collection-link { width:0; flex:1; min-width:0; padding:19px 16px; border:1px solid #FFFFFF; background:linear-gradient(145deg,#FFFFFF,#FFFBF1); border-radius:26px; text-align:left; }
-.collection-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }.collection-icon { width:26px; height:26px; }.collection-arrow { font-size:17px; color:#B7A68F; font-weight:400; }
-.collection-title { display:block; font-size:15px; color:#665245; font-weight:600; }
-@media (max-width:350px) { .today-sheet { padding-right:12px; padding-left:23px; }.collection-links { gap:10px; }button.collection-link { padding:16px 12px; }.sheet-date { font-size:12px; } }
+button.memories-link { margin-top:16px; color:#9A8A7E; font-size:12px; }
+@media (max-width:350px) { .today-sheet { padding-right:12px; padding-left:23px; }.sheet-date { font-size:12px; } }

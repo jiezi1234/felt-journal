@@ -9,15 +9,7 @@
       <button id="record-today" class="primary full record-button" bindtap="primary"><text class="record-star">＋</text>{{count ? '再记一件' : '记录今天'}}</button>
       <button wx:if="{{count}}" id="export-today" class="ghost full" bindtap="exportToday">分享 ↗</button>
     </view>
-    <view class="recent-section">
-      <view class="row"><text class="section-title">最近记录</text><button class="ghost section-link" bindtap="calendar">全部 ↗</button></view>
-      <view wx:if="{{!recent.length}}" class="empty-recent muted">暂无往日记录</view>
-      <view wx:else class="recent-grid"><view wx:for="{{recent}}" wx:key="date" class="recent-item" data-date="{{item.date}}" bindtap="recentBoard"><felt-board covered="{{editorOpen}}" model="{{item.model}}" interactive="{{false}}" /><view class="space-small">{{item.label}}</view><view class="muted">{{item.count}} 件记忆</view></view></view>
-    </view>
-    <view class="collection-links">
-      <button id="open-themes" class="collection-link" bindtap="themes"><view class="collection-top"><image class="collection-icon" src="/images/navigation/board-active.png" /><text class="collection-arrow">↗</text></view><text class="collection-title">主题板</text></button>
-      <button id="find-memories" class="collection-link" bindtap="memories"><view class="collection-top"><image class="collection-icon" src="/images/navigation/calendar-active.png" /><text class="collection-arrow">↗</text></view><text class="collection-title">记忆分类</text></button>
-    </view>
+    <button id="find-memories" class="ghost full memories-link" bindtap="memories">记忆分类 ↗</button>
   </block>
 </view>
 <record-card wx:if="{{editorOpen}}" id="record-card" board-id="{{editorDate}}" start-with-photo="{{startWithPhoto}}" bind:close="closeEditor" bind:change="editorChanged" />
