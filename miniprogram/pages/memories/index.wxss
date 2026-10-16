@@ -1,19 +1,20 @@
 .memories-page .title { font-size:25px; margin:16px 0 22px; }
 .filter-paper { margin-top:0; padding:16px; }
-.scope-tabs { padding:4px; border-radius:16px; background:#E2E7DD; }
+.scope-tabs { padding:4px; border-radius:16px; background:#EEF3EF; }
 .scope-tabs button { font-size:14px; background:transparent; padding:10px 6px; }
-.scope-tabs button.active,.category-chips button.active { background:#4D7D5B; color:#F7F2E9; }
-.month-choice { min-height:44px; display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding:8px 6px; color:#396848; }
-.month-choice text { font-size:12px; color:#73746D; }
+.scope-tabs button.active,.category-chips button.active { background:#435E4E; color:#FFFFFF; }
+.month-choice { min-height:44px; display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding:8px 6px; color:#435A4E; }
+.month-choice text { font-size:12px; color:#68766C; }
 .category-chips { display:flex; flex-wrap:wrap; gap:8px; }
-button.category { padding:10px 12px; font-size:13px; width:auto; background:#E9E9E0; border-radius:22px; }
+button.category { margin:0; padding:10px 12px; font-size:13px; width:auto; background:#F2F5F3; border-radius:22px; }
 .category-count { margin-left:6px; opacity:.78; font-size:12px; }
 .results-heading { margin:24px 0 14px; display:flex; flex-direction:column; gap:4px; font-size:14px; }
-.date-group { margin-top:18px; }.date-heading { margin-bottom:8px; font-size:14px; color:#715A4A; }.date-heading button { font-size:12px; }
-button.memory-row { display:flex; align-items:center; gap:12px; width:100%; text-align:left; margin:0 0 10px; padding:14px 12px; background:#F7F2E9; border:1px solid #FAF7EF; border-radius:18px; }
-.memory-thumb { width:76px; height:76px; flex-shrink:0; border-radius:12px; background:#E9E4D8; display:flex; align-items:center; justify-content:center; }
-.memory-thumb image { width:66px; height:66px; }.missing-thumb { font-size:11px; color:#73746D; }
-.memory-copy { flex:1; min-width:0; }.memory-category { display:inline-block; color:#396848; font-size:12px; padding:3px 8px; background:#E2E7DD; border-radius:14px; }
-.memory-excerpt { font-size:14px; color:#302F2B; line-height:1.6; margin-top:7px; font-weight:400; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; word-break:break-all; }
-.memory-excerpt.muted { color:#73746D; }.memory-arrow { color:#8E9F86; font-size:22px; flex-shrink:0; }
-.empty-result { text-align:center; padding:28px 18px; }.pagination { margin-top:24px; }.pagination button { font-size:13px; }.page-number { color:#73746D; font-size:12px; white-space:nowrap; }
+.date-group { margin-top:18px; }.date-heading { margin-bottom:8px; font-size:14px; color:#65766B; }.date-heading button { font-size:12px; }
+button.memory-row { display:flex; align-items:center; gap:12px; width:100%; text-align:left; margin:0 0 10px; padding:14px 12px; background:#FFFFFF; border:1px solid #E9EEEB; border-radius:18px; }
+.memory-thumb { width:76px; height:76px; flex-shrink:0; border-radius:12px; background:#F0F4F1; display:flex; align-items:center; justify-content:center; }
+.memory-thumb image { width:66px; height:66px; }.missing-thumb { font-size:11px; color:#68766C; }
+.memory-copy { flex:1; min-width:0; }.memory-category { display:inline-block; color:#435A4E; font-size:12px; padding:3px 8px; background:#EEF3EF; border-radius:14px; }
+.memory-excerpt { font-size:14px; color:#263530; line-height:1.6; margin-top:7px; font-weight:400; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; word-break:break-all; }
+.memory-excerpt.muted { color:#68766C; }.memory-arrow { color:#86988B; font-size:22px; flex-shrink:0; }
+.empty-result { text-align:center; padding:28px 18px; }.pagination { margin-top:24px; }.pagination button { font-size:13px; }.page-number { color:#68766C; font-size:12px; white-space:nowrap; }
+.filter-paper { padding:18px; }.scope-tabs button.active { background:#FFFFFF; color:#344C40; box-shadow:0 2px 8px rgba(38,53,48,.04); }.scope-tabs button { border-color:transparent; }.category-chips button.active { background:#E7EFE9; color:#344C40; border-color:#D7E3DA; }.category-chips button { background:#F7F9F8; }.memory-row { box-shadow:0 4px 18px rgba(38,53,48,.02); }.date-group { margin-top:26px; }.results-heading { margin-top:28px; }.memories-page .page-heading .title { font-size:28px; margin:8px 0 10px; }

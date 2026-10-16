@@ -1,7 +1,6 @@
 <view class="page themes-page">
   <view class="row"><button class="ghost" bindtap="back">‹ 返回</button><text class="muted">生活拾遗</text></view>
-  <view class="title">{{selecting ? '给这份记忆，找一个主题' : '把喜欢的日子，放在一起'}}</view>
-  <view class="muted">{{selecting ? '同一份照片和文字，可以收藏在多块主题板里。' : '旅途、四季、一餐一饭，都可以有自己的毛毡板。'}}</view>
+  <view class="page-heading"><text class="eyebrow">YOUR COLLECTIONS</text><view class="title">{{selecting ? '为记忆，选一个归处' : '主题收藏'}}</view><view class="page-subtitle">{{selecting ? '同一份照片和文字，可以收藏在多块主题板里。' : '关于旅途，关于四季，关于你喜欢的一切。'}}</view></view>
   <view wx:if="{{loading}}" class="loading">正在打开主题收藏…</view>
   <view wx:elif="{{error}}" class="error">{{error}}<button class="ghost" bindtap="refresh">重试读取</button></view>
   <block wx:else>

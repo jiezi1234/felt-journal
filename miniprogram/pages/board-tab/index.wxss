@@ -1,2 +1,5 @@
-.board-heading { margin:16px 0 22px; }
-.board-heading .section-title { font-size:20px; }
+.board-heading { margin:28px 0 24px; }
+.board-heading .section-title { font-size:22px; margin-top:6px; }
+.board-heading button { font-size:13px; padding:10px 18px; }
+.board-intro { margin-bottom:28px; }
+.board-intro .title { margin:8px 0 10px; }

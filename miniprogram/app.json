@@ -11,17 +11,17 @@
     "pages/themes/index"
   ],
   "window": {
-    "backgroundColor": "#E8EDE7",
+    "backgroundColor": "#FAFCFB",
     "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#E8EDE7",
+    "navigationBarBackgroundColor": "#FFFFFF",
     "navigationBarTitleText": "毛毡生活手账",
     "navigationBarTextStyle": "black"
   },
   "tabBar": {
     "custom": true,
-    "color": "#615950",
-    "selectedColor": "#396848",
-    "backgroundColor": "#F7F2E9",
+    "color": "#7F8B83",
+    "selectedColor": "#344C40",
+    "backgroundColor": "#FFFFFF",
     "borderStyle": "white",
     "list": [
       { "pagePath": "pages/index/index", "text": "今天", "iconPath": "images/navigation/today.png", "selectedIconPath": "images/navigation/today-active.png" },

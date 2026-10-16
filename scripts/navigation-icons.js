@@ -19,7 +19,7 @@ const strokes = {
 };
 for (const [name, draw] of Object.entries(strokes)) for (const active of [false, true]) {
   const canvas = createCanvas(72, 72), ctx = canvas.getContext('2d'); ctx.scale(3, 3);
-  ctx.strokeStyle = active ? '#396848' : '#615950'; ctx.lineWidth = 1.8; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath(); draw(ctx); ctx.stroke();
+  ctx.strokeStyle = active ? '#435E4E' : '#8A978E'; ctx.lineWidth = 1.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath(); draw(ctx); ctx.stroke();
   fs.writeFileSync(path.join(directory, `${name}${active ? '-active' : ''}.png`), canvas.toBuffer('image/png'));
 }
 console.log('PASS: six local navigation icons generated');

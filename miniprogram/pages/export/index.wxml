@@ -1,4 +1,4 @@
-<view class="page"><button class="ghost back" bindtap="back">‹ 返回毛毡板</button><view class="title">{{isTheme ? '收藏与分享这块板' : '收藏与分享这一天'}}</view>
+<view class="page"><button class="ghost back" bindtap="back">‹ 返回毛毡板</button><view class="page-heading"><text class="eyebrow">MADE OF MEMORIES</text><view class="title">{{isTheme ? '把喜欢，分享出去' : '把这一天，留在身边'}}</view><view class="page-subtitle">让生活的片刻，成为一张完整的作品。</view></view>
   <view wx:if="{{generating}}" class="loading">正在生成带完整框体的作品…</view>
   <view wx:if="{{error}}" class="error">{{error}}<button wx:if="{{!imagePath || imageExpired}}" id="regenerate-image" class="ghost" disabled="{{generating || saving || sharing}}" bindtap="generate">重新生成</button></view>
   <block wx:if="{{imagePath}}">

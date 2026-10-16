@@ -1,14 +1,15 @@
 .board-heading { margin:16px 0 22px; }.board-heading .section-title { font-size:20px; }.selected-tools { margin-top:18px; }
 .appearance-hint { margin-top:10px; font-size:12px; }
 .colors { display:flex; gap:8px; margin-top:16px; flex-wrap:wrap; }
-button.color { flex:0 0 calc((100% - 16px) / 3); width:calc((100% - 16px) / 3); min-width:0; white-space:nowrap; padding:10px 2px; background:#EFEBE1; font-size:13px; border:1px solid transparent; }
-button.color.active { background:#E0E7D9; border-color:#4D7D5B; }
-.swatch { display:inline-block; width:20px; height:20px; line-height:20px; margin-right:4px; border-radius:50%; vertical-align:middle; color:#302F2B; font-size:13px; }
+button.color { flex:0 0 calc((100% - 16px) / 3); width:calc((100% - 16px) / 3); min-width:0; white-space:nowrap; padding:10px 2px; background:#F5F7F6; font-size:13px; border:1px solid transparent; }
+button.color.active { background:#EAF1EC; border-color:#435E4E; }
+.swatch { display:inline-block; width:20px; height:20px; line-height:20px; margin-right:4px; border-radius:50%; vertical-align:middle; color:#263530; font-size:13px; }
 .textures { display:flex; gap:8px; margin-top:12px; }
-button.texture { flex:1; min-width:0; width:0; padding:7px 5px 10px; background:#EFEBE1; border:1px solid transparent; border-radius:12px; }
-button.texture.active { border-color:#4D7D5B; background:#E0E7D9; }
-.texture-name { margin-top:7px; font-size:13px; }.texture-note { color:#73746D; font-size:11px; margin-top:3px; }
+button.texture { flex:1; min-width:0; width:0; padding:7px 5px 10px; background:#F5F7F6; border:1px solid transparent; border-radius:12px; }
+button.texture.active { border-color:#435E4E; background:#EAF1EC; }
+.texture-name { margin-top:7px; font-size:13px; }.texture-note { color:#68766C; font-size:11px; margin-top:3px; }
 button.color[disabled],button.texture[disabled] { opacity:.55; }
 .history-tools { margin:16px 0 20px; }.history-hint { margin-top:10px; font-size:12px; line-height:1.6; }.layer-tools { margin-top:14px; }
 .library-add { margin-top:16px !important; }
 .board-heading > view { min-width:0; overflow-wrap:anywhere; }
+.board-heading { margin:28px 0 24px; }.board-heading .section-title { font-size:22px; }.history-tools { margin:20px 0 26px; }.appearance { margin-top:28px; }.appearance > .row { flex-wrap:wrap; }button.color.active,button.texture.active { border-color:#A6B9AC; }.selected-tools .row.space { flex-wrap:wrap; }

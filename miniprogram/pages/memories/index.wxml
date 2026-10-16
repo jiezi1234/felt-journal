@@ -1,6 +1,6 @@
 <view class="page memories-page">
   <view class="row"><button class="ghost" bindtap="back">‹ 返回</button><text class="muted">生活拾遗</text></view>
-  <view class="title">{{targetId ? '挑选一件，放进板面' : '按分类，找回小日常'}}</view>
+  <view class="page-heading"><text class="eyebrow">LITTLE MOMENTS</text><view class="title">{{targetId ? '挑选一份记忆' : '记忆分类'}}</view><view wx:if="{{!targetId}}" class="page-subtitle">那些被认真收藏的小日常。</view></view>
   <view wx:if="{{targetId}}" class="muted">放入「{{targetTitle}}」· {{targetDaily ? '仅展示当天记忆' : '照片和文字共用，摆放独立保存'}}</view>
   <view class="paper filter-paper">
     <view wx:if="{{!targetDaily}}" class="row scope-tabs"><button id="scope-all" class="grow {{scope === 'all' ? 'active' : ''}}" data-scope="all" disabled="{{loading}}" bindtap="scope">全部时间</button><button id="scope-month" class="grow {{scope === 'month' ? 'active' : ''}}" data-scope="month" disabled="{{loading}}" bindtap="scope">按月查看</button></view>

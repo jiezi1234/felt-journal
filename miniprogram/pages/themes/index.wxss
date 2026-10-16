@@ -1,8 +1,9 @@
 .themes-page .title { font-size:25px; margin-bottom:12px; }
 .theme-create { margin-top:24px !important; }
-.theme-input { height:52px; border:1px solid #D2C4BB; border-radius:12px; padding:0 12px; margin:20px 0 8px; background:#FCF8F0; font-size:15px; }
-.theme-card { padding:14px; }button.theme-open { display:block; width:100%; margin:0; padding:0; background:transparent; text-align:left; }
+.theme-input { height:52px; border:1px solid #E2E9E4; border-radius:12px; padding:0 12px; margin:20px 0 8px; background:#FAFCFB; font-size:15px; }
+.theme-card { padding:14px; }button.theme-open { display:block; width:100%; margin:0; padding:0; border:0; background:transparent; text-align:left; }
 .theme-cover { border:8px solid #493527; border-radius:18px; min-height:126px; display:flex; align-items:center; justify-content:center; gap:8px; padding:12px; }
 .theme-cover image { width:28%; height:86px; }.theme-heading { margin-top:14px; align-items:flex-start; }.theme-heading > text { flex-shrink:0; }
-.theme-name { font:500 21px/1.5 "Songti SC",SimSun,serif; word-break:break-all; }
-.theme-actions { margin-top:12px; border-top:1px dashed #D2C4BB; padding-top:8px; }.empty-theme { text-align:center; padding:30px 18px; }
+.theme-name { font-size:20px; font-weight:600; line-height:1.5; word-break:break-all; }
+.theme-actions { margin-top:12px; border-top:1px solid #E2E9E4; padding-top:8px; }.empty-theme { text-align:center; padding:30px 18px; }
+.theme-create { margin-top:30px !important; }.theme-card { padding:18px; }.theme-heading { margin-top:20px; }.theme-cover { border-width:6px; }.theme-actions { margin-top:18px; padding-top:12px; }.empty-theme { padding:40px 20px; background:linear-gradient(145deg,#FFFFFF,#F1F6F3); }.theme-input { height:54px; border-color:#DDE6DF; }.themes-page .page-heading .title { font-size:28px; }

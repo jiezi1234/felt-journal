@@ -1,6 +1,6 @@
 <view class="page crop-page">
   <view class="row"><button class="ghost" bindtap="back">‹ 返回记忆</button><button class="ghost" disabled="{{!ready || loading || saving || !dirty}}" bindtap="save">{{saving ? '保存中…' : '保存'}}</button></view>
-  <view class="title">留下刚刚好的部分</view>
+  <view class="page-heading"><text class="eyebrow">A CLOSER LOOK</text><view class="title">留下刚刚好的部分</view></view>
   <view class="row source-tabs">
     <button id="source-subject" class="grow {{source === 'subject' ? 'active' : ''}}" disabled="{{saving || loading}}" data-source="subject" bindtap="source">当前物件</button>
     <button id="source-original" class="grow {{source === 'original' ? 'active' : ''}}" disabled="{{saving || loading}}" data-source="original" bindtap="source">原始照片</button>
