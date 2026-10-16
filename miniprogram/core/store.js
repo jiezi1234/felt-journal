@@ -41,6 +41,7 @@ function validate(s) {
     const m = s.memories[id];
     assert(m.id === id && (s.version === 2 || seen[id]) && dates.valid(m.date) && m.date === m.boardId && typeof m.originalPath === 'string' && !!m.originalPath && typeof m.subjectPath === 'string' && !!m.subjectPath && m.originalPath !== m.subjectPath, '照片引用异常');
     assert(typeof m.text === 'string' && m.text.length <= config.maxText && config.categories.includes(m.category), '记忆内容异常');
+    assert(m.categorySource === undefined || ['auto', 'manual', 'none'].includes(m.categorySource), '记忆分类来源异常');
   });
   return s;
 }
@@ -142,8 +143,13 @@ function createStore(storage) {
     commit(s => {
       const m = s.memories[id]; assert(m, '这条记忆已被删除');
       s.garbage.push(m.originalPath, m.subjectPath);
+      const fields = Object.assign({}, photos);
+      // Existing manual choices (including legacy categories) survive replacement.
+      if (m.categorySource === 'manual' || !m.categorySource && m.category !== '未分类') {
+        delete fields.category; delete fields.categorySource;
+      }
       // Placement is untouched, including its width, height and layer.
-      Object.assign(m, photos, { subjectEdited: false, updatedAt: Date.now() }); s.operations[taskId] = id;
+      Object.assign(m, fields, { subjectEdited: false, updatedAt: Date.now() }); s.operations[taskId] = id;
     });
     return id;
   }
@@ -159,7 +165,11 @@ function createStore(storage) {
     });
     return id;
   }
-  function edit(id, text, category) { commit(s => { assert(s.memories[id], '这条记忆已被删除'); Object.assign(s.memories[id], { text, category, updatedAt: Date.now() }); }); }
+  function edit(id, text, category) { commit(s => {
+    const memory = s.memories[id]; assert(memory, '这条记忆已被删除');
+    if (category !== memory.category) memory.categorySource = 'manual';
+    Object.assign(memory, { text, category, updatedAt: Date.now() });
+  }); }
   function remove(id) {
     const affected = [];
     commit(s => {

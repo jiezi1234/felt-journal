@@ -6,6 +6,7 @@ For a phone deployment set FELT_PUBLIC_BASE_URL=https://your-domain.example.
 from __future__ import annotations
 
 import io
+import logging
 import os
 import re
 import threading
@@ -20,6 +21,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from PIL import Image, ImageFilter, ImageOps, UnidentifiedImageError
 from starlette.concurrency import run_in_threadpool
+from backend.classification import PhotoClassifier
 
 RUNTIME = Path(__file__).resolve().parent / '.runtime'
 os.environ.setdefault('U2NET_HOME', str(RUNTIME / 'models'))
@@ -104,9 +106,10 @@ def decode_photo(data: bytes) -> Image.Image:
         raise HTTPException(415, '请选择 24 百万像素以内的 JPEG、PNG 或 WEBP 照片') from error
 
 
-def create_app(extractor=None, output_dir=None, public_base=None):
+def create_app(extractor=None, output_dir=None, public_base=None, classifier=None):
     service = FastAPI(title='毛毡手账主体提取', version='1.0.0')
     engine = extractor or SubjectExtractor()
+    category_engine = classifier if classifier is not None else PhotoClassifier()
     output = Path(output_dir) if output_dir else RUNTIME / 'cutouts'
     output.mkdir(parents=True, exist_ok=True)
     base = (public_base or os.getenv('FELT_PUBLIC_BASE_URL', 'http://127.0.0.1:8787')).rstrip('/')
@@ -126,7 +129,9 @@ def create_app(extractor=None, output_dir=None, public_base=None):
     @service.get('/health')
     def health():
         prune()
-        return {'status': 'ok', 'model': getattr(engine, 'model_name', os.getenv('FELT_MODEL', DEFAULT_MODEL)), 'modelLoaded': getattr(engine, 'session', None) is not None}
+        return {'status': 'ok', 'model': getattr(engine, 'model_name', os.getenv('FELT_MODEL', DEFAULT_MODEL)), 'modelLoaded': getattr(engine, 'session', None) is not None,
+                'classificationEnabled': getattr(category_engine, 'enabled', bool(category_engine)),
+                'classificationLoaded': getattr(category_engine, 'session', None) is not None}
 
     @service.post('/extract')
     async def extract(request: Request):
@@ -163,7 +168,14 @@ def create_app(extractor=None, output_dir=None, public_base=None):
                 token = uuid.uuid4().hex
                 prune()
                 result.save(output / f'{token}.png', format='PNG')
-                return {'cutoutUrl': f'{base}/cutouts/{token}.png', 'expiresIn': TTL_SECONDS}
+                try:
+                    classification = category_engine(image) if category_engine else {'category': None, 'status': 'disabled'}
+                except Exception as error:
+                    # Classification is optional: a missing/broken model must not
+                    # discard a successfully extracted photo or force a retry.
+                    logging.getLogger(__name__).warning('Photo classification unavailable (%s)', type(error).__name__)
+                    classification = {'category': None, 'status': 'unavailable'}
+                return {'cutoutUrl': f'{base}/cutouts/{token}.png', 'expiresIn': TTL_SECONDS, 'classification': classification}
             finally:
                 image.close()
                 lock.release()

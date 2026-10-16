@@ -1,5 +1,6 @@
 const platform = require('./platform');
 const service = require('./extraction');
+const classification = require('../core/classification');
 let sequence = 0;
 function newId() { return `${Date.now().toString(36)}_${(++sequence).toString(36)}_${Math.random().toString(36).slice(2, 8)}`; }
 class PhotoTask {
@@ -9,7 +10,7 @@ class PhotoTask {
   stage(state, error) {
     if (this.cancelled) return;
     this.state = state;
-    this.onState({ state, error: error || '', permission: /权限/.test(error || ''), original: this.originalPath || this.photo && this.photo.path || '', subject: this.subjectPath || this.result || '', kind: this.kind || '', committed: this.committed });
+    this.onState({ state, error: error || '', permission: /权限/.test(error || ''), original: this.originalPath || this.photo && this.photo.path || '', subject: this.subjectPath || this.result || '', kind: this.kind || '', committed: this.committed, category: this.savedCategory || '' });
   }
   check() { if (this.cancelled) throw new Error('处理已取消'); }
   async own(path, role) {
@@ -38,6 +39,7 @@ class PhotoTask {
     try {
       this.check();
       if (!this.originalPath) throw new Error('请重新选择照片');
+      this.classification = null;
       const result = useOriginal ? this.originalPath : await service.extract(this.originalPath, this, state => this.stage(state));
       this.check();
       this.result = result; this.kind = useOriginal ? 'original' : 'extracted';
@@ -55,9 +57,10 @@ class PhotoTask {
       this.stage('saving'); this.check();
       if (!this.subjectPath) this.subjectPath = await this.own(this.result, 'subject');
       const info = await platform.call('getImageInfo', { src: this.subjectPath }); this.check();
-      const photos = { originalPath: this.originalPath, subjectPath: this.subjectPath, width: info.width, height: info.height, kind: this.kind };
+      const photos = Object.assign({ originalPath: this.originalPath, subjectPath: this.subjectPath, width: info.width, height: info.height, kind: this.kind }, classification.fields(this.classification));
       // Synchronous commit makes cancellation and duplicate callbacks unambiguous.
       const id = this.memoryId ? this.store.replace(this.id, this.memoryId, photos) : this.store.add(this.id, this.date, photos);
+      this.savedCategory = this.store.get().memories[id].category;
       this.committed = true; platform.releaseFiles(this.owned); this.owned = []; this.stage('done'); this.onDone(id);
       platform.collect(this.store).catch(() => {});
     } catch (e) {

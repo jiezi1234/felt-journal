@@ -13,7 +13,7 @@ from backend.app import create_app, decode_photo, clean_alpha
 class BackendTests(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
-        self.client = TestClient(create_app(extractor=lambda image: image.convert('RGBA'), output_dir=self.directory.name, public_base='https://felt.example'))
+        self.client = TestClient(create_app(extractor=lambda image: image.convert('RGBA'), output_dir=self.directory.name, public_base='https://felt.example', classifier=False))
 
     def tearDown(self):
         self.client.close()

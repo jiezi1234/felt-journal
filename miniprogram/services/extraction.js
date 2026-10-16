@@ -1,5 +1,5 @@
 const serviceConfig = require('./extraction-config');
-// Backend contract: multipart photo -> { cutoutUrl: HTTPS transparent PNG }.
+// Backend contract: multipart photo -> { cutoutUrl, classification? }.
 // Credentials belong on that backend. Cancelling aborts the live network request.
 function network(task, invoke) {
   return new Promise((resolve, reject) => {
@@ -11,6 +11,7 @@ function network(task, invoke) {
   });
 }
 async function extract(originalPath, task, onStage) {
+  task.classification = null;
   const c = serviceConfig.resolve();
   if (c.mode !== 'remote' || !c.local && !/^https:\/\//.test(c.endpoint)) throw new Error('主体提取服务尚未配置，可以选择保留原图记录');
   onStage('uploading');
@@ -31,6 +32,7 @@ async function extract(originalPath, task, onStage) {
   onStage('extracting');
   const downloaded = await network(task, (success, fail) => wx.downloadFile({ url: payload.cutoutUrl, timeout: c.timeout, success, fail }));
   if (downloaded.statusCode !== 200) throw new Error('主体图片下载失败，请重新提取');
+  task.classification = payload.classification || null;
   return downloaded.tempFilePath;
 }
 module.exports = { extract };

@@ -18,7 +18,7 @@ Component({
         showOriginal, preview: state === 'preview', done, failed,
         analyzing: !!task && !done && !failed && state !== 'preview',
         stageLabel: stageLabels[state] || '主体提取中…',
-        resultLabel: task && task.kind === 'original' ? '照片已保存' : '主体已保存',
+        resultLabel: task && task.category && task.category !== '未分类' ? `已保存 · ${task.category}` : task && task.kind === 'original' ? '照片已保存' : '主体已保存',
         displayImage: canCompare && !showOriginal ? subject : original || subject, canCompare
       });
     }

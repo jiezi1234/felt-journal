@@ -11,6 +11,7 @@ services:
     environment:
       FELT_PUBLIC_BASE_URL: https://${FELT_DOMAIN:?Set FELT_DOMAIN in backend/.env}
       FELT_MODEL: ${FELT_MODEL:-nosh-mnn}
+      FELT_CLASSIFICATION: ${FELT_CLASSIFICATION:-mobilenet-v2}
       OMP_NUM_THREADS: '2'
     expose:
       - '8787'

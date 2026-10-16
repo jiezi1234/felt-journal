@@ -8,7 +8,7 @@
     <view class="divider" /><view class="row"><view class="section-title">板上物件</view><button id="adjust-image" class="ghost small" disabled="{{!!task}}" bindtap="adjust">裁剪 / 修正</button></view>
     <view class="subject-sample"><image wx:if="{{!subjectMissing}}" src="{{memory.subjectPath}}" mode="aspectFit" binderror="subjectError" /><text wx:else class="muted">展示图片无法读取，请替换照片</text></view>
     <view wx:if="{{memory.subjectEdited}}" class="muted edited-hint">已手动调整 · 原始照片保留</view>
-    <view class="row"><text class="chip">{{dateLabel}}</text><text class="chip">{{memory.category}}</text></view>
+    <view class="row"><text class="chip">{{dateLabel}}</text><text class="chip">{{memory.category}}{{memory.categorySource === 'auto' ? ' · 自动' : ''}}</text></view>
     <view class="muted space-small">{{usageLabel}}</view><button id="add-to-theme" class="secondary full space" disabled="{{!!task}}" bindtap="themes">＋ 放入主题板</button>
     <view class="divider" />
     <block wx:if="{{editing}}"><textarea class="note-input" placeholder="记点什么（选填）" maxlength="{{maxText}}" value="{{text}}" bindinput="textInput" auto-height /><view class="muted text-count">{{text.length}} / {{maxText}}</view><picker range="{{categories}}" value="{{category}}" bindchange="categoryInput"><view class="category-picker">分类：{{categories[category]}}　⌄</view></picker><view wx:if="{{saveError}}" class="error">{{saveError}}</view><button class="primary full space" bindtap="save">保存</button></block>
