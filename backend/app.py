@@ -34,6 +34,8 @@ Image.MAX_IMAGE_PIXELS = MAX_PIXELS
 
 
 class SubjectExtractor:
+    sticker_style = 'nosh-white-v1'
+
     def __init__(self, model_name=None):
         self.session = None
         self.model_name = model_name or os.getenv('FELT_MODEL', DEFAULT_MODEL)
@@ -125,6 +127,7 @@ def create_app(extractor=None, output_dir=None, public_base=None, classifier=Non
     def health():
         prune()
         return {'status': 'ok', 'model': getattr(engine, 'model_name', os.getenv('FELT_MODEL', DEFAULT_MODEL)), 'modelLoaded': getattr(engine, 'session', None) is not None,
+                'stickerStyle': getattr(engine, 'sticker_style', None),
                 'classificationEnabled': getattr(category_engine, 'enabled', bool(category_engine)),
                 'classificationLoaded': getattr(category_engine, 'session', None) is not None}
 

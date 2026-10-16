@@ -19,4 +19,7 @@ function acceptsResult(url, service) {
   if (!service.local) return /^https:\/\//.test(url);
   return url.startsWith(`${service.origin}/cutouts/`) && /^[a-f0-9]{32}\.png$/.test(url.slice(`${service.origin}/cutouts/`.length));
 }
-module.exports = { DEVELOPMENT_KEY, resolve, acceptsResult };
+function supportsLocalStickers(health) {
+  return !!health && health.status === 'ok' && health.model === 'nosh-mnn' && health.stickerStyle === 'nosh-white-v1';
+}
+module.exports = { DEVELOPMENT_KEY, resolve, acceptsResult, supportsLocalStickers };

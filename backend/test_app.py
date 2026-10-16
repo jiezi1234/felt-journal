@@ -7,7 +7,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 from PIL import Image
-from backend.app import create_app, decode_photo, clean_alpha
+from backend.app import create_app, decode_photo, clean_alpha, SubjectExtractor
 
 
 class BackendTests(unittest.TestCase):
@@ -38,6 +38,14 @@ class BackendTests(unittest.TestCase):
         expired = time.time() - 901
         os.utime(file, (expired, expired))
         self.assertEqual(self.client.get(path).status_code, 404)
+
+    def test_health_identifies_sticker_pipeline_before_model_load(self):
+        with TestClient(create_app(extractor=SubjectExtractor('nosh-mnn'), output_dir=self.directory.name, classifier=False)) as client:
+            health = client.get('/health').json()
+            self.assertEqual(health['stickerStyle'], 'nosh-white-v1')
+            self.assertEqual(health['model'], 'nosh-mnn')
+            self.assertFalse(health['modelLoaded'])
+        self.assertIsNone(self.client.get('/health').json()['stickerStyle'])
 
     def test_invalid_and_duplicate_photo(self):
         self.assertEqual(self.client.post('/extract', files={'photo': ('bad.jpg', b'bad', 'image/jpeg')}).status_code, 415)

@@ -1,5 +1,5 @@
 const automator = require('miniprogram-automator');
-const key = require('../miniprogram/services/extraction-config').DEVELOPMENT_KEY;
+const { DEVELOPMENT_KEY: key, supportsLocalStickers } = require('../miniprogram/services/extraction-config');
 (async () => {
   const off = process.argv.includes('--off'), endpoint = process.env.WECHAT_EXTRACTION_ENDPOINT || 'http://127.0.0.1:8787/extract';
   if (!off) {
@@ -7,6 +7,7 @@ const key = require('../miniprogram/services/extraction-config').DEVELOPMENT_KEY
     if (!match || Number(match[1]) > 65535) throw new Error('本机调试地址必须是有效的 127.0.0.1 端口与 /extract 路径');
     const response = await fetch(endpoint.replace(/\/extract$/, '/health'));
     if (!response.ok) throw new Error('本地主体提取服务尚未启动');
+    if (!supportsLocalStickers(await response.json())) throw new Error('本机服务版本过旧或模型不一致，请重启当前项目的 nosh-mnn 服务；需要 nosh-white-v1 白边支持');
   }
   const mini = await automator.connect({ wsEndpoint: process.env.WECHAT_AUTOMATION_URL || 'ws://127.0.0.1:9420' });
   try {

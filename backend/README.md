@@ -13,7 +13,7 @@ backend/.venv/Scripts/python.exe -m backend.prepare_nosh_model --apk "D:\path\to
 backend/.venv/Scripts/python.exe -m uvicorn backend.app:app --host 127.0.0.1 --port 8787
 ```
 
-`GET /health` 返回进程状态；`modelLoaded: false` 表示模型尚未初始化，不能据此宣称照片提取已验证。`nosh-mnn` 不下载模型，缺少或哈希不符时提取返回 503。默认缓存为 `backend/.runtime/nosh/main_segment.mnn`，可用 `FELT_NOSH_MODEL` 指定路径。导入工具校验原 asset 和解码模型 SHA-256。选择 rembg 时才保留原有首次下载和构建预下载行为。
+`GET /health` 返回进程状态和白边能力 `stickerStyle: nosh-white-v1`；`modelLoaded: false` 表示模型尚未初始化，不能据此宣称照片提取已验证。`nosh-mnn` 不下载模型，缺少或哈希不符时提取返回 503。默认缓存为 `backend/.runtime/nosh/main_segment.mnn`，可用 `FELT_NOSH_MODEL` 指定路径。导入工具校验原 asset 和解码模型 SHA-256。选择 rembg 时才保留原有首次下载和构建预下载行为。
 
 真实模型与上传/下载检查（图片和报告仅写入被忽略的 `artifacts/nosh`）：
 
@@ -53,6 +53,8 @@ npm run dev:extraction
 ```
 
 这会为当前开发者工具设置显式本机服务开关；只有 `platform=devtools` 且 `envVersion=develop` 时允许访问 `127.0.0.1:8787`。手机、体验版和发布版均忽略该设置，返回到正式 HTTPS 配置。下载只允许同一个回环地址下的随机 PNG 令牌路径。
+
+启用前会检查 `model: nosh-mnn` 和 `stickerStyle: nosh-white-v1`，仅有 `status: ok` 的旧进程会被拒绝。更新 Python 后端文件或服务器不会自动更新已经运行的本机进程；须重启本机服务后再运行本命令。开发工具已保存的旧照片也不会因后端更新而改变，需要重新提取才能获得新白边。
 
 关闭本机开关：`npm run dev:extraction -- --off`。完整真实联网 E2E：
 

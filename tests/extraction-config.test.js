@@ -21,3 +21,9 @@ test('local download cannot escape the same loopback origin or token path', () =
   for (const url of ['http://evil/cutouts/abc.png', 'http://127.0.0.1:8787/cutouts/../secrets', 'http://127.0.0.1:8787/cutouts/' + 'a'.repeat(32) + '.png?redirect=evil', 'https://127.0.0.1:8787/cutouts/' + 'a'.repeat(32) + '.png']) assert.equal(service.acceptsResult(url, local), false);
   assert.equal(service.acceptsResult('http://127.0.0.1:8787/cutouts/a.png', { local: false }), false);
 });
+test('local preview rejects a healthy obsolete extractor without white sticker support', () => {
+  assert.equal(service.supportsLocalStickers({ status: 'ok', model: 'isnet-general-use', modelLoaded: true }), false);
+  assert.equal(service.supportsLocalStickers({ status: 'ok', model: 'nosh-mnn', modelLoaded: true }), false);
+  assert.equal(service.supportsLocalStickers({ status: 'ok', model: 'nosh-mnn', stickerStyle: 'nosh-white-v1', modelLoaded: false }), true);
+  assert.equal(service.supportsLocalStickers(null), false);
+});
