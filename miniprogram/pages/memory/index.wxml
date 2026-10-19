@@ -12,7 +12,7 @@
         <scroll-view wx:elif="{{memory.text}}" scroll-y class="note-reading"><view class="note">{{memory.text}}</view></scroll-view><button wx:else class="secondary full" bindtap="edit">写下记忆</button>
       </block>
     </view>
-    <view class="memory-footer"><view wx:if="{{usageCount > 1}}" class="shared-hint">用于 {{usageCount}} 块板，修改会同步</view><button id="add-to-theme" class="secondary full" disabled="{{!!task}}" bindtap="themes">＋ 放入主题板</button><view class="row"><button class="ghost" bindtap="replace">替换照片</button><button id="delete-memory" class="danger" bindtap="remove">删除记忆</button></view></view>
+    <view class="memory-footer"><view wx:if="{{usageCount > 1}}" class="shared-hint">用于 {{usageCount}} 块板，修改会同步</view><view class="row"><button class="ghost" bindtap="replace">替换照片</button><button id="delete-memory" class="danger" bindtap="remove">删除记忆</button></view></view>
   </block>
 </view>
 <photo-panel note-open="{{photoNoteOpen}}" note-text="{{photoNoteText}}" note-error="{{photoNoteError}}" bind:noteopen="openPhotoNote" bind:noteinput="photoNoteInput" task="{{task}}" bind:retry="retryPhoto" bind:original="originalPhoto" bind:cancel="cancelPhoto" />

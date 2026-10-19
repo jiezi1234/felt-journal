@@ -10,7 +10,7 @@ const path = require('node:path');
 const { createCanvas, loadImage } = require('@napi-rs/canvas');
 const { paint } = require('../miniprogram/core/renderer');
 const root = path.resolve(__dirname, '..');
-const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-drafts:v1', 'felt-journal:dev-extraction:v1'];
+const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-drafts:v1', 'felt-journal:dev-extraction:v1', 'felt-journal:server-extraction:v1'];
 const output = path.join(root, 'artifacts');
 const realService = process.env.WECHAT_EXTRACTION_ENDPOINT || '';
 (async () => {
@@ -115,9 +115,12 @@ const realService = process.env.WECHAT_EXTRACTION_ENDPOINT || '';
     assert.equal(await board.$('#open-appearance'), null, 'Board decoration is configured only when sharing');
     await capture('wechat-board-edit.png');
     const savedPlacements = (await board.data()).model.placements;
-    console.log('STEP: transforms saved, opening memory detail');
+    console.log('STEP: transforms saved, checking card and then legacy photo-edit data compatibility');
     await board.callMethod('done'); await board.callMethod('memory', { detail: { id } });
-    await board.callMethod('memoryOptions', { detail: { id } });
+    assert.equal(await (await board.$('#memory-card')).$('#memory-options'), null);
+    await board.callMethod('closeMemoryCard');
+    // Legacy image editing remains covered directly; it has no card UI entry.
+    await mini.evaluate(url => new Promise((resolve, reject) => wx.navigateTo({ url, success: () => resolve(true), fail: e => reject(new Error(e.errMsg)) })), `/pages/memory/index?id=${encodeURIComponent(id)}`);
     await board.waitFor(800);
     let memory = await route('pages/memory/index'); await wait(memory, d => !d.loading);
     await memory.callMethod('edit'); await memory.callMethod('textInput', { detail: { value: '模拟器端到端验收文字' } }); await memory.callMethod('categoryInput', { detail: { value: '1' } }); await memory.callMethod('save');

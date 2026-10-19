@@ -30,4 +30,4 @@
   </block>
 </view>
 
-<memory-card wx:if="{{memoryCardId}}" id="memory-card" memory-id="{{memoryCardId}}" bind:close="closeMemoryCard" bind:change="memoryCardChanged" bind:details="memoryOptions" />
+<memory-card wx:if="{{memoryCardId}}" id="memory-card" memory-id="{{memoryCardId}}" bind:close="closeMemoryCard" bind:change="memoryCardChanged" />

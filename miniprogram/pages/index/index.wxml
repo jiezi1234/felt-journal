@@ -18,4 +18,4 @@
 <record-card wx:if="{{editorOpen}}" id="record-card" board-id="{{editorDate}}" lifting="{{!!placing}}" bind:place="startSticker" bind:close="closeEditor" bind:change="editorChanged" />
 <sticker-flight id="placement-flight" wx:if="{{placing}}" flight="{{placing}}" bind:peeled="stickerLifted" bind:landed="stickerLanded" />
 
-<memory-card wx:if="{{memoryCardId}}" id="memory-card" memory-id="{{memoryCardId}}" bind:close="closeMemoryCard" bind:change="memoryCardChanged" bind:details="memoryOptions" />
+<memory-card wx:if="{{memoryCardId}}" id="memory-card" memory-id="{{memoryCardId}}" bind:close="closeMemoryCard" bind:change="memoryCardChanged" />

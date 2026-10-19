@@ -44,12 +44,13 @@ test('bad storage shows error without overwriting data; repair and retry retains
   disk[KEY] = '{invalid'; p.refresh(); assert.ok(p.data.error); assert.equal(p.data.groups.length, 0); assert.equal(p.data.hasNext, false); assert.equal(disk[KEY], '{invalid');
   disk[KEY] = raw; p.refresh(); assert.equal(p.data.error, ''); assert.equal(p.data.category, '饮食'); assert.equal(p.data.total, 1);
 });
-test('memories open in cards; photo options retain origin context and serialize navigation', async t => {
+test('memories open and close in place; board navigation retains context and serializes requests', async t => {
   const { page: p } = fixture(t, 1), item = p.data.groups[0].items[0]; let resolve, request, calls = 0;
   platform.call = (name, options) => { calls++; request = { name, ...options }; return new Promise(done => { resolve = done; }); };
   p.open(event({ id: item.id })); p.open(event({ id: item.id })); assert.equal(calls, 0); assert.equal(p.data.memoryCardId, item.id);
-  const opened = p.memoryOptions({ detail: { id: item.id } }); p.memoryOptions({ detail: { id: item.id } });
-  assert.equal(p.data.memoryCardId, ''); assert.equal(calls, 1); assert.equal(p.data.opening, true); assert.match(request.url, /from=memories$/);
+  p.closeMemoryCard(); assert.equal(p.data.memoryCardId, ''); assert.equal(calls, 0);
+  const opened = p.board(event({ date: '2024-02-29' })); p.board(event({ date: '2024-02-29' }));
+  assert.equal(calls, 1); assert.equal(p.data.opening, true); assert.equal(request.url, '/pages/board/index?date=2024-02-29');
   resolve({}); await opened; assert.equal(p.data.opening, false);
   platform.call = async (name, options) => { request = { name, ...options }; }; await p.board(event({ date: '2024-02-29' }));
   assert.equal(request.url, '/pages/board/index?date=2024-02-29');

@@ -7,12 +7,12 @@ const path = require('node:path');
 const { createCanvas, loadImage } = require('@napi-rs/canvas');
 const { createStore } = require('../miniprogram/core/store');
 const dates = require('../miniprogram/core/date');
-const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-drafts:v1', 'felt-journal:dev-extraction:v1'];
+const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-drafts:v1', 'felt-journal:dev-extraction:v1', 'felt-journal:server-extraction:v1'];
 const output = path.resolve(__dirname, '../artifacts');
 const pause = () => new Promise(resolve => setTimeout(resolve, 150));
 const rows = data => data.groups.flatMap(group => group.items);
 (async () => {
-  let mini, backup, files = [], storageRestored = false, environment;
+  let mini, backup, files = [], storageRestored = false, environment, modalMocked = false;
   const errors = [], checks = [], screenshots = [];
   async function wait(page, predicate) {
     const start = Date.now();
@@ -34,7 +34,7 @@ const rows = data => data.groups.flatMap(group => group.items);
   }
   async function newTheme(page, title) {
     await (await page.$('#new-theme')).tap(); await wait(page, data => data.formOpen);
-    await (await page.$('#theme-title')).input(title); await wait(page, data => data.title === title);
+    await page.callMethod('input', { detail: { value: title } }); await wait(page, data => data.title === title);
     await (await page.$('#save-theme')).tap();
   }
   async function pick(board, id, expectedCount) {
@@ -48,7 +48,7 @@ const rows = data => data.groups.flatMap(group => group.items);
     mini = await automator.connect({ wsEndpoint: process.env.WECHAT_AUTOMATION_URL || 'ws://127.0.0.1:9420' });
     mini.on('exception', error => errors.push(error)); fs.mkdirSync(output, { recursive: true });
     const device = await mini.systemInfo(); environment = { platform: device.platform, model: device.model, SDKVersion: device.SDKVersion, width: device.windowWidth };
-    backup = await mini.evaluate(names => names.map(key => ({ key, value: wx.getStorageSync(key) })), keys);
+    backup = await mini.evaluate(names => names.map(key => ({ key, exists: wx.getStorageInfoSync().keys.includes(key), value: wx.getStorageSync(key) })), keys);
     console.log('STEP: connected and backed up journal storage');
     const canvas = createCanvas(160, 160), ctx = canvas.getContext('2d');
     ctx.fillStyle = '#4D7D5B'; ctx.beginPath(); ctx.ellipse(80, 80, 42, 65, .45, 0, Math.PI * 2); ctx.fill();
@@ -81,17 +81,22 @@ const rows = data => data.groups.flatMap(group => group.items);
     await mini.evaluate(() => getCurrentPages().slice(-1)[0].getTabBar().selectComponent('#main-nav').open({ currentTarget: { dataset: { id: 'board' } } }));
     let themes = await route('pages/board-tab/index'); await wait(themes, data => !data.loading);
     assert.equal((await themes.data()).themes.length, 0); await newTheme(themes, '秋日拾遗');
+    const inlineCreated = await wait(themes, data => !data.formOpen && data.isTheme && data.editable);
+    assert.equal((await mini.currentPage()).path, 'pages/board-tab/index');
+    // The tab now creates/edits in place; exercise the standalone editor below
+    // directly for legacy layout/crop compatibility, without expecting a jump.
+    await mini.evaluate(url => new Promise((resolve, reject) => wx.navigateTo({ url, success: () => resolve(true), fail: e => reject(new Error(e.errMsg)) })), `/pages/board/index?board=${inlineCreated.date}&mode=edit`);
     let board = await route('pages/board/index'); let data = await wait(board, data => !data.loading && data.isTheme && data.editable);
     const theme1 = data.date; assert.equal(data.count, 0); assert.equal(data.dateLabel, '秋日拾遗'); assert.equal((await state()).version, 2);
-    checks.push('legacy v1 read preserves raw snapshot; native home -> theme form -> board creates v2 only on successful save');
+    checks.push('legacy v1 read preserves raw snapshot; native theme tab creates in place and upgrades to v2 only on successful save; standalone editor opened explicitly for compatibility');
     console.log('STEP: theme creation and legacy upgrade passed; checking cross-date placement');
     board = await pick(board, past, 1);
     assert.equal(Object.keys((await state()).memories).length, 3);
     await board.callMethod('transform', { detail: { op: 'cw' } });
     data = await wait(board, value => value.model.placements[0].angle !== 0 && value.saveState === '已保存');
     assert.deepEqual((await state()).boards[old].placements[0], originalPlacement);
-    await mini.mockWxMethod('showModal', { confirm: false, cancel: true }); await board.callMethod('remove'); assert.equal((await board.data()).count, 1);
-    await mini.mockWxMethod('showModal', { confirm: true, cancel: false }); await board.callMethod('remove'); await wait(board, value => value.count === 0);
+    await mini.mockWxMethod('showModal', { confirm: false, cancel: true }); modalMocked = true; await board.callMethod('remove'); assert.equal((await board.data()).count, 1);
+    await mini.mockWxMethod('showModal', { confirm: true, cancel: false }); modalMocked = true; await board.callMethod('remove'); await wait(board, value => value.count === 0);
     assert.ok((await state()).memories[past]); assert.equal((await board.data()).canUndo, false); await board.callMethod('undo'); assert.equal((await board.data()).count, 0);
     board = await pick(board, past, 1); board = await pick(board, first, 2);
     const items = (await board.data()).model.placements;
@@ -101,12 +106,21 @@ const rows = data => data.groups.flatMap(group => group.items);
     assert.equal(String(await (await picker.$(`.memory-row[data-id="${past}"]`)).attribute('disabled')), 'true');
     await picker.callMethod('back'); board = await route('pages/board/index'); await wait(board, value => value.count === 2);
     checks.push('cross-month native picker uses EventChannel to return selected item; independent layout, removal cancel/confirm, retained source and duplicate prevention');
-    await board.callMethod('memory', { detail: { id: past } }); await board.callMethod('memoryOptions', { detail: { id: past } }); let memory = await route('pages/memory/index'); data = await wait(memory, value => !value.loading);
-    assert.equal(data.backLabel, '返回主题板'); assert.equal(data.usageCount, 2);
-    await memory.callMethod('edit'); await memory.callMethod('textInput', { detail: { value: '秋日散步，在路边发现的小美好' } }); await memory.callMethod('save');
-    await (await memory.$('#add-to-theme')).tap(); themes = await route('pages/themes/index'); data = await wait(themes, value => !value.loading);
-    assert.equal(data.selecting, true); assert.equal(data.themes[0].placed, true);
-    await newTheme(themes, '旅途的小纪念'); memory = await route('pages/memory/index'); await wait(memory, value => value.usageCount === 3);
+    await board.callMethod('memory', { detail: { id: past } }); const memoryCard = await board.$('#memory-card');
+    assert.equal(await memoryCard.$('#memory-options'), null); await (await memoryCard.$('#flip-card')).tap(); await wait(memoryCard, value => value.flipped);
+    await (await memoryCard.$('#edit-card-note')).tap(); await wait(memoryCard, value => value.editing);
+    await memoryCard.callMethod('input', { detail: { value: '秋日散步，在路边发现的小美好' } }); await (await memoryCard.$('#save-card-note')).tap();
+    await wait(memoryCard, value => !value.editing && value.memory.text === '秋日散步，在路边发现的小美好');
+    await (await memoryCard.$('#add-to-theme')).tap(); data = await wait(memoryCard, value => value.themeOpen);
+    assert.equal(data.themes.find(item => item.id === theme1).placed, true);
+    await capture('wechat-card-theme-picker.png');
+    await (await memoryCard.$('#new-card-theme')).tap(); await wait(memoryCard, value => value.themeCreating);
+    await memoryCard.callMethod('themeInput', { detail: { value: '旅途的小纪念' } }); await (await memoryCard.$('#save-card-theme')).tap();
+    await wait(memoryCard, value => !value.themeOpen); assert.equal((await mini.currentPage()).path, board.path);
+    await (await memoryCard.$('#close-memory-card')).tap();
+    // Direct legacy route retains photo editing compatibility coverage without a card entry.
+    await mini.evaluate(url => new Promise((resolve, reject) => wx.navigateTo({ url, success: () => resolve(true), fail: e => reject(new Error(e.errMsg)) })), `/pages/memory/index?id=${encodeURIComponent(past)}&from=theme`); let memory = await route('pages/memory/index'); data = await wait(memory, value => !value.loading);
+    assert.equal(data.backLabel, '返回主题板'); assert.equal(data.usageCount, 3);
     const theme2 = Object.values((await state()).boards).find(item => item.title === '旅途的小纪念').id;
     const beforeCrop = (await memory.data()).memory, beforeBoards = (await state()).boards;
     const originalBytes = await mini.evaluate(file => wx.getFileSystemManager().readFileSync(file, 'base64'), beforeCrop.originalPath);
@@ -163,7 +177,7 @@ const rows = data => data.groups.flatMap(group => group.items);
     let snapshot = await state(); assert.ok(snapshot.memories[past]); assert.ok(snapshot.boards[theme1].placements.some(item => item.memoryId === past));
     assert.equal(snapshot.boards[old].placements.length, 1); assert.equal(snapshot.boards[theme2], undefined);
     await themes.callMethod('open', { currentTarget: { dataset: { id: theme1 } } }); board = await route('pages/board/index'); await wait(board, value => !value.loading);
-    await board.callMethod('memory', { detail: { id: past } }); await board.callMethod('memoryOptions', { detail: { id: past } }); memory = await route('pages/memory/index'); await wait(memory, value => !value.loading);
+    await board.callMethod('memory', { detail: { id: past } }); assert.equal(await (await board.$('#memory-card')).$('#memory-options'), null); await board.callMethod('closeMemoryCard'); /* Direct legacy route for shared-data compatibility, not a card entry. */ await mini.evaluate(url => new Promise((resolve, reject) => wx.navigateTo({ url, success: () => resolve(true), fail: e => reject(new Error(e.errMsg)) })), `/pages/memory/index?id=${encodeURIComponent(past)}&from=theme`); memory = await route('pages/memory/index'); await wait(memory, value => !value.loading);
     await memory.callMethod('remove'); board = await route('pages/board/index'); await wait(board, value => value.count === 1);
     snapshot = await state(); assert.equal(snapshot.memories[past], undefined);
     assert.ok(Object.values(snapshot.boards).every(item => item.placements.every(p => p.memoryId !== past)));
@@ -179,10 +193,11 @@ const rows = data => data.groups.flatMap(group => group.items);
     assert.equal(errors.length, 0, JSON.stringify(errors));
   } finally {
     if (mini) {
-      await mini.restoreWxMethod('showModal').catch(() => {});
+      if (modalMocked) await mini.restoreWxMethod('showModal').catch(() => {});
       if (backup) {
-        await mini.evaluate(items => items.forEach(item => item.value === '' ? wx.removeStorageSync(item.key) : wx.setStorageSync(item.key, item.value)), backup);
-        assert.deepEqual(await mini.evaluate(names => names.map(key => ({ key, value: wx.getStorageSync(key) })), keys), backup); storageRestored = true;
+        await mini.evaluate(() => { const page = getCurrentPages().slice(-1)[0]; if (page) page.setData({ memoryCardId: '' }); });
+        await mini.evaluate(items => items.forEach(item => item.exists ? wx.setStorageSync(item.key, item.value) : wx.removeStorageSync(item.key)), backup);
+        assert.ok(JSON.stringify(await mini.evaluate(names => names.map(key => ({ key, exists: wx.getStorageInfoSync().keys.includes(key), value: wx.getStorageSync(key) })), keys)) === JSON.stringify(backup), 'Original storage must be restored exactly'); storageRestored = true;
       }
       if (files.length) await mini.evaluate(paths => paths.forEach(file => { try { wx.getFileSystemManager().unlinkSync(file); } catch (_) {} }), files);
       await mini.evaluate(() => { if (wx.disableAlertBeforeUnload) wx.disableAlertBeforeUnload({}); }).catch(() => {});

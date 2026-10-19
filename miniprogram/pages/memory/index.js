@@ -65,13 +65,6 @@ Page({
     catch (e) { platform.toast(platform.message(e, '删除失败，原记录已保留')); }
     finally { this.removing = false; }
   },
-  async themes() {
-    if (this.photoTask || this.removing || this.openingThemes || this.dirty && !this.save()) return;
-    this.openingThemes = true;
-    try { await platform.call('navigateTo', { url: `/pages/themes/index?memory=${encodeURIComponent(this.id)}` }); }
-    catch (e) { if (!this.disposed) platform.toast(platform.message(e, '主题板暂时无法打开')); }
-    finally { this.openingThemes = false; }
-  },
   async back() {
     if (this.closing) return;
     this.closing = true;

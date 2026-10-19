@@ -8,7 +8,7 @@ const path = require('node:path');
 const { createCanvas } = require('@napi-rs/canvas');
 const { createStore } = require('../miniprogram/core/store');
 const dates = require('../miniprogram/core/date');
-const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-drafts:v1', 'felt-journal:dev-extraction:v1'];
+const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-drafts:v1', 'felt-journal:dev-extraction:v1', 'felt-journal:server-extraction:v1'];
 const output = path.resolve(__dirname, '../artifacts/ui-record-card-2026-10-16');
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms || 150));
 (async () => {
@@ -144,13 +144,15 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms || 150));
     await capture('05-share-appearance'); checks.push('Share has 6 colors and 3 textures; choices do not change stored Today or theme boards');
     await mini.navigateBack(); home = await route('index'); await assertHome(home, homeId);
     await home.callMethod('openMemory', { detail: { id: first } }); await wait(home, d => d.memoryCardId === first);
-    await home.callMethod('memoryOptions', { detail: { id: first } }); await route('memory'); await mini.navigateBack(); await route('index');
+    const finalMemoryCard = await home.$('#memory-card'); assert.equal(await finalMemoryCard.$('#memory-options'), null);
+    await (await finalMemoryCard.$('#flip-card')).tap(); await wait(finalMemoryCard, d => d.flipped);
+    assert.ok(await finalMemoryCard.$('#edit-card-note')); await (await finalMemoryCard.$('#close-memory-card')).tap(); await assertHome(home, homeId);
     await mini.evaluate(() => getCurrentPages().slice(-1)[0].getTabBar().selectComponent('#main-nav').open({ currentTarget: { dataset: { id: 'board' } } }));
     const themes = await route('board-tab'); await wait(themes, d => !d.loading);
     assert.equal(themes.path, 'pages/board-tab/index'); assert.equal((await themes.data()).isTab, true); assert.equal((await themes.data()).themes.length, 2);
     assert.equal((await themes.data()).themes.find(b => b.id === 'theme_life').count, 2); assert.equal((await mini.pageStack()).length, 1);
     await capture('06-theme-tab');
-    checks.push('home retains explicit export/photo-detail access; second tab lists only fixed themes and includes cross-day memories');
+    checks.push('home retains export and in-place flipping/editable cards without photo options; second tab lists only fixed themes and includes cross-day memories');
     assert.equal(errors.length, 0, JSON.stringify(errors));
   } finally {
     if (mini) {

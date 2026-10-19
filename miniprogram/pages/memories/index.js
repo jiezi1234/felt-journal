@@ -80,7 +80,6 @@ Page({
   },
   closeMemoryCard() { this.setData({ memoryCardId: '' }); this.refresh(); },
   memoryCardChanged() { this.refresh(); },
-  memoryOptions(e) { this.closeMemoryCard(); return this.navigate(`/pages/memory/index?id=${encodeURIComponent(e.detail.id)}&from=memories`); },
   async place(id) {
     if (this.disposed || this.data.placing || this.data.opening) return;
     const item = this.data.groups.flatMap(group => group.items).find(item => item.id === id);

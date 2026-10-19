@@ -99,7 +99,7 @@ const output = path.resolve(__dirname, '../artifacts/screen-layout-e2e.json');
     await call('next'); assert.equal(await mini.evaluate(() => getCurrentPages().slice(-1)[0].data.page), 2);
     await call('create'); await inspect('theme name drawer', ['.theme-form', '#save-theme']); await call('cancelForm');
     await route('/pages/memory/index?id=' + ids[0]);
-    await inspect('memory subject', ['.memory-paper', '#add-to-theme', '#adjust-image']);
+    await inspect('memory subject', ['.memory-paper', '#delete-memory', '#adjust-image']);
     await call('section', { currentTarget: { dataset: { section: 'original' } } }); await inspect('memory original', ['.detail-image', '#delete-memory']);
     await call('edit'); await inspect('memory text editor', ['.note-input', '.category-picker', '#delete-memory']);
     await call('adjust'); await pause(250); await inspect('photo crop', ['.crop-stage', '#save-image', '#reset-image']);

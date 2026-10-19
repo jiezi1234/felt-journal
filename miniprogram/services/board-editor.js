@@ -119,7 +119,6 @@ function createBoardEditor(options = {}) { return {
   },
   closeMemoryCard() { this.setData({ memoryCardId: '' }); this.refresh(); if (this.syncNavigation) this.syncNavigation(); },
   memoryCardChanged() { this.refresh(); },
-  memoryOptions(e) { this.closeMemoryCard(); wx.navigateTo({ url: `/pages/memory/index?id=${encodeURIComponent(e.detail.id)}${this.data.isTheme ? '&from=theme' : ''}` }); },
   async sourceSheet() {
     if (!this.data.canEdit || this.photoTask || this.data.placing || this.data.error || this.data.recovering) return;
     if (this.data.embedded) this.setData({ sourceStage: true, drawer: '' });
