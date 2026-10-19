@@ -42,7 +42,8 @@ class BackendTests(unittest.TestCase):
     def test_health_identifies_sticker_pipeline_before_model_load(self):
         with TestClient(create_app(extractor=SubjectExtractor('nosh-mnn'), output_dir=self.directory.name, classifier=False)) as client:
             health = client.get('/health').json()
-            self.assertEqual(health['stickerStyle'], 'nosh-white-v1')
+            self.assertEqual(health['stickerStyle'], 'nosh-textured-v2')
+            self.assertEqual(health['stickerTextures'], ['cotton', 'linen', 'watercolor', 'laid'])
             self.assertEqual(health['model'], 'nosh-mnn')
             self.assertFalse(health['modelLoaded'])
         self.assertIsNone(self.client.get('/health').json()['stickerStyle'])

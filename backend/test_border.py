@@ -1,13 +1,15 @@
 import io
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 from fastapi.testclient import TestClient
 from PIL import Image, ImageDraw
 
 from backend.app import SubjectExtractor, create_app
-from backend.border import sticker_parameters, white_sticker
+from backend.border import sticker_parameters, white_sticker, textured_sticker
+from backend.sticker_texture import TEXTURES
 
 
 def subject():
@@ -66,19 +68,59 @@ class BorderTests(unittest.TestCase):
     def test_extractor_png_served_by_api_is_the_same_sticker(self):
         extractor = SubjectExtractor('nosh-mnn')
         extractor.session = lambda image: subject()
-        expected = white_sticker(subject())
+        expected = textured_sticker(subject(), style='linen', seed=42)
         data = io.BytesIO()
         Image.new('RGB', (102, 102)).save(data, 'JPEG')
         with tempfile.TemporaryDirectory() as directory:
-            with TestClient(create_app(extractor=extractor, output_dir=directory)) as client:
+            with TestClient(create_app(extractor=extractor, output_dir=directory, classifier=False)) as client, \
+                    patch('backend.border.secrets.choice', return_value='linen'), \
+                    patch('backend.border.secrets.randbits', return_value=42):
                 response = client.post('/extract', files={'photo': ('test.jpg', data.getvalue(), 'image/jpeg')})
                 self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.json()['stickerTexture'], 'linen')
                 url = response.json()['cutoutUrl']
                 png = client.get('/cutouts/' + url.rsplit('/', 1)[1])
                 with Image.open(io.BytesIO(png.content)) as actual:
                     self.assertEqual(actual.mode, 'RGBA')
                     self.assertEqual(actual.size, expected.size)
                     self.assertEqual(actual.tobytes(), expected.tobytes())
+                self.assertEqual(client.get('/cutouts/' + url.rsplit('/', 1)[1]).content, png.content)
+
+    def test_all_materials_preserve_subject_alpha_holes_and_white_tone(self):
+        image = subject()
+        ImageDraw.Draw(image).ellipse((35, 35, 66, 66), fill=(0, 0, 0, 0))
+        plain = np.asarray(white_sticker(image))
+        foreground = np.all(plain == (120, 55, 30, 255), axis=2)
+        band = np.all(plain == (255, 255, 255, 255), axis=2)
+        for style in TEXTURES:
+            with self.subTest(style=style):
+                pixels = np.asarray(textured_sticker(image, style=style, seed=53))
+                np.testing.assert_array_equal(pixels[:, :, 3], plain[:, :, 3])
+                np.testing.assert_array_equal(pixels[foreground], plain[foreground])
+                self.assertTrue(np.all(pixels[pixels[:, :, 3] == 0] == 0))
+                self.assertGreater(pixels[band, :3].mean(), 240)
+                self.assertGreater(pixels[band, 0].std(), 2)
+                self.assertGreater(len(np.unique(pixels[band, 0])), 12)
+
+    def test_each_generation_chooses_a_style_and_seed_then_stays_fixed(self):
+        with patch('backend.border.secrets.choice', side_effect=TEXTURES) as choose, \
+                patch('backend.border.secrets.randbits', return_value=42) as seed:
+            results = [textured_sticker(subject()) for _ in TEXTURES]
+        self.assertEqual([r.info['sticker_texture'] for r in results], list(TEXTURES))
+        self.assertEqual(choose.call_count, len(TEXTURES)); self.assertEqual(seed.call_count, len(TEXTURES))
+        self.assertEqual(len({r.tobytes() for r in results}), len(TEXTURES))
+        for style, result in zip(TEXTURES, results):
+            self.assertEqual(result.tobytes(), textured_sticker(subject(), style=style, seed=42).tobytes())
+            self.assertNotEqual(result.tobytes(), textured_sticker(subject(), style=style, seed=43).tobytes())
+
+    def test_texture_validates_style_and_does_not_rewrite_source(self):
+        image = subject(); before = image.tobytes()
+        textured_sticker(image, style='cotton', seed=1)
+        self.assertEqual(image.tobytes(), before)
+        with self.assertRaises(ValueError):
+            textured_sticker(image, style='unknown')
+        with self.assertRaises(ValueError):
+            textured_sticker(Image.new('RGBA', (20, 20)))
 
     def test_empty_subject_is_rejected(self):
         with self.assertRaises(ValueError):

@@ -13,7 +13,7 @@ backend/.venv/Scripts/python.exe -m backend.prepare_nosh_model --apk "D:\path\to
 backend/.venv/Scripts/python.exe -m uvicorn backend.app:app --host 127.0.0.1 --port 8787
 ```
 
-`GET /health` 返回进程状态和白边能力 `stickerStyle: nosh-white-v1`；`modelLoaded: false` 表示模型尚未初始化，不能据此宣称照片提取已验证。`nosh-mnn` 不下载模型，缺少或哈希不符时提取返回 503。默认缓存为 `backend/.runtime/nosh/main_segment.mnn`，可用 `FELT_NOSH_MODEL` 指定路径。导入工具校验原 asset 和解码模型 SHA-256。选择 rembg 时才保留原有首次下载和构建预下载行为。
+`GET /health` 返回进程状态和纹理白边能力 `stickerStyle: nosh-textured-v2`，以及 `stickerTextures` 支持列表；`modelLoaded: false` 表示模型尚未初始化，不能据此宣称照片提取已验证。`nosh-mnn` 不下载模型，缺少或哈希不符时提取返回 503。默认缓存为 `backend/.runtime/nosh/main_segment.mnn`，可用 `FELT_NOSH_MODEL` 指定路径。导入工具校验原 asset 和解码模型 SHA-256。选择 rembg 时才保留原有首次下载和构建预下载行为。
 
 真实模型与上传/下载检查（图片和报告仅写入被忽略的 `artifacts/nosh`）：
 
@@ -29,10 +29,12 @@ backend/.venv/Scripts/python.exe -m backend.verify_nosh path/to/photo.jpg
 `POST /extract`，`multipart/form-data`，一项 `photo` 文件，可附带 `taskId` 字段。限制 15 MB、24 百万像素；接受 JPEG（含相机 MPO 容器的第一张 JPEG）、PNG、WEBP，应用 EXIF 方向。入口最长边 2048；nosh 流程再限制到 1600，模型每次输入 224×224，遮罩恢复到处理图尺寸。返回：
 
 ```json
-{"cutoutUrl":"https://你的域名/cutouts/随机令牌.png","expiresIn":900}
+{"cutoutUrl":"https://你的域名/cutouts/随机令牌.png","expiresIn":900,"stickerTexture":"linen"}
 ```
 
-结果是真实透明 RGBA PNG，按主体边界裁切并依 APK 的纯白贴纸分支生成平滑轮廓（约主体长边 4%，小主体最少 9 像素）；白边直接写入结果 PNG，预览与导出共用，接触阴影由小程序共用渲染器绘制。原图仅在请求内存中处理。结果临时保留 15 分钟，到期不能读取；后续请求或健康检查清理过期文件。服务器的健康监控应定时访问 `/health`，以便空闲时也清理过期结果。一次处理一张，繁忙返回 503；413 为超限，415 为不支持的照片，失败不会返回成功结果。
+结果是真实透明 RGBA PNG，按主体边界裁切并依 APK 的纯白贴纸分支生成平滑轮廓（约主体长边 4%，小主体最少 9 像素）。每次提取随机选择 `cotton`（细棉纸）、`linen`（亚麻织纹）、`watercolor`（水彩纸）、`laid`（手工横纹）之一，并以独立随机种子生成浅白材质；这是本项目新增的装饰效果。材质只作为主体后方的轮廓层，保持原 alpha 轮廓和不透明主体像素，原半透明边缘按 alpha 正常混合。纹理直接写入 PNG，画板、预览和分享共用同一张图，不在显示时重新随机；已有贴纸不自动重写。纯白版本仍可通过 `backend.border.white_sticker` 用于对照验证。接触阴影由小程序共用渲染器绘制。
+
+原图仅在请求内存中处理。结果临时保留 15 分钟，到期不能读取；后续请求或健康检查清理过期文件。服务器的健康监控应定时访问 `/health`，以便空闲时也清理过期结果。一次处理一张，繁忙返回 503；413 为超限，415 为不支持的照片，失败不会返回成功结果。
 
 ## 部署接通小程序
 

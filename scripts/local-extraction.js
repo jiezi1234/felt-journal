@@ -7,7 +7,7 @@ const { DEVELOPMENT_KEY: key, SERVER_DEVELOPMENT_KEY: serverKey, supportsLocalSt
     if (!match || Number(match[1]) > 65535) throw new Error('本机调试地址必须是有效的 127.0.0.1 端口与 /extract 路径');
     const response = await fetch(endpoint.replace(/\/extract$/, '/health'));
     if (!response.ok) throw new Error('本地主体提取服务尚未启动');
-    if (!supportsLocalStickers(await response.json())) throw new Error('本机服务版本过旧或模型不一致，请重启当前项目的 nosh-mnn 服务；需要 nosh-white-v1 白边支持');
+    if (!supportsLocalStickers(await response.json())) throw new Error('本机服务版本过旧或模型不一致，请重启当前项目的 nosh-mnn 服务；需要 nosh-textured-v2 纹理白边支持');
   }
   const mini = await automator.connect({ wsEndpoint: process.env.WECHAT_AUTOMATION_URL || 'ws://127.0.0.1:9420' });
   try {

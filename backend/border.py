@@ -8,9 +8,11 @@ from __future__ import annotations
 
 import cv2
 import numpy as np
+import secrets
 from PIL import Image
 
 from backend.nosh import clipped_box_blur
+from backend.sticker_texture import TEXTURES, paper_material
 
 
 def sticker_parameters(size: tuple[int, int], subject_extent: float | None = None) -> dict:
@@ -39,6 +41,23 @@ def sticker_parameters(size: tuple[int, int], subject_extent: float | None = Non
 
 
 def white_sticker(image: Image.Image, *, subject_extent: float | None = None) -> Image.Image:
+    """Keep the recovered plain contour available for comparisons and validation."""
+    return _sticker(image, subject_extent=subject_extent)
+
+
+def textured_sticker(image: Image.Image, *, style: str | None = None,
+                     seed: int | None = None, subject_extent: float | None = None) -> Image.Image:
+    """Choose one material per new sticker, then bake it behind the subject."""
+    style = secrets.choice(TEXTURES) if style is None else style
+    if style not in TEXTURES:
+        raise ValueError('Unknown sticker texture')
+    result = _sticker(image, subject_extent=subject_extent, texture=style,
+                      seed=secrets.randbits(64) if seed is None else seed)
+    result.info['sticker_texture'] = style
+    return result
+
+
+def _sticker(image: Image.Image, *, subject_extent=None, texture=None, seed=None) -> Image.Image:
     """Bake a smooth white contour into an RGBA PNG, preserving transparency.
 
     Binary support uses alpha > 0, square dilation, two clipped integer box
@@ -64,7 +83,8 @@ def white_sticker(image: Image.Image, *, subject_extent: float | None = None) ->
     output_size = (source.width + 2 * padding, source.height + 2 * padding)
     if border_alpha.size != output_size:
         border_alpha = border_alpha.resize(output_size, Image.Resampling.BILINEAR)
-    result = Image.new('RGBA', output_size, (255, 255, 255, 0))
+    result = (paper_material(output_size, texture, seed, params['stroke']) if texture
+              else Image.new('RGBA', output_size, (255, 255, 255, 0)))
     result.putalpha(border_alpha)
     result.alpha_composite(source, (padding, padding))
     # Match v.x: alpha > 10 bounding box plus one transparent pixel margin.

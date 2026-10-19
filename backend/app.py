@@ -25,6 +25,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from PIL import Image, ImageOps, UnidentifiedImageError
 from starlette.concurrency import run_in_threadpool
 from backend.classification import PhotoClassifier
+from backend.sticker_texture import STICKER_STYLE, TEXTURES
 
 RUNTIME = Path(__file__).resolve().parent / '.runtime'
 os.environ.setdefault('U2NET_HOME', str(RUNTIME / 'models'))
@@ -37,7 +38,8 @@ Image.MAX_IMAGE_PIXELS = MAX_PIXELS
 
 
 class SubjectExtractor:
-    sticker_style = 'nosh-white-v1'
+    sticker_style = STICKER_STYLE
+    sticker_textures = TEXTURES
 
     def __init__(self, model_name=None):
         self.session = None
@@ -63,8 +65,8 @@ class SubjectExtractor:
             if not bbox:
                 raise ValueError('No subject found')
             result = result.crop(bbox)
-        from backend.border import white_sticker
-        return white_sticker(result)
+        from backend.border import textured_sticker
+        return textured_sticker(result)
 
 
 def clean_alpha(result: Image.Image) -> Image.Image:
@@ -152,6 +154,7 @@ def create_app(extractor=None, output_dir=None, public_base=None, classifier=Non
         prune()
         return {**({'developmentAccess': True} if token else {}), 'status': 'ok', 'model': getattr(engine, 'model_name', os.getenv('FELT_MODEL', DEFAULT_MODEL)), 'modelLoaded': getattr(engine, 'session', None) is not None,
                 'stickerStyle': getattr(engine, 'sticker_style', None),
+                'stickerTextures': list(getattr(engine, 'sticker_textures', ())),
                 'classificationEnabled': getattr(category_engine, 'enabled', bool(category_engine)),
                 'classificationLoaded': getattr(category_engine, 'session', None) is not None}
 
@@ -197,7 +200,8 @@ def create_app(extractor=None, output_dir=None, public_base=None, classifier=Non
                     # discard a successfully extracted photo or force a retry.
                     logging.getLogger(__name__).warning('Photo classification unavailable (%s)', type(error).__name__)
                     classification = {'category': None, 'status': 'unavailable'}
-                return {'cutoutUrl': f'{base}/cutouts/{token}.png', 'expiresIn': TTL_SECONDS, 'classification': classification}
+                return {'cutoutUrl': f'{base}/cutouts/{token}.png', 'expiresIn': TTL_SECONDS, 'classification': classification,
+                        **({'stickerTexture': result.info['sticker_texture']} if result.info.get('sticker_texture') else {})}
             finally:
                 image.close()
                 lock.release()

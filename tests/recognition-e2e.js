@@ -85,10 +85,10 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     let transparent = 0, opaque = 0, white = 0;
     for (let i = 3; i < pixels.length; i += 4) {
       if (pixels[i] === 0) transparent++; if (pixels[i] === 255) opaque++;
-      if (pixels[i] === 255 && pixels[i - 1] === 255 && pixels[i - 2] === 255 && pixels[i - 3] === 255) white++;
+      if (pixels[i] === 255 && pixels[i - 1] >= 225 && pixels[i - 2] >= 225 && pixels[i - 3] >= 225) white++;
     }
     assert.ok(transparent > 0 && opaque > 0, 'Actual saved result must contain both transparent and foreground pixels');
-    assert.ok(white > 200, 'Saved sticker retains its opaque white decoration');
+    assert.ok(white > 200, 'Saved sticker retains its opaque, light textured decoration');
     await pause(1100); assert.equal((await card.data()).task.state, 'done');
     panel = await card.$('#record-photo');
     await (await panel.$('#compare-photo')).tap(); await wait(panel, data => data.showOriginal);

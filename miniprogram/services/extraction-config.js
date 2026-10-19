@@ -30,6 +30,6 @@ function acceptsResult(url, service) {
   return url.startsWith(`${service.origin}/cutouts/`) && /^[a-f0-9]{32}\.png$/.test(url.slice(`${service.origin}/cutouts/`.length));
 }
 function supportsLocalStickers(health) {
-  return !!health && health.status === 'ok' && health.model === 'nosh-mnn' && health.stickerStyle === 'nosh-white-v1';
+  return !!health && health.status === 'ok' && health.model === 'nosh-mnn' && health.stickerStyle === 'nosh-textured-v2';
 }
 module.exports = { DEVELOPMENT_KEY, SERVER_DEVELOPMENT_KEY, validServerDevelopment, resolve, acceptsResult, supportsLocalStickers };
