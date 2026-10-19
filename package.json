@@ -9,6 +9,7 @@
     "test:e2e": "node tests/wechat-e2e.js",
     "test:filters": "node tests/memories-e2e.js",
     "test:share": "node tests/share-e2e.js",
+    "test:share-card": "node tests/share-card-e2e.js",
     "test:themes": "node tests/themes-e2e.js",
     "test:theme-board": "node tests/theme-board-e2e.js",
     "test:navigation": "node tests/navigation-e2e.js",

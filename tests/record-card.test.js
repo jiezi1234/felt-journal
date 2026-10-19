@@ -37,6 +37,20 @@ test('opening and closing a record card does not navigate or create an empty dai
   assert.deepEqual(f.events, ['close']); assert.deepEqual(f.store.get(), before);
 });
 
+test('sharing freezes Today across midnight and returns to the same selected board', t => {
+  const f = fixture(t), tabs = [], id = f.store.add('share_today', f.date, photos('share'));
+  platform.syncTab = (_, active, hidden) => tabs.push({ active, hidden });
+  const home = { ...homeDefinition, store: f.store, date: f.date, data: clone(homeDefinition.data), setData(value) { Object.assign(this.data, value); } };
+  home.refresh(); home.editItem({ detail: { id } }); const before = f.store.get();
+  home.exportToday(); assert.equal(home.data.shareBoardId, f.date); assert.equal(tabs.at(-1).hidden, true);
+  const model = home.data.model;
+  dates.key = () => '2099-01-02'; home.onShow(); clearInterval(home.timer);
+  home.primary(); assert.equal(home.data.editorOpen, false); assert.equal(home.data.model, model);
+  home.refresh(); assert.equal(home.date, f.date); assert.equal(home.data.selected, id);
+  home.closeShareCard(); assert.equal(home.date, f.date); assert.equal(home.data.editable, true);
+  assert.equal(tabs.at(-1).hidden, false); assert.deepEqual(f.store.get(), before); assert.deepEqual(f.navigation, []);
+});
+
 test('appearance stays collapsed until opened and saves only the selected daily board', async t => {
   const f = fixture(t), p = f.page;
   f.store.createTheme('fixed', '长期收藏'); const theme = f.store.board('theme_fixed');

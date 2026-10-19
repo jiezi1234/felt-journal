@@ -8,10 +8,10 @@ function createThemeBoardPage() {
   return {
     ...editor, ...collection,
     data: { ...editor.data, ...collection.data, inlineTheme: true },
-    onShow() { this.refresh(); this.syncNavigation(); },
+    onShow() { if (!this.data.shareBoardId) this.refresh(); this.syncNavigation(); },
     onHide() { editor.onHide.call(this); },
     onUnload() { collection.onUnload.call(this); editor.onUnload.call(this); },
-    syncNavigation() { platform.syncTab(this, 'board', !!(this.data.formOpen || this.data.drawer || this.data.memoryCardId || this.data.task || this.data.placing)); },
+    syncNavigation() { platform.syncTab(this, 'board', !!(this.data.formOpen || this.data.drawer || this.data.memoryCardId || this.data.shareBoardId || this.data.task || this.data.placing)); },
     refresh() {
       collection.refresh.call(this);
       if (this.data.error) return;
@@ -28,7 +28,7 @@ function createThemeBoardPage() {
     },
     // Finish pending edits before changing which board the shared editor owns.
     prepareThemeChange() {
-      if (this.data.working || this.data.recovering || this.mutating || this.photoTask || this.data.placing || this.data.memoryCardId) return false;
+      if (this.data.working || this.data.recovering || this.mutating || this.photoTask || this.data.placing || this.data.memoryCardId || this.data.shareBoardId) return false;
       this.cancelGesture();
       if (this.dirty && !this.persist() || this.noteDirty && !this.saveNote()) return false;
       this.setData({ drawer: '' }); this.syncNavigation(); return true;

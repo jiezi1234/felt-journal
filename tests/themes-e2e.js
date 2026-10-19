@@ -136,7 +136,7 @@ const rows = data => data.groups.flatMap(group => group.items);
     assert.equal(data.model.items.find(item => item.memoryId === past).memory.subjectPath, afterCrop.subjectPath);
     assert.equal((await state()).memories[past].date, old);
     await board.callMethod('done'); await wait(board, value => !value.editable); await capture('wechat-theme-board.png');
-    await (await board.$('#export-board')).tap(); const exported = await route('pages/export/index'); data = await wait(exported, value => !value.generating);
+    await (await board.$('#export-board')).tap(); const exported = await board.$('#share-card'); data = await wait(exported, value => !value.generating);
     assert.equal(data.error, ''); assert.equal(data.isTheme, true); assert.equal(data.dateLabel, '秋日拾遗');
     const info = await mini.callWxMethod('getImageInfo', { src: data.imagePath }); assert.deepEqual([info.width, info.height], [1800, 1200]);
     const png = Buffer.from(await mini.evaluate(file => wx.getFileSystemManager().readFileSync(file, 'base64'), data.imagePath), 'base64');

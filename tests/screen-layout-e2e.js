@@ -106,7 +106,7 @@ const output = path.resolve(__dirname, '../artifacts/screen-layout-e2e.json');
     await route('/pages/board/index?date=' + today + '&mode=edit');
     await call('select', { detail: { id: ids[0] } }); await inspect('full board editor', ['.editor-stage', '#remove-placement', '#add-from-library']);
     await call('done'); await inspect('board view', ['.editor-stage', '#export-board']);
-    await call('exportBoard'); await pause(900); await inspect('export', ['.export-paper', '#share-appearance', '#save-album', '#share-image']);
+    await call('exportBoard'); await pause(900); await inspect('share card', ['.export-paper', '#share-appearance', '#save-album', '#share-image'], '#share-card');
   } finally {
     if (mini) {
       if (backup) {

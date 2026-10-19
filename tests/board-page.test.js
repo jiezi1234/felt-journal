@@ -22,6 +22,28 @@ function fixture(t) {
   page.refresh(); page.select({ detail: { id: first } });
   return { page, store, date, first, second, storage, fail(value) { fail = value; } };
 }
+
+test('sharing stays on the board, blocks background edits and restores selection/history unchanged', async t => {
+  const f = fixture(t), p = f.page;
+  p.transform({ detail: { op: 'cw' } });
+  const draft = clone(p.draft), model = p.data.model, history = p.history, before = f.store.get();
+  p.exportBoard(); assert.equal(p.data.shareBoardId, f.date); assert.equal(p.data.selected, f.first);
+  p.onShow(); assert.equal(p.data.model, model, 'Native share return must not refresh the underlying board');
+  p.transform({ detail: { op: 'up' } }); p.select({ detail: { id: f.second } });
+  p.memory(); await p.sourceSheet(); await p.library(); await p.remove();
+  assert.equal(p.data.memoryCardId, ''); assert.equal(p.data.drawer, ''); assert.equal(p.data.selected, f.first);
+  assert.deepEqual(p.draft, draft); assert.deepEqual(f.store.get(), before);
+  p.closeShareCard(); assert.equal(p.data.shareBoardId, ''); assert.equal(p.data.editable, true);
+  assert.equal(p.data.model, model); assert.equal(p.history, history); assert.equal(p.data.canUndo, true);
+});
+
+test('sharing persists a pending layout and refuses to open when saving fails', t => {
+  const f = fixture(t), p = f.page;
+  f.fail(true); p.transform({ detail: { op: 'cw' } }); assert.equal(p.dirty, true);
+  p.exportBoard(); assert.equal(p.data.shareBoardId, ''); assert.equal(p.dirty, true);
+  f.fail(false); p.exportBoard(); assert.equal(p.data.shareBoardId, f.date); assert.equal(p.dirty, false);
+  assert.deepEqual(f.store.board(f.date), p.draft); assert.equal(f.store.getDraft(f.date), undefined);
+});
 test('move/rotate/scale/color/texture/layer undo and redo persist each exact layout', t => {
   const { page: p, store, date, storage } = fixture(t), states = [clone(p.draft)];
   const moved = { ...p.data.model.items[0], x: p.data.model.items[0].x + 100 };

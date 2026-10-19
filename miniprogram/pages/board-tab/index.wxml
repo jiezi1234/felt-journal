@@ -6,7 +6,7 @@
   <block wx:else>
     <view class="paper theme-card">
       <view class="row theme-heading"><view class="theme-title-group"><view class="theme-name">{{dateLabel}}</view><text class="muted">{{count}} / {{maxItems}}</text></view><view class="theme-header-actions"><button wx:if="{{editable}}" id="finish-theme" class="ghost" disabled="{{recovering}}" bindtap="done">完成</button><button wx:if="{{count}}" id="share-theme" class="ghost" disabled="{{working || recovering || !!task || !!placing}}" bindtap="shareTheme">分享 ↗</button></view></view>
-      <view class="theme-stage"><felt-board id="board" layout="tall" style="height:100%;" model="{{model}}" editable="{{editable}}" selected="{{selected}}" can-edit="{{canEdit}}" covered="{{formOpen || !!drawer || !!task || !!placing || !!memoryCardId}}" landing-id="{{placing.id || ''}}" bind:landingready="stickerTarget" bind:select="select" bind:edititem="editItem" bind:change="placementChanged" bind:transform="transform" bind:remove="remove" bind:memory="memory" bind:boardtap="edit" /></view>
+      <view class="theme-stage"><felt-board id="board" layout="tall" style="height:100%;" model="{{model}}" editable="{{editable}}" selected="{{selected}}" can-edit="{{canEdit}}" covered="{{formOpen || !!drawer || !!task || !!placing || !!memoryCardId || !!shareBoardId}}" landing-id="{{placing.id || ''}}" bind:landingready="stickerTarget" bind:select="select" bind:edititem="editItem" bind:change="placementChanged" bind:transform="transform" bind:remove="remove" bind:memory="memory" bind:boardtap="edit" /></view>
     </view>
     <view wx:if="{{saveError}}" class="error">{{saveError}}<button class="ghost" bindtap="retrySave">重试保存</button></view>
     <view class="theme-toolbar"><button id="add-theme-memory" class="primary" disabled="{{working || recovering || !!task || !!placing || count >= maxItems}}" bindtap="sourceSheet">＋ 添加</button></view>
@@ -19,3 +19,4 @@
 <sticker-flight id="placement-flight" wx:if="{{placing}}" flight="{{placing}}" bind:peeled="stickerLifted" bind:landed="stickerLanded" />
 
 <memory-card wx:if="{{memoryCardId}}" id="memory-card" memory-id="{{memoryCardId}}" bind:close="closeMemoryCard" bind:change="memoryCardChanged" />
+<share-card wx:if="{{shareBoardId}}" id="share-card" board-id="{{shareBoardId}}" bind:close="closeShareCard" />

@@ -24,6 +24,18 @@ function fixture(t) {
 }
 async function create(page, title = '主题') { page.create(); page.input({ detail: { value: title } }); await page.save(); return page.date; }
 
+test('share modal keeps its theme selected, hides navigation and prevents switching or creating behind it', async t => {
+  const f = fixture(t), p = f.page, memory = f.add('share');
+  await create(p, '第一块'); const id = await create(p, '第二块');
+  await p.library(); p.placeFromLibrary(event(memory));
+  const before = f.disk[KEY], model = p.data.model;
+  p.shareTheme(); assert.equal(p.data.shareBoardId, id); assert.equal(f.tab.data.hidden, true);
+  p.turn(-1); p.create(); p.rename(); await p.removeTheme(); p.onShow();
+  assert.equal(p.date, id); assert.equal(p.data.formOpen, false); assert.equal(p.data.model, model);
+  p.closeShareCard(); assert.equal(f.tab.data.hidden, false); assert.equal(p.data.selected, memory);
+  assert.equal(p.data.editable, true); assert.equal(f.disk[KEY], before); assert.deepEqual(f.navigation, []);
+});
+
 test('creating and completing a theme stays on the tab and starts arranging the new board', async t => {
   const f = fixture(t), p = f.page;
   assert.equal(p.data.model, null); assert.equal(Object.keys(f.store.get().boards).length, 0);

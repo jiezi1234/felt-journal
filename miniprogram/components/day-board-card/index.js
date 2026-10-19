@@ -15,7 +15,7 @@ Component({
   },
   pageLifetimes: {
     hide() { controller.onHide.call(this); },
-    show() { if (this.store) this.refresh(); },
+    show() { if (this.store && !this.data.shareBoardId) this.refresh(); },
     resize() { controller.onResize.call(this); }
   },
   methods: { ...methods,
@@ -31,7 +31,7 @@ Component({
     async remove() { await controller.remove.call(this); if (!this.data.selected) this.closeDrawer(); this.notifyChange(); },
     memoryCardChanged() { this.refresh(); this.notifyChange(); },
     openSelection() {
-      if (!this.data.canEdit || this.data.loading || this.data.error || this.data.drawer || this.data.memoryCardId || this.data.task || this.photoTask || this.data.placing || this.data.recovering || this.data.openingLibrary || this.mutating) return;
+      if (!this.data.canEdit || this.data.loading || this.data.error || this.data.drawer || this.data.shareBoardId || this.data.memoryCardId || this.data.task || this.photoTask || this.data.placing || this.data.recovering || this.data.openingLibrary || this.mutating) return;
       this.edit();
       if (this.canAdjust()) { this.cancelGesture(); this.setData({ drawer: 'selection' }); }
     }

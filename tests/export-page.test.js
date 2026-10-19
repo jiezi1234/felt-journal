@@ -6,6 +6,8 @@ const platform = require('../miniprogram/services/platform');
 const renderer = require('../miniprogram/core/renderer');
 let definition;
 global.Page = page => { definition = page; }; require('../miniprogram/pages/export/index'); delete global.Page;
+let cardDefinition;
+global.Component = card => { cardDefinition = card; }; require('../miniprogram/components/share-card/index'); delete global.Component;
 function fixture(t) {
   const originalPlatform = { ...platform }, originalRenderer = { ...renderer }, originalWx = global.wx;
   t.after(() => { Object.assign(platform, originalPlatform); Object.assign(renderer, originalRenderer); if (originalWx === undefined) delete global.wx; else global.wx = originalWx; });
@@ -117,4 +119,36 @@ test('share appearance regenerates the preview without changing saved boards or 
   await f.page.chooseColor({ currentTarget: { dataset: { value: 'invalid' } } });
   f.page.data.sharing = true; await f.page.chooseTexture({ currentTarget: { dataset: { value: 'fine' } } });
   assert.equal(paints.length, count);
+});
+
+test('share card uses its own canvas scope and closes its style drawer before the card', async t => {
+  const f = fixture(t), events = [], query = wx.createSelectorQuery();
+  Object.assign(f.page, cardDefinition.methods, { triggerEvent: name => events.push(name), createSelectorQuery: () => query });
+  wx.createSelectorQuery = () => { throw Error('Page-scoped query must not be used inside the card'); };
+  await f.page.generate(); assert.equal(f.page.data.error, ''); assert.equal(f.page.data.imagePath, '/new-export.png');
+  const before = f.disk[KEY];
+  f.page.openAppearance(); assert.equal(f.page.data.styleOpen, true);
+  f.page.back(); assert.equal(f.page.data.styleOpen, false); assert.deepEqual(events, []);
+  f.page.back(); assert.deepEqual(events, ['close']); assert.equal(f.disk[KEY], before);
+  f.page.close(); assert.deepEqual(events, ['close']);
+});
+
+test('closing a generating share card prevents late updates and export work', async t => {
+  const f = fixture(t), events = []; let finish;
+  Object.assign(f.page, cardDefinition.methods, { triggerEvent: name => events.push(name) });
+  renderer.loadImages = () => new Promise(resolve => { finish = resolve; });
+  const generating = f.page.generate(); await Promise.resolve();
+  f.page.close(); const before = clone(f.page.data);
+  finish({}); await generating;
+  assert.deepEqual(events, ['close']); assert.deepEqual(f.page.data, before); assert.deepEqual(f.calls, []);
+});
+
+test('native share and album requests keep the share card mounted until they finish', async t => {
+  for (const action of ['shareImage', 'saveAlbum']) {
+    const f = fixture(t), events = []; let finish;
+    Object.assign(f.page, cardDefinition.methods, { triggerEvent: name => events.push(name) });
+    platform.call = () => new Promise(resolve => { finish = resolve; });
+    const operation = f.page[action](); f.page.close(); assert.deepEqual(events, []);
+    finish({}); await operation; f.page.close(); assert.deepEqual(events, ['close']);
+  }
 });

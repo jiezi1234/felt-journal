@@ -2,6 +2,7 @@
   "component": true,
   "usingComponents": {
     "felt-board": "/components/felt-board/index",
+    "share-card": "/components/share-card/index",
     "memory-card": "/components/memory-card/index",
     "photo-panel": "/components/photo-panel/index",
     "sticker-flight": "/components/sticker-flight/index"

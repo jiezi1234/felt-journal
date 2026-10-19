@@ -10,6 +10,15 @@ global.Component = value => { cardDefinition = value; };
 require('../miniprogram/components/day-board-card/index'); delete global.Component;
 const event = date => ({ currentTarget: { dataset: { date } } });
 
+test('closing a day card with sharing open dismisses sharing first and retains the same date', async t => {
+  const f = fixture(t), p = f.card, before = f.store.get();
+  p.exportBoard(); assert.equal(p.data.shareBoardId, f.date);
+  p.selectComponent = selector => selector === '#share-card' ? { back: () => p.closeShareCard() } : null;
+  await p.close(); assert.equal(p.data.shareBoardId, ''); assert.deepEqual(f.events, []);
+  assert.equal(p.date, f.date); assert.deepEqual(f.store.get(), before); assert.deepEqual(f.navigation, []);
+  await p.close(); assert.deepEqual(f.events, ['close']);
+});
+
 function fixture(t, withMemory = true) {
   const originalWx = global.wx, originalPlatform = { ...platform }, navigation = [], tabs = [], events = [], disk = {};
   t.after(() => { global.wx = originalWx; Object.assign(platform, originalPlatform); });
