@@ -4,7 +4,7 @@ const B = require('../../core/config').board;
 const stickerMotion = require('../../core/sticker-motion');
 const viewport = require('../../core/board-viewport');
 Component({
-  properties: { model: { type: Object, value: null }, layout: String, editable: Boolean, selected: String, covered: Boolean, landingId: String, interactive: { type: Boolean, value: true } },
+  properties: { model: { type: Object, value: null }, layout: String, editable: Boolean, selected: String, covered: Boolean, landingId: String, tapOpensMemory: Boolean, interactive: { type: Boolean, value: true } },
   data: { height: 210, width: 0, handles: [], imageError: false, snapshot: '' },
   observers: { 'model, editable, selected, covered, landingId': function () { this.refresh(); if (this.data.layout) wx.nextTick(() => this.measure()); }, layout() { this.measure(); } },
   lifetimes: { ready() { this.measure(); }, detached() { this.dead = true; clearTimeout(this.longTimer); } },
@@ -89,7 +89,10 @@ Component({
       const g = this.gesture; this.gesture = null; this.dragModel = null; if (!g) return;
       if (g.next) this.triggerEvent('change', { placement: g.next });
       else if (!g.moved && !g.long) {
-        if (this.data.editable) this.triggerEvent('select', { id: g.item ? g.item.memoryId : '' });
+        if (this.data.editable) {
+          this.triggerEvent('select', { id: g.item ? g.item.memoryId : '' });
+          if (g.item && this.data.tapOpensMemory) this.triggerEvent('memory', { id: g.item.memoryId });
+        }
         else this.triggerEvent(g.item ? 'memory' : 'boardtap', { id: g.item ? g.item.memoryId : '' });
       }
       this.refresh();

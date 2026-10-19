@@ -12,7 +12,7 @@ const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-
 const output = path.resolve(__dirname, '../artifacts/ui-record-card-2026-10-16');
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms || 150));
 (async () => {
-  let mini, backup, testFiles = [], storageRestored = false, isolated = false, pickerMocked = false, modalMocked = false;
+  let mini, backup, picker, testFiles = [], storageRestored = false, isolated = false, pickerMocked = false, modalMocked = false;
   const checks = [], screenshots = [], errors = [];
   async function wait(target, predicate) {
     const start = Date.now();
@@ -31,7 +31,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms || 150));
     mini = await automator.connect({ wsEndpoint: process.env.WECHAT_AUTOMATION_URL || 'ws://127.0.0.1:9420' });
     await pause(1500);
     mini.on('exception', error => errors.push(error)); fs.mkdirSync(output, { recursive: true });
-    backup = await mini.evaluate(names => names.map(key => ({ key, value: wx.getStorageSync(key) })), keys);
+    backup = await mini.evaluate(names => names.map(key => ({ key, exists: wx.getStorageInfoSync().keys.includes(key), value: wx.getStorageSync(key) })), keys);
     const canvas = createCanvas(240, 240), ctx = canvas.getContext('2d');
     ctx.fillStyle = '#79956E'; ctx.beginPath(); ctx.ellipse(120, 120, 55, 90, .35, 0, 2 * Math.PI); ctx.fill();
     const fallback = canvas.toBuffer('image/png');
@@ -52,7 +52,8 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms || 150));
     store.commit(s => { s.localNoticeSeen = true; });
     const originalTheme = store.board('theme_food');
     await mini.evaluate((names, snapshot) => { names.forEach(key => wx.removeStorageSync(key)); wx.setStorageSync(names[0], snapshot); }, keys, JSON.stringify(store.get())); isolated = true;
-    await mini.mockWxMethod('chooseMedia', { tempFiles: [{ tempFilePath: testFiles[0], size: 3000, fileType: 'image' }], type: 'image' });
+    picker = await mini.evaluate(() => typeof wx.chooseMedia === 'function' ? 'chooseMedia' : 'chooseImage');
+    await mini.mockWxMethod(picker, { tempFiles: [{ tempFilePath: testFiles[0], path: testFiles[0], size: 3000, fileType: 'image' }], tempFilePaths: [testFiles[0]], type: 'image' });
     pickerMocked = true;
     let home = await mini.reLaunch('/pages/index/index'); await wait(home, d => !d.loading); const homeId = home.id;
     await capture('01-today');
@@ -77,9 +78,39 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms || 150));
     const panel = await card.$('#record-photo'); assert.ok(panel, 'Inline photo panel must render'); assert.equal((await panel.data()).inline, true);
     await (await panel.$('.secondary')).tap(); await wait(card, d => d.task && d.task.state === 'done' && d.count === 3);
     const added = (await card.data()).selected;
+    console.log('STEP: photo result ready, adding optional caption');
+    await (await panel.$('#add-photo-note')).tap(); await wait(card, d => d.photoNoteOpen);
+    await panel.callMethod('noteInput', { detail: { value: '记录时留下的说明\n今天的小小美好' } });
     await (await panel.$('#continue-layout')).tap();
     let data = await wait(home, d => !d.editorOpen && !d.placing && d.count === 3 && d.editable);
     await assertHome(home, homeId); assert.ok(added); assert.equal(data.model.items.find(m => m.memoryId === added).memory.kind, 'original');
+    assert.equal((await state()).memories[added].text, '记录时留下的说明\n今天的小小美好');
+    console.log('STEP: caption persisted, opening sticker card');
+    // Dispatch the board's real touch-end handler, including the select -> memory event chain.
+    await mini.evaluate(id => { const b = getCurrentPages()[0].selectComponent('#today-board'); b.gesture = { item: b.data.model.items.find(item => item.memoryId === id) }; b.touchEnd(); }, added);
+    await wait(home, d => d.memoryCardId === added); await assertHome(home, homeId); console.log('STEP: memory overlay mounted');
+    let memoryCard = await home.$('#memory-card'); await wait(memoryCard, d => !!d.memory);
+    assert.equal((await memoryCard.data()).flipped, false);
+    assert.equal(await mini.evaluate(() => getCurrentPages()[0].getTabBar().data.hidden), true);
+    await (await memoryCard.$('#flip-card')).tap(); await wait(memoryCard, d => d.flipped); await pause(500); console.log('STEP: memory card flipped');
+    assert.ok(await memoryCard.$('.card-note')); assert.equal((await memoryCard.data()).memory.text, '记录时留下的说明\n今天的小小美好');
+    const transform = await (await memoryCard.$('#flip-card')).style('transform');
+    const geometry = await mini.evaluate(() => new Promise(resolve => {
+      const q = getCurrentPages()[0].selectComponent('#memory-card').createSelectorQuery();
+      q.select('#edit-card-note').boundingClientRect();
+      q.exec(rects => resolve({ button: rects[0], height: wx.getWindowInfo().windowHeight }));
+    }));
+    assert.match(transform, /matrix3d\(-1/); assert.ok(geometry.button.top > 0 && geometry.button.bottom < geometry.height); console.log('STEP: flip transform and back controls verified');
+    await (await memoryCard.$('#edit-card-note')).tap(); await wait(memoryCard, d => d.editing);
+    await memoryCard.callMethod('input', { detail: { value: '后来补充的新说明' } }); await (await memoryCard.$('#save-card-note')).tap();
+    await wait(memoryCard, d => !d.editing && d.memory.text === '后来补充的新说明');
+    await (await memoryCard.$('#close-memory-card')).tap(); await wait(home, d => !d.memoryCardId);
+    assert.equal((await state()).memories[added].text, '后来补充的新说明');
+    await home.callMethod('openMemory', { detail: { id: added } }); memoryCard = await home.$('#memory-card');
+    await wait(memoryCard, d => d.memory && d.memory.text === '后来补充的新说明');
+    await (await memoryCard.$('#flip-card')).tap(); await wait(memoryCard, d => d.flipped);
+    await (await memoryCard.$('#close-memory-card')).tap(); await wait(home, d => !d.memoryCardId);
+    checks.push('optional upload caption -> same-page sticker card -> native 3D flip -> edit/save -> reopen with persisted text; navigation hidden behind card');
     assert.equal(await home.$('#record-card'), null); assert.equal(await home.$('#open-appearance'), null);
     await capture('03-arrange-today');
     const originalAngle = data.model.items.find(m => m.memoryId === added).angle;
@@ -112,7 +143,8 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms || 150));
     assert.equal(await mini.callWxMethod('getStorageSync', keys[0]), beforeShare);
     await capture('05-share-appearance'); checks.push('Share has 6 colors and 3 textures; choices do not change stored Today or theme boards');
     await mini.navigateBack(); home = await route('index'); await assertHome(home, homeId);
-    await home.callMethod('openMemory', { detail: { id: first } }); await route('memory'); await mini.navigateBack(); await route('index');
+    await home.callMethod('openMemory', { detail: { id: first } }); await wait(home, d => d.memoryCardId === first);
+    await home.callMethod('memoryOptions', { detail: { id: first } }); await route('memory'); await mini.navigateBack(); await route('index');
     await mini.evaluate(() => getCurrentPages().slice(-1)[0].getTabBar().selectComponent('#main-nav').open({ currentTarget: { dataset: { id: 'board' } } }));
     const themes = await route('board-tab'); await wait(themes, d => !d.loading);
     assert.equal(themes.path, 'pages/board-tab/index'); assert.equal((await themes.data()).isTab, true); assert.equal((await themes.data()).themes.length, 2);
@@ -122,14 +154,14 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms || 150));
     assert.equal(errors.length, 0, JSON.stringify(errors));
   } finally {
     if (mini) {
-      if (pickerMocked) await mini.restoreWxMethod('chooseMedia').catch(() => {});
+      if (pickerMocked) await mini.restoreWxMethod(picker).catch(() => {});
       if (modalMocked) await mini.restoreWxMethod('showModal').catch(() => {});
       if (backup) {
         // Close any live component before restoring user storage so its unload cannot write into it.
-        await mini.evaluate(() => { const page = getCurrentPages().slice(-1)[0]; if (page && page.data.editorOpen) page.setData({ editorOpen: false }); }); await pause(300);
+        await mini.evaluate(() => { const page = getCurrentPages().slice(-1)[0]; if (page) page.setData({ editorOpen: false, memoryCardId: '' }); }); await pause(300);
         if (isolated) await mini.evaluate(key => { const raw = wx.getStorageSync(key); if (!raw) return; const s = JSON.parse(raw); const files = Object.values(s.memories).flatMap(m => [m.originalPath, m.subjectPath]).concat(s.garbage || []); for (const file of files) if (file.startsWith(`${wx.env.USER_DATA_PATH}/felt-journal/`)) { try { wx.getFileSystemManager().unlinkSync(file); } catch (_) {} } }, keys[0]);
-        await mini.evaluate(items => items.forEach(item => item.value === '' ? wx.removeStorageSync(item.key) : wx.setStorageSync(item.key, item.value)), backup);
-        assert.deepEqual(await mini.evaluate(names => names.map(key => ({ key, value: wx.getStorageSync(key) })), keys), backup); storageRestored = true;
+        await mini.evaluate(items => items.forEach(item => item.exists ? wx.setStorageSync(item.key, item.value) : wx.removeStorageSync(item.key)), backup);
+        assert.deepEqual(await mini.evaluate(names => names.map(key => ({ key, exists: wx.getStorageInfoSync().keys.includes(key), value: wx.getStorageSync(key) })), keys), backup); storageRestored = true;
       }
       await mini.evaluate(files => files.forEach(file => { try { wx.getFileSystemManager().unlinkSync(file); } catch (_) {} }), testFiles);
       await mini.evaluate(() => { if (wx.disableAlertBeforeUnload) wx.disableAlertBeforeUnload({}); });

@@ -29,3 +29,5 @@
     <view wx:if="{{total}}" class="screen-pagination"><button id="previous-page" class="secondary" disabled="{{!hasPrevious || placing}}" bindtap="previous">‹ 上一页</button><text>{{page}} / {{pageCount}}</text><button id="next-page" class="secondary" disabled="{{!hasNext || placing}}" bindtap="next">下一页 ›</button></view>
   </block>
 </view>
+
+<memory-card wx:if="{{memoryCardId}}" id="memory-card" memory-id="{{memoryCardId}}" bind:close="closeMemoryCard" bind:change="memoryCardChanged" bind:details="memoryOptions" />

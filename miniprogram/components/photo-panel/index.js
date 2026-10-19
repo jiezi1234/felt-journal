@@ -3,7 +3,7 @@ const stageLabels = {
   extracting: '主体提取中…', saving: '保存记忆中…'
 };
 Component({
-  properties: { task: Object, inline: Boolean, lifting: Boolean, continueLabel: { type: String, value: '继续' } },
+  properties: { task: Object, inline: Boolean, lifting: Boolean, continueLabel: { type: String, value: '继续' }, noteOpen: Boolean, noteText: String, noteError: String, maxText: { type: Number, value: 1000 } },
   data: { showOriginal: false, preview: false, done: false, failed: false, analyzing: false, stageLabel: '', resultLabel: '', displayImage: '', canCompare: false },
   lifetimes: { detached() { this.dead = true; } },
   observers: {
@@ -25,6 +25,7 @@ Component({
     }
   },
   methods: {
+    openNote() { this.triggerEvent('noteopen'); }, noteInput(e) { this.triggerEvent('noteinput', { value: e.detail.value }); },
     retry() { this.triggerEvent('retry'); }, original() { this.triggerEvent('original'); },
     cancel() {
       if (!this.data.done) { this.triggerEvent('cancel'); return; }

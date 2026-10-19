@@ -1,4 +1,5 @@
 const { createBoardEditor } = require('../../services/board-editor');
+const photo = require('../../services/page-photo');
 const controller = createBoardEditor({ embedded: true });
 const methods = {};
 Object.keys(controller).forEach(key => { if (typeof controller[key] === 'function' && !key.startsWith('on')) methods[key] = controller[key]; });
@@ -16,6 +17,7 @@ Component({
     cancelPhoto(e) {
       if (this.data.lifting || this.handingOff) return;
       if (!this.photoTask || !this.photoTask.committed) return controller.cancelPhoto.call(this, e);
+      if (!photo.saveNote(this)) return;
       this.handingOff = true;
       this.triggerEvent('place', { id: this.data.selected, rect: e && e.detail && e.detail.rect });
     }

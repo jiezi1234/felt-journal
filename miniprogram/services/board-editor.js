@@ -9,7 +9,7 @@ const photo = require('./page-photo');
 const stickerMotion = require('../core/sticker-motion');
 function createBoardEditor(options = {}) { return {
   // Placement feedback never changes the saved model or creates another memory.
-  data: { embedded: !!options.embedded, sourceStage: false, drawer: '', libraryItems: [], visibleLibraryItems: [], libraryPage: 1, libraryPageCount: 1, noteText: '', noteCategory: 0, noteError: '', noteHint: '', categories: config.categories, maxText: config.maxText, loading: true, error: '', date: '', dateLabel: '', isTheme: false, editable: false, canEdit: false, selected: '', model: null, count: 0, saveState: '已保存', saveError: '', task: null, placing: null, colors: config.colors, textures: config.textures, appearanceLabel: '', canUndo: false, canRedo: false, canBringToFront: false, canSendToBack: false, recovering: false, openingLibrary: false },
+  data: { memoryCardId: '', photoNoteOpen: false, photoNoteText: '', photoNoteError: '', embedded: !!options.embedded, sourceStage: false, drawer: '', libraryItems: [], visibleLibraryItems: [], libraryPage: 1, libraryPageCount: 1, noteText: '', noteCategory: 0, noteError: '', noteHint: '', categories: config.categories, maxText: config.maxText, loading: true, error: '', date: '', dateLabel: '', isTheme: false, editable: false, canEdit: false, selected: '', model: null, count: 0, saveState: '已保存', saveError: '', task: null, placing: null, colors: config.colors, textures: config.textures, appearanceLabel: '', canUndo: false, canRedo: false, canBringToFront: false, canSendToBack: false, recovering: false, openingLibrary: false },
   onLoad(query) {
     this.store = getStore(); this.date = query.board || query.date || dates.key(); this.wantEdit = query.mode === 'edit'; this.wantAdd = query.add === '1';
   },
@@ -52,7 +52,7 @@ function createBoardEditor(options = {}) { return {
     finally { if (!this.disposed) this.setData({ recovering: false }); }
   },
   cancelGesture() { const board = this.selectComponent && this.selectComponent('#board'); if (board) board.touchCancel(); },
-  canAdjust() { return this.data.editable && !this.photoTask && !this.data.placing && !this.data.recovering && !this.mutating && !this.data.openingLibrary; },
+  canAdjust() { return this.data.editable && !this.data.memoryCardId && !this.photoTask && !this.data.placing && !this.data.recovering && !this.mutating && !this.data.openingLibrary; },
   changed(record = true) {
     if (record && !this.history.record(this.draft)) { this.display(); return !this.dirty || this.persist(); }
     this.dirty = true; this.store.keepDraft(this.draft); platform.unloadGuard(true); this.display(); return this.persist();
@@ -114,9 +114,12 @@ function createBoardEditor(options = {}) { return {
     const id = e && e.detail && e.detail.id || this.data.selected; if (!id || this.photoTask || this.data.recovering) return;
     this.cancelGesture();
     if (this.dirty && !this.persist()) { platform.toast('请先重试保存当前布局'); return; }
-    if (this.data.embedded || options.inline) { this.openNote(id); return; }
-    wx.navigateTo({ url: `/pages/memory/index?id=${encodeURIComponent(id)}${this.data.isTheme ? '&from=theme' : ''}` });
+    if (this.data.embedded) { this.openNote(id); return; }
+    this.setData({ memoryCardId: id, drawer: '' }); if (this.syncNavigation) this.syncNavigation();
   },
+  closeMemoryCard() { this.setData({ memoryCardId: '' }); this.refresh(); if (this.syncNavigation) this.syncNavigation(); },
+  memoryCardChanged() { this.refresh(); },
+  memoryOptions(e) { this.closeMemoryCard(); wx.navigateTo({ url: `/pages/memory/index?id=${encodeURIComponent(e.detail.id)}${this.data.isTheme ? '&from=theme' : ''}` }); },
   async sourceSheet() {
     if (!this.data.canEdit || this.photoTask || this.data.placing || this.data.error || this.data.recovering) return;
     if (this.data.embedded) this.setData({ sourceStage: true, drawer: '' });
@@ -133,8 +136,10 @@ function createBoardEditor(options = {}) { return {
   },
   photoDone(id) { this.draft = this.store.board(this.date); this.history.reset(this.draft); this.setData({ selected: id, editable: true, canEdit: true, sourceStage: false }); this.display(); this.notifyChange(); },
   retryPhoto() { return photo.retry(this); }, originalPhoto() { return photo.original(this); },
+  openPhotoNote() { photo.openNote(this); }, photoNoteInput(e) { photo.inputNote(this, e); },
   cancelPhoto(e) {
     if (this.data.placing) return;
+    if (!photo.saveNote(this)) return;
     const task = this.photoTask, id = this.data.selected;
     const memory = task && task.committed && this.store.get().memories[id];
     const source = memory && stickerMotion.imageRect(e && e.detail && e.detail.rect, memory);
@@ -240,7 +245,7 @@ function createBoardEditor(options = {}) { return {
         if (!r.confirm || this.disposed || this.photoTask && this.photoTask !== task) return;
       }
       if (this.photoTask === task) {
-        if (task.committed) photo.finish(this, false);
+        if (task.committed) { if (!photo.finish(this, false)) return; }
         else await task.cancel();
       }
     }

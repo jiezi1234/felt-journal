@@ -13,6 +13,11 @@
     <view wx:if="{{done}}" id="task-done" class="task-copy result-enter" role="status"><text class="task-title">{{resultLabel}}</text></view>
     <view wx:if="{{failed}}" class="task-copy"><text class="task-title">{{task.state === 'saveError' ? '记忆尚未保存' : task.state === 'sourceError' ? '照片尚未准备好' : '主体尚未提取'}}</text></view>
     <view wx:if="{{task.error}}" id="photo-error" class="error">{{task.error}}</view>
+    <view wx:if="{{done}}" class="photo-note">
+      <block wx:if="{{noteOpen}}"><textarea id="photo-note-input" class="photo-note-input" placeholder="写点什么（选填）" value="{{noteText}}" maxlength="{{maxText}}" disabled="{{lifting}}" bindinput="noteInput" cursor-spacing="24" /><view class="photo-note-count">{{noteText.length}} / {{maxText}}</view></block>
+      <button wx:else id="add-photo-note" class="ghost" disabled="{{lifting}}" bindtap="openNote">{{noteText ? '编辑说明' : '＋ 添加说明（选填）'}}</button>
+      <view wx:if="{{noteError}}" class="error">{{noteError}}</view>
+    </view>
     <view class="task-actions">
       <button wx:if="{{done}}" id="continue-layout" class="primary" bindtap="cancel">{{continueLabel}}</button>
       <button wx:if="{{task.state === 'extractError'}}" id="retry-extraction" class="primary" bindtap="retry">重新提取</button>

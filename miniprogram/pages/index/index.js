@@ -6,12 +6,13 @@ const editor = createBoardEditor();
 Page({
   ...editor,
   data: { ...editor.data, editorOpen: false, editorDate: '' },
+  syncNavigation() { platform.syncTab(this, 'today', !!(this.data.editorOpen || this.data.placing || this.data.memoryCardId)); },
   onLoad() { editor.onLoad.call(this, { date: dates.key() }); },
   onShow() {
-    platform.syncTab(this, 'today', this.data.editorOpen || !!this.data.placing);
-    if (!this.data.editorOpen && !this.data.placing) this.refresh();
+    this.syncNavigation();
+    if (!this.data.editorOpen && !this.data.placing && !this.data.memoryCardId) this.refresh();
     clearInterval(this.timer);
-    this.timer = setInterval(() => { if (!this.data.editorOpen && !this.data.placing && dates.key() !== this.date) this.refresh(); }, 30000);
+    this.timer = setInterval(() => { if (!this.data.editorOpen && !this.data.placing && !this.data.memoryCardId && dates.key() !== this.date) this.refresh(); }, 30000);
   },
   onHide() { clearInterval(this.timer); editor.onHide.call(this); if (this.data.drawer === 'selection') this.setData({ drawer: '' }); },
   onUnload() { clearInterval(this.timer); editor.onUnload.call(this); },
@@ -19,7 +20,7 @@ Page({
     if (this.disposed) return;
     try {
       this.store.load();
-      const date = this.data.editorOpen || this.data.placing ? this.date : dates.key();
+      const date = this.data.editorOpen || this.data.placing || this.data.memoryCardId ? this.date : dates.key();
       if (date !== this.date) {
         if (this.dirty && !this.persist()) return;
         this.date = date; this.history = null; this.checkedDraft = false;
@@ -31,20 +32,20 @@ Page({
   cancelGesture() { const board = this.selectComponent && this.selectComponent('#today-board'); if (board) board.touchCancel(); },
   canAdjust() { return !this.data.editorOpen && editor.canAdjust.call(this); },
   openBoard() {
-    if (this.data.editorOpen || this.data.placing || this.data.loading || this.data.error) return;
+    if (this.data.editorOpen || this.data.placing || this.data.memoryCardId || this.data.loading || this.data.error) return;
     this.edit();
   },
   primary() {
-    if (this.data.editorOpen || this.data.placing || this.data.loading || this.data.error || this.data.recovering) return;
+    if (this.data.editorOpen || this.data.placing || this.data.memoryCardId || this.data.loading || this.data.error || this.data.recovering) return;
     this.cancelGesture(); if (this.dirty && !this.persist()) return;
     this.refresh(); if (this.data.error) return;
-    this.setData({ editorDate: this.date, editorOpen: true, drawer: '' }); platform.syncTab(this, 'today', true);
+    this.setData({ editorDate: this.date, editorOpen: true, drawer: '' }); this.syncNavigation();
   },
   sourceSheet() { this.primary(); },
   editorChanged() { /* The processing card owns the pending result until placement. */ },
   closeEditor() {
     if (this.data.placing) return;
-    this.setData({ editorOpen: false }); platform.syncTab(this, 'today'); this.refresh();
+    this.setData({ editorOpen: false }); this.syncNavigation(); this.refresh();
   },
   startSticker(e) {
     if (this.data.placing || !this.data.editorOpen) return;
@@ -64,10 +65,10 @@ Page({
     const placing = this.data.placing;
     if (!placing || this.disposed || e && e.detail && e.detail.token !== placing.token) return;
     editor.stickerLanded.call(this, e);
-    this.setData({ editorOpen: false }); platform.syncTab(this, 'today');
+    this.setData({ editorOpen: false }); this.syncNavigation();
   },
-  openMemory(e) { if (!this.data.editorOpen && !this.data.placing) this.memory(e); },
-  exportToday() { if (!this.data.editorOpen && !this.data.placing) this.exportBoard(); },
+  openMemory(e) { if (!this.data.editorOpen && !this.data.placing && !this.data.memoryCardId) this.memory(e); },
+  exportToday() { if (!this.data.editorOpen && !this.data.placing && !this.data.memoryCardId) this.exportBoard(); },
   openSelection() { if (this.canAdjust()) { this.cancelGesture(); this.setData({ drawer: 'selection' }); } },
   async remove() { await editor.remove.call(this); if (!this.disposed && !this.data.selected) this.setData({ drawer: '' }); }
 });

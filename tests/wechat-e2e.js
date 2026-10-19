@@ -117,6 +117,7 @@ const realService = process.env.WECHAT_EXTRACTION_ENDPOINT || '';
     const savedPlacements = (await board.data()).model.placements;
     console.log('STEP: transforms saved, opening memory detail');
     await board.callMethod('done'); await board.callMethod('memory', { detail: { id } });
+    await board.callMethod('memoryOptions', { detail: { id } });
     await board.waitFor(800);
     let memory = await route('pages/memory/index'); await wait(memory, d => !d.loading);
     await memory.callMethod('edit'); await memory.callMethod('textInput', { detail: { value: '模拟器端到端验收文字' } }); await memory.callMethod('categoryInput', { detail: { value: '1' } }); await memory.callMethod('save');

@@ -8,7 +8,7 @@
         <view class="sheet-date">{{dateLabel}}<text class="memory-count">{{count}} 件</text></view>
         <view class="home-actions"><button wx:if="{{count}}" id="export-today" class="ghost" disabled="{{editorOpen || !!placing}}" bindtap="exportToday">分享 ↗</button><button wx:if="{{editable}}" id="finish-today" class="ghost" disabled="{{editorOpen || !!placing || recovering}}" bindtap="done">完成</button><button wx:else id="arrange-today" class="ghost" bindtap="openBoard">布置 ⌃</button></view>
       </view>
-      <view class="today-stage"><felt-board id="today-board" layout="tall" style="height:100%;" covered="{{editorOpen || !!placing || !!drawer}}" landing-id="{{placing.id || ''}}" model="{{model}}" editable="{{editable}}" selected="{{selected}}" bind:landingready="stickerTarget" bind:select="select" bind:change="placementChanged" bind:transform="transform" bind:memory="openMemory" bind:boardtap="openBoard" /></view>
+      <view class="today-stage"><felt-board id="today-board" layout="tall" style="height:100%;" tap-opens-memory="{{true}}" covered="{{editorOpen || !!placing || !!drawer || !!memoryCardId}}" landing-id="{{placing.id || ''}}" model="{{model}}" editable="{{editable}}" selected="{{selected}}" bind:landingready="stickerTarget" bind:select="select" bind:change="placementChanged" bind:transform="transform" bind:memory="openMemory" bind:boardtap="openBoard" /></view>
     </view>
     <view wx:if="{{saveError}}" class="error">{{saveError}}<button bindtap="retrySave">重试保存</button></view>
     <view class="record-dock"><view wx:if="{{editable}}" class="today-tools"><button id="undo-today" class="ghost" disabled="{{!canUndo || editorOpen || !!placing}}" bindtap="undo">↶ 撤销</button><button id="redo-today" class="ghost" disabled="{{!canRedo || editorOpen || !!placing}}" bindtap="redo">↷ 重做</button><button id="more-today" class="ghost" disabled="{{editorOpen || !!placing}}" bindtap="openSelection">更多</button></view><button id="record-today" class="primary record-fab" disabled="{{editorOpen || !!placing}}" aria-label="{{count ? '再记一件' : '记录今天'}}" bindtap="primary">＋</button></view>
@@ -17,3 +17,5 @@
 <include src="../../templates/board-drawers.wxml" />
 <record-card wx:if="{{editorOpen}}" id="record-card" board-id="{{editorDate}}" lifting="{{!!placing}}" bind:place="startSticker" bind:close="closeEditor" bind:change="editorChanged" />
 <sticker-flight id="placement-flight" wx:if="{{placing}}" flight="{{placing}}" bind:peeled="stickerLifted" bind:landed="stickerLanded" />
+
+<memory-card wx:if="{{memoryCardId}}" id="memory-card" memory-id="{{memoryCardId}}" bind:close="closeMemoryCard" bind:change="memoryCardChanged" bind:details="memoryOptions" />

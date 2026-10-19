@@ -3,7 +3,7 @@ const dates = require('../../core/date');
 const search = require('../../core/memory-query');
 const platform = require('../../services/platform');
 Page({
-  data: { loading: true, error: '', scope: 'all', month: '', monthLabel: '', maxMonth: '', category: '', categories: [], groups: [], total: 0, scopeTotal: 0,
+  data: { memoryCardId: '', loading: true, error: '', scope: 'all', month: '', monthLabel: '', maxMonth: '', category: '', categories: [], groups: [], total: 0, scopeTotal: 0,
     page: 1, pageCount: 1, pageSize: 4, hasPrevious: false, hasNext: false, opening: false, summary: '', emptyTitle: '', emptyHint: '', targetId: '', targetTitle: '', targetDaily: false, placing: false },
   onLoad(options = {}) {
     this.store = getStore(); this.missingPaths = new Set(); this.target = options.target || '';
@@ -72,12 +72,15 @@ Page({
     finally { if (!this.disposed) this.setData({ opening: false }); }
   },
   open(e) {
-    if (this.data.error || this.data.loading || this.data.placing) return;
+    if (this.data.error || this.data.loading || this.data.placing || this.data.memoryCardId || this.data.opening) return;
     const id = e.currentTarget.dataset.id;
     if (!this.data.groups.some(group => group.items.some(item => item.id === id))) return;
     if (this.target) return this.place(id);
-    return this.navigate(`/pages/memory/index?id=${encodeURIComponent(id)}&from=memories`);
+    this.setData({ memoryCardId: id });
   },
+  closeMemoryCard() { this.setData({ memoryCardId: '' }); this.refresh(); },
+  memoryCardChanged() { this.refresh(); },
+  memoryOptions(e) { this.closeMemoryCard(); return this.navigate(`/pages/memory/index?id=${encodeURIComponent(e.detail.id)}&from=memories`); },
   async place(id) {
     if (this.disposed || this.data.placing || this.data.opening) return;
     const item = this.data.groups.flatMap(group => group.items).find(item => item.id === id);

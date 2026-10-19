@@ -30,3 +30,12 @@ test('covered boards do not respond to pointer input underneath a card', () => {
     createSelectorQuery() { throw new Error('Background board must not start a gesture'); } });
   board.touchStart({ touches: [{ clientX: 10, clientY: 10 }] }); assert.equal(board.gesture, undefined);
 });
+
+test('a simple editable sticker tap opens its card but dragging and long press do not open it twice', () => {
+  const events = [], item = { id: 'placement', memoryId: 'memory' };
+  const board = { ...definition.methods, data: { editable: true, tapOpensMemory: true }, refresh() {}, triggerEvent(name, detail) { events.push({ name, detail }); } };
+  board.gesture = { item }; board.touchEnd(); assert.deepEqual(events.map(e => e.name), ['select', 'memory']); assert.equal(events[1].detail.id, 'memory');
+  events.length = 0; board.gesture = { item, moved: true, next: { ...item, x: 40 } }; board.touchEnd(); assert.deepEqual(events.map(e => e.name), ['change']);
+  events.length = 0; board.gesture = { item, long: true }; board.touchEnd(); assert.deepEqual(events, []);
+  board.gesture = {}; board.touchEnd(); assert.deepEqual(events, [{ name: 'select', detail: { id: '' } }]);
+});

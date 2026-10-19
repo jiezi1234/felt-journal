@@ -147,3 +147,50 @@ test('closing an already completed memory skips the unsaved-photo confirmation',
   platform.call = async () => { throw new Error('No confirmation expected'); }; platform.back = () => { navigations++; };
   await p.back(); assert.equal(navigations, 1); assert.equal(p.photoTask, null); assert.equal(p.data.task, null);
 });
+
+test('post-extraction caption is optional and saves on Continue without changing placement or automatic category', async t => {
+  const f = fixture(t), p = f.page;
+  await photo.begin(p, 'album', { date: f.date });
+  const id = f.completed[0], boards = clone(f.store.get().boards);
+  f.store.commit(state => { Object.assign(state.memories[id], { category: '自然', categorySource: 'auto' }); });
+  photo.openNote(p); photo.inputNote(p, { detail: { value: '今天看见的小树' } });
+  assert.equal(f.store.getMemoryDraft(id).text, '今天看见的小树'); assert.equal(f.guards.at(-1), true);
+  assert.equal(photo.finish(p, false), true);
+  assert.equal(f.store.get().memories[id].text, '今天看见的小树'); assert.equal(f.store.get().memories[id].categorySource, 'auto');
+  assert.deepEqual(f.store.get().boards, boards); assert.equal(f.store.getMemoryDraft(id), undefined);
+  await photo.begin(p, 'camera', { date: f.date }); assert.equal(p.data.photoNoteOpen, false); assert.equal(p.data.photoNoteText, '');
+  assert.equal(photo.finish(p, false), true); assert.equal(Object.keys(f.store.get().memories).length, 2);
+  assert.equal(f.store.get().memories[f.completed[1]].text, '');
+});
+
+test('caption save failure blocks completion and board flight; retry saves without duplicating the photo', async t => {
+  const f = fixture(t), controller = createBoardEditor(), p = { ...controller, data: clone(controller.data), store: f.store, date: f.date, wantEdit: true,
+    setData(update) { Object.assign(this.data, update); }, selectComponent() { return { touchCancel() {} }; } };
+  p.refresh(); await photo.begin(p, 'album', { date: f.date }); const id = p.photoNoteId;
+  photo.openNote(p); photo.inputNote(p, { detail: { value: '稍后重试' } }); f.failSave(true);
+  assert.equal(photo.finish(p, false), false); await p.cancelPhoto();
+  assert.equal(p.data.task.state, 'done'); assert.equal(!!p.data.placing, false); assert.ok(p.data.photoNoteError);
+  assert.equal(f.store.getMemoryDraft(id).text, '稍后重试'); assert.equal(Object.keys(f.store.get().memories).length, 1);
+  f.failSave(false); assert.equal(photo.finish(p, false), true); assert.equal(f.store.get().memories[id].text, '稍后重试');
+  assert.equal(p.data.task, null); assert.equal(f.store.getMemoryDraft(id), undefined);
+});
+
+test('unloading a caption retains its draft and replacing a photo can keep its existing caption', async t => {
+  const f = fixture(t), p = f.page;
+  await photo.begin(p, 'album', { date: f.date }); const id = p.photoNoteId;
+  photo.openNote(p); photo.inputNote(p, { detail: { value: '未写完的说明' } }); await photo.dispose(p);
+  assert.equal(f.store.getMemoryDraft(id).text, '未写完的说明'); assert.equal(f.store.get().memories[id].text, '');
+  f.store.clearMemoryDraft(id); f.store.edit(id, '原来的说明', '自然');
+  const next = { ...p, disposed: false, data: { task: null } };
+  await photo.begin(next, 'album', { date: f.date, memoryId: id }); assert.equal(next.data.photoNoteText, '原来的说明');
+  photo.finish(next, false); assert.equal(f.store.get().memories[id].text, '原来的说明'); assert.equal(Object.keys(f.store.get().memories).length, 1);
+});
+
+test('editing the caption while replacing a photo immediately refreshes its detail page', async t => {
+  const f = fixture(t), id = f.store.add('replacement_caption', f.date, { originalPath: '/old.jpg', subjectPath: '/old.png', width: 400, height: 300 });
+  const p = { ...memoryDefinition, store: f.store, id, data: clone(memoryDefinition.data), setData(update) { Object.assign(this.data, update); } };
+  p.refresh(); await photo.begin(p, 'album', { date: f.date, memoryId: id });
+  p.openPhotoNote(); p.photoNoteInput({ detail: { value: '替换照片时的新说明' } }); p.cancelPhoto();
+  assert.equal(p.data.task, null); assert.equal(p.data.memory.text, '替换照片时的新说明'); assert.equal(p.data.text, '替换照片时的新说明');
+  assert.equal(Object.keys(f.store.get().memories).length, 1);
+});

@@ -55,6 +55,7 @@ Page({
   },
   photoDone() { this.setData({ originalMissing: false, subjectMissing: false }); this.refresh(); },
   retryPhoto() { photo.retry(this); }, originalPhoto() { photo.original(this); }, cancelPhoto() { photo.cancel(this); },
+  openPhotoNote() { photo.openNote(this); }, photoNoteInput(e) { photo.inputNote(this, e); },
   async remove() {
     if (this.photoTask || this.removing) return; this.removing = true;
     try {
@@ -82,7 +83,7 @@ Page({
           if (!r.confirm || this.disposed || this.photoTask && this.photoTask !== task) return;
         }
         if (this.photoTask === task) {
-          if (task.committed) photo.finish(this, false);
+          if (task.committed) { if (!photo.finish(this, false)) return; }
           else await task.cancel();
         }
       }

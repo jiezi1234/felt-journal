@@ -1,0 +1,26 @@
+<view class="memory-card-overlay" catchtouchmove="stop">
+  <view class="memory-card-scrim" bindtap="close" />
+  <view class="memory-card-dialog" role="dialog" aria-modal="true" aria-label="记忆卡片">
+    <view class="row card-heading"><text class="muted">{{dateLabel}}</text><button id="close-memory-card" class="ghost" aria-label="关闭记忆卡片" bindtap="close">×</button></view>
+    <view wx:if="{{!memory}}" class="error">{{error}}</view>
+    <view wx:else class="flip-scene">
+      <view id="flip-card" class="flip-card {{flipped ? 'is-flipped' : ''}}" bindtap="flip" role="button" aria-label="{{flipped ? '翻回图片' : '翻到文字说明'}}">
+        <view class="card-face card-front" aria-hidden="{{flipped}}"><image wx:if="{{!missing}}" id="card-photo" class="card-photo" src="{{memory.subjectPath}}" mode="aspectFit" binderror="imageError" /><view wx:else class="muted">图片暂时无法读取</view><text class="card-cue">轻触翻面</text></view>
+        <view class="card-face card-back" aria-hidden="{{!flipped}}">
+          <block wx:if="{{flipped && editing}}">
+            <textarea id="card-note-input" class="card-note-input" value="{{text}}" maxlength="{{maxText}}" placeholder="写点什么（选填）" bindinput="input" catchtap="stop" adjust-position="{{true}}" cursor-spacing="28" />
+            <text class="note-count">{{text.length}} / {{maxText}}</text>
+            <view wx:if="{{hint}}" class="muted">{{hint}}</view><view wx:if="{{error}}" class="error">{{error}}</view>
+            <view class="row card-note-actions" catchtap="stop"><button id="cancel-card-note" class="ghost grow" bindtap="cancelEdit">取消</button><button id="save-card-note" class="primary grow" bindtap="save">保存</button></view>
+          </block>
+          <block wx:else>
+            <scroll-view wx:if="{{flipped && memory.text}}" class="card-note-reading" scroll-y><view class="card-note">{{memory.text}}</view></scroll-view>
+            <view wx:elif="{{!memory.text}}" class="card-empty muted">还没写说明</view>
+            <button id="edit-card-note" class="secondary full" catchtap="edit">{{memory.text ? '编辑说明' : '添加说明'}}</button><text class="card-cue">轻触翻回图片</text>
+          </block>
+        </view>
+      </view>
+    </view>
+    <button wx:if="{{memory && !editing}}" id="memory-options" class="ghost card-options" bindtap="details">照片选项</button>
+  </view>
+</view>

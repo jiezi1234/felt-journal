@@ -1,0 +1,12 @@
+.memory-card-overlay { position:fixed; inset:0; z-index:160; padding:18px 20px calc(18px + env(safe-area-inset-bottom)); display:flex; align-items:center; justify-content:center; }
+.memory-card-scrim { position:absolute; inset:0; background:rgba(43,35,28,.3); }
+.memory-card-dialog { position:relative; width:100%; max-width:420px; height:78vh; max-height:640px; display:flex; flex-direction:column; gap:10px; }
+.card-heading { padding:0 6px; flex-shrink:0; }.card-heading .muted { color:#FFFFFF; }.card-heading .ghost { min-width:44px; min-height:44px; font-size:26px; padding:4px; background:#FFFDFA; border-radius:50%; }
+.flip-scene { flex:1; min-height:0; perspective:1200px; }
+.flip-card { position:relative; width:100%; height:100%; transform-style:preserve-3d; transition:transform 420ms cubic-bezier(.2,.7,.2,1); }
+.flip-card.is-flipped { transform:rotateY(180deg); }
+.card-face { position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; border-radius:28px; padding:24px; background:linear-gradient(145deg,#FFFFFF,#FFF9EF); border:1px solid #FFFFFF; box-shadow:0 14px 44px rgba(45,35,25,.12); display:flex; flex-direction:column; gap:12px; overflow:hidden; }
+.card-front { align-items:center; justify-content:center; }.card-photo { width:100%; flex:1; min-height:0; }.card-cue { font-size:11px; color:#9A8C7C; text-align:center; flex-shrink:0; }
+.card-back { transform:rotateY(180deg); background:#FFFDFA; }.card-note-reading { flex:1; height:0; min-height:0; }.card-note { font-size:16px; line-height:1.9; white-space:pre-wrap; word-break:break-all; padding:10px 2px; color:#655246; }
+.card-empty { flex:1; display:flex; align-items:center; justify-content:center; }.card-note-input { flex:1; height:0; min-height:80px; width:100%; padding:12px; background:#F8F5EF; border-radius:16px; font-size:16px; line-height:1.8; }.note-count { color:#9A8C7C; text-align:right; font-size:11px; }.card-note-actions { flex-shrink:0; }.card-options { align-self:center; color:#FFFFFF; min-height:36px; font-size:12px; }.card-face .error { margin:0; padding:8px; font-size:12px; }
+@media (max-height:570px) { .memory-card-dialog { height:86vh; gap:6px; }.card-face { padding:16px; gap:8px; }.card-note { font-size:14px; }.card-note-actions .primary { min-height:42px; padding:8px; } }

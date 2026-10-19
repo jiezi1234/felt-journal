@@ -9,7 +9,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-drafts:v1', 'felt-journal:dev-extraction:v1'];
 
 (async () => {
-  let mini, backup, testPhoto, isolated = false;
+  let mini, backup, testPhoto, picker, isolated = false;
   const checks = [], errors = [];
   const snapshot = () => mini.evaluate(names => names.map(key => ({ key, exists: wx.getStorageInfoSync().keys.includes(key), value: wx.getStorageSync(key) })), keys);
   const state = () => mini.evaluate(() => {
@@ -47,6 +47,7 @@ const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-
   try {
     mini = await automator.connect({ wsEndpoint: process.env.WECHAT_AUTOMATION_URL || 'ws://127.0.0.1:9420' });
     mini.on('exception', error => errors.push(error)); backup = await snapshot();
+    console.log('STEP: connected and backed up original storage');
     const disk = {}, store = createStore({ get: key => disk[key], set: (key, value) => { disk[key] = value; } });
     const photo = { originalPath: '/images/navigation/board-active.png', subjectPath: '/images/navigation/today-active.png', width: 72, height: 72 }, ids = [];
     for (let i = 0; i < 7; i++) ids.push(store.add('theme_inline_' + i, i % 2 ? '2024-01-01' : dates.key(), photo));
@@ -54,7 +55,10 @@ const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-
     const daily = store.board(dates.key());
     await mini.evaluate((keys, value) => { keys.forEach(key => wx.removeStorageSync(key)); wx.setStorageSync(keys[0], value); }, keys, disk[keys[0]]);
     isolated = true;
-    await mini.evaluate(() => new Promise((resolve, reject) => wx.reLaunch({ url: '/pages/board-tab/index', success: resolve, fail: reject }))); await pause(700);
+    await mini.evaluate(() => new Promise((resolve, reject) => wx.reLaunch({ url: '/pages/board-tab/index', success: resolve, fail: reject })));
+    let ready = false;
+    for (let i = 0; i < 100; i++) { await pause(200); ready = await mini.evaluate(() => { const p = getCurrentPages().slice(-1)[0]; return !!p && p.route === 'pages/board-tab/index' && !p.data.loading; }); if (ready) break; }
+    assert.ok(ready, 'theme tab did not finish loading: ' + JSON.stringify(errors));
     await mini.evaluate(() => { getCurrentPages().slice(-1)[0].acceptanceMarker = 'same-theme-page'; });
     await call('create'); await inspect('create form', ['.theme-form', '#save-theme', '#cancel-theme'], false);
     await call('input', { detail: { value: '秋日散步与旅行途中收集的那些值得珍藏的小小日常和温柔时光记忆' } });
@@ -72,11 +76,15 @@ const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-
     s = await call('undo'); assert.equal(s.data.model.items[0].angle, angle);
     s = await call('redo'); assert.notEqual(s.data.model.items[0].angle, angle);
     await call('openSelection'); await inspect('selected memory and theme actions', ['.drawer-sheet', '#edit-memory', '#layer-front', '#remove-placement', '#rename-theme', '#delete-theme', '#share-theme'], false);
-    await call('memory'); await inspect('inline note editor', ['.drawer-sheet', '#record-note', '#save-record-note'], false);
-    await call('noteInput', { detail: { value: '留在这块主题板上的小记忆' } }); s = await call('saveNote'); assert.equal(s.nav, true);
+    await call('memory'); await inspect('memory card front', ['.memory-card-dialog', '#flip-card', '#card-photo'], false, '#memory-card');
+    await mini.evaluate(() => { const c = getCurrentPages().slice(-1)[0].selectComponent('#memory-card'); c.flip(); c.edit(); c.input({ detail: { value: '留在这块主题板上的小记忆' } }); }); await pause(500);
+    await inspect('memory card back editor', ['#card-note-input', '#save-card-note', '#cancel-card-note'], false, '#memory-card');
+    await mini.evaluate(() => getCurrentPages().slice(-1)[0].selectComponent('#memory-card').save());
+    s = await call('closeMemoryCard'); assert.equal(s.nav, true);
     assert.equal(s.data.model.items[0].memory.text, '留在这块主题板上的小记忆');
-    await call('openSelection'); await call('rename'); await call('input', { detail: { value: '我的旅行' } }); s = await call('save');
-    assert.equal(s.data.date, first); assert.equal(s.data.model.title, '我的旅行');
+    await call('openSelection'); s = await call('rename'); assert.equal(s.data.formOpen, true, JSON.stringify({ card: s.data.memoryCardId, drawer: s.data.drawer, working: s.data.working }));
+    await call('input', { detail: { value: '我的旅行' } }); s = await call('save');
+    assert.equal(s.data.date, first); assert.equal(s.data.model.title, '我的旅行', JSON.stringify({ form: s.data.formOpen, title: s.data.title, error: s.data.formError, themes: s.data.themes }));
     await call('create'); await call('input', { detail: { value: '第二块主题板' } }); s = await call('save'); const second = s.data.date;
     assert.notEqual(first, second); assert.equal(s.data.count, 0); assert.equal(s.data.canUndo, false);
     s = await call('open', event(first)); assert.equal(s.data.count, 1); assert.equal(s.data.canUndo, false); assert.equal(s.data.selected, '');
@@ -87,7 +95,8 @@ const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-
     testPhoto = await mini.evaluate((bytes, name) => {
       const file = `${wx.env.USER_DATA_PATH}/${name}.png`; wx.getFileSystemManager().writeFileSync(file, bytes, 'base64'); return file;
     }, fs.readFileSync(path.resolve(__dirname, '../miniprogram/images/navigation/today-active.png')).toString('base64'), 'theme-photo-test-' + Date.now());
-    await mini.mockWxMethod('chooseMedia', { tempFiles: [{ tempFilePath: testPhoto, size: 3000, fileType: 'image' }], type: 'image' });
+    picker = await mini.evaluate(() => typeof wx.chooseMedia === 'function' ? 'chooseMedia' : 'chooseImage');
+    await mini.mockWxMethod(picker, { tempFiles: [{ tempFilePath: testPhoto, path: testPhoto, size: 3000, fileType: 'image' }], tempFilePaths: [testPhoto], type: 'image' });
     let count = s.data.count;
     for (const source of ['camera', 'album']) {
       await call('sourceSheet'); s = await call(source); assert.equal(s.data.task.state, 'extractError');
@@ -95,6 +104,11 @@ const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-
       s = await call('originalPhoto'); assert.equal(s.data.task.state, 'done'); assert.equal(s.data.task.kind, 'original');
       assert.equal(s.data.date, first); assert.equal(s.data.count, ++count);
       await inspect(source + ' saved photo', ['.photo-task-sheet', '#continue-layout'], false, '#theme-photo');
+      if (source === 'album') {
+        await mini.evaluate(() => getCurrentPages().slice(-1)[0].selectComponent('#theme-photo').openNote()); await pause(150);
+        await mini.evaluate(() => getCurrentPages().slice(-1)[0].selectComponent('#theme-photo').noteInput({ detail: { value: '相册里的小小美好' } }));
+        await inspect('optional photo caption', ['#photo-note-input', '#continue-layout'], false, '#theme-photo');
+      }
       await mini.evaluate(() => getCurrentPages().slice(-1)[0].selectComponent('#theme-photo').cancel());
       let landed = false, seenPlacement = false;
       for (let i = 0; i < 40; i++) {
@@ -104,13 +118,17 @@ const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-
       assert.ok(seenPlacement && landed, source + ' landing feedback completes');
       assert.equal(s.nav, true); assert.equal(s.depth, 1); assert.equal(s.marker, 'same-theme-page'); assert.equal(s.data.editable, true);
       const current = JSON.parse((await snapshot())[0].value), memory = current.memories[s.data.selected];
+      assert.equal(memory.text, source === 'album' ? '相册里的小小美好' : '');
+      s = await call('memory', { detail: { id: memory.id } }); assert.equal(s.data.memoryCardId, memory.id);
+      const card = await mini.evaluate(() => { const c = getCurrentPages().slice(-1)[0].selectComponent('#memory-card'); c.flip(); return c.data; });
+      assert.equal(card.flipped, true); assert.equal(card.memory.text, memory.text); await call('closeMemoryCard');
       assert.deepEqual(current.boards[dates.key()], daily);
       assert.deepEqual(Object.values(current.boards).filter(board => board.placements.some(p => p.memoryId === memory.id)).map(board => board.id), [first]);
     }
     assert.equal(errors.length, 0, JSON.stringify(errors));
   } finally {
     if (mini) {
-      await mini.restoreWxMethod('chooseMedia').catch(() => {});
+      if (picker) await mini.restoreWxMethod(picker).catch(() => {});
       if (isolated) {
         await mini.evaluate(async key => {
           const p = getCurrentPages().slice(-1)[0]; if (p.stickerLanded) p.stickerLanded(); if (p.cancelPhoto) await p.cancelPhoto();

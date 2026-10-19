@@ -1,6 +1,7 @@
 {
   "navigationBarTitleText": "今天",
   "usingComponents": {
+    "memory-card": "/components/memory-card/index",
     "felt-board": "/components/felt-board/index",
     "record-card": "/components/record-card/index",
     "sticker-flight": "/components/sticker-flight/index"

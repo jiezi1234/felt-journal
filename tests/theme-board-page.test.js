@@ -78,14 +78,14 @@ test('failed layout saves block switching and creating until retry succeeds', as
   assert.deepEqual(f.navigation, []);
 });
 
-test('inline text failures retain the drawer and block theme changes until saved', async t => {
+test('memory cards stay over the active theme and hide navigation until closed', async t => {
   const f = fixture(t), p = f.page, id = f.add('text'); await create(p);
   await p.library(); p.placeFromLibrary(event(id)); p.memory({ detail: { id } });
-  assert.equal(p.data.drawer, 'note'); assert.equal(f.tab.data.hidden, true);
-  p.noteInput({ detail: { value: '一段记忆' } }); f.fail(true); p.create();
-  assert.equal(p.data.formOpen, false); assert.equal(p.data.drawer, 'note'); assert.equal(f.tab.data.hidden, true);
-  assert.equal(f.store.getMemoryDraft(id).text, '一段记忆');
-  f.fail(false); p.closeDrawer(); assert.equal(p.data.drawer, ''); assert.equal(f.tab.data.hidden, false);
+  assert.equal(p.data.memoryCardId, id); assert.equal(p.data.drawer, ''); assert.equal(f.tab.data.hidden, true);
+  p.create(); assert.equal(p.data.formOpen, false); assert.equal(p.data.memoryCardId, id);
+  f.store.edit(id, '一段记忆', f.store.get().memories[id].category); p.memoryCardChanged();
+  assert.equal(p.data.model.items[0].memory.text, '一段记忆'); assert.equal(f.tab.data.hidden, true);
+  p.closeMemoryCard(); assert.equal(p.data.memoryCardId, ''); assert.equal(f.tab.data.hidden, false);
   assert.equal(f.store.get().memories[id].text, '一段记忆'); assert.deepEqual(f.navigation, []);
 });
 
