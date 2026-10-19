@@ -17,7 +17,7 @@
             <button wx:if="{{count}}" id="share-theme" class="secondary full" bindtap="shareTheme">导出 / 分享 ↗</button>
           </block>
         </view>
-        <view wx:elif="{{drawer === 'source'}}" class="source-actions"><button id="source-camera" class="primary full" bindtap="camera">◎ 拍照</button><button id="source-album" class="secondary full" bindtap="album">▧ 相册</button></view>
+        <view wx:elif="{{drawer === 'source'}}" class="source-actions"><button id="source-camera" class="primary full" bindtap="camera">◎ 拍照</button><button id="source-album" class="secondary full" bindtap="album">▧ 相册</button><button wx:if="{{isTheme}}" id="source-library" class="ghost full" bindtap="library">从记忆库添加</button></view>
         <block wx:elif="{{drawer === 'note'}}">
           <textarea id="record-note" class="record-note" value="{{noteText}}" placeholder="记点什么（选填）" maxlength="{{maxText}}" bindinput="noteInput" />
           <view class="muted note-count">{{noteText.length}} / {{maxText}}</view>

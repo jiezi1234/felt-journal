@@ -26,6 +26,9 @@ test('custom tab lifecycle respects open theme forms and restores navigation aft
   page.data.formOpen = false; tabDefinition.pageLifetimes.show.call(tab); assert.equal(tab.data.hidden, false);
   page.data.inlineTheme = true; page.data.drawer = 'library'; tabDefinition.pageLifetimes.show.call(tab); assert.equal(tab.data.hidden, true);
   page.data.drawer = ''; tab.sync(); assert.equal(tab.data.hidden, false);
+  page.data.task = { state: 'choosing' }; tab.sync(); assert.equal(tab.data.hidden, true);
+  page.data.task = null; page.data.placing = { id: 'photo' }; tab.sync(); assert.equal(tab.data.hidden, true);
+  page.data.placing = null; tab.sync(); assert.equal(tab.data.hidden, false);
   page.route = 'pages/index/index'; page.data = { editorOpen: true }; tab.sync(); assert.deepEqual(tab.data, { active: 'today', hidden: true });
   page.route = 'pages/calendar/index'; page.data = {}; tab.sync(); assert.deepEqual(tab.data, { active: 'calendar', hidden: false });
 });

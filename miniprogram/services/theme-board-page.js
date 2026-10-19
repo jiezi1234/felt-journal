@@ -11,7 +11,7 @@ function createThemeBoardPage() {
     onShow() { this.refresh(); this.syncNavigation(); },
     onHide() { editor.onHide.call(this); },
     onUnload() { collection.onUnload.call(this); editor.onUnload.call(this); },
-    syncNavigation() { platform.syncTab(this, 'board', !!(this.data.formOpen || this.data.drawer)); },
+    syncNavigation() { platform.syncTab(this, 'board', !!(this.data.formOpen || this.data.drawer || this.data.task || this.data.placing)); },
     refresh() {
       collection.refresh.call(this);
       if (this.data.error) return;
@@ -28,7 +28,7 @@ function createThemeBoardPage() {
     },
     // Finish pending edits before changing which board the shared editor owns.
     prepareThemeChange() {
-      if (this.data.working || this.data.recovering || this.mutating) return false;
+      if (this.data.working || this.data.recovering || this.mutating || this.photoTask || this.data.placing) return false;
       this.cancelGesture();
       if (this.dirty && !this.persist() || this.noteDirty && !this.saveNote()) return false;
       this.setData({ drawer: '' }); this.syncNavigation(); return true;
@@ -58,6 +58,10 @@ function createThemeBoardPage() {
       if (!this.date || !this.prepareThemeChange()) return;
       this.setData({ drawer: 'theme' }); this.syncNavigation();
     },
+    async sourceSheet() {
+      if (!this.date || !this.prepareThemeChange()) return;
+      this.edit(); await editor.sourceSheet.call(this); this.syncNavigation();
+    },
     async library() {
       if (!this.date || !this.prepareThemeChange()) return;
       this.edit(); await editor.library.call(this); this.syncNavigation();
@@ -67,6 +71,7 @@ function createThemeBoardPage() {
     saveNote() { const saved = editor.saveNote.call(this); this.syncNavigation(); return saved; },
     discardNote() { editor.discardNote.call(this); this.syncNavigation(); },
     placeFromLibrary(e) { editor.placeFromLibrary.call(this, e); this.syncNavigation(); },
+    stickerLanded(e) { editor.stickerLanded.call(this, e); this.syncNavigation(); },
     async remove() { await editor.remove.call(this); if (!this.data.selected) this.closeDrawer(); },
     done() { editor.done.call(this); this.refresh(); },
     shareTheme() {

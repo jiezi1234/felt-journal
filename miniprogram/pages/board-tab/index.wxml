@@ -6,12 +6,14 @@
   <block wx:else>
     <view class="paper theme-card">
       <view class="row theme-heading"><view class="theme-title-group"><view class="theme-name">{{dateLabel}}</view><text class="muted">{{count}} / {{maxItems}}</text></view><button wx:if="{{editable}}" id="finish-theme" class="ghost" disabled="{{recovering}}" bindtap="done">完成</button><button wx:else id="arrange-theme" class="ghost" disabled="{{recovering}}" bindtap="edit">布置</button></view>
-      <view class="theme-stage"><felt-board id="board" layout="tall" style="height:100%;" model="{{model}}" editable="{{editable}}" selected="{{selected}}" covered="{{formOpen || !!drawer}}" bind:select="select" bind:change="placementChanged" bind:transform="transform" bind:memory="memory" bind:boardtap="edit" /></view>
+      <view class="theme-stage"><felt-board id="board" layout="tall" style="height:100%;" model="{{model}}" editable="{{editable}}" selected="{{selected}}" covered="{{formOpen || !!drawer || !!task || !!placing}}" landing-id="{{placing.id || ''}}" bind:landingready="stickerTarget" bind:select="select" bind:change="placementChanged" bind:transform="transform" bind:memory="memory" bind:boardtap="edit" /></view>
     </view>
     <view wx:if="{{saveError}}" class="error">{{saveError}}<button class="ghost" bindtap="retrySave">重试保存</button></view>
-    <view class="theme-toolbar"><button id="add-theme-memory" class="primary" disabled="{{working || recovering || count >= maxItems}}" bindtap="library">＋ 记忆</button><button id="undo-theme" class="ghost theme-history" disabled="{{!editable || !canUndo || recovering}}" bindtap="undo" aria-label="撤销布局调整">↶</button><button id="redo-theme" class="ghost theme-history" disabled="{{!editable || !canRedo || recovering}}" bindtap="redo" aria-label="重做布局调整">↷</button><button id="more-theme" class="ghost" disabled="{{working || recovering}}" bindtap="openSelection">更多</button></view>
+    <view class="theme-toolbar"><button id="add-theme-memory" class="primary" disabled="{{working || recovering || !!task || !!placing || count >= maxItems}}" bindtap="sourceSheet">＋ 添加</button><button id="undo-theme" class="ghost theme-history" disabled="{{!editable || !canUndo || recovering}}" bindtap="undo" aria-label="撤销布局调整">↶</button><button id="redo-theme" class="ghost theme-history" disabled="{{!editable || !canRedo || recovering}}" bindtap="redo" aria-label="重做布局调整">↷</button><button id="more-theme" class="ghost" disabled="{{working || recovering}}" bindtap="openSelection">更多</button></view>
     <view class="screen-pagination"><button id="previous-theme" class="ghost" disabled="{{page <= 1 || working || recovering}}" bindtap="previous" aria-label="上一块主题板">‹</button><text>{{page}} / {{pageCount}}</text><button id="next-theme" class="ghost" disabled="{{page >= pageCount || working || recovering}}" bindtap="next" aria-label="下一块主题板">›</button></view>
   </block>
 </view>
 <include src="../../templates/board-drawers.wxml" />
 <include src="../../templates/theme-form.wxml" />
+<photo-panel id="theme-photo" task="{{task}}" lifting="{{!!placing}}" continue-label="开始布置" bind:retry="retryPhoto" bind:original="originalPhoto" bind:cancel="cancelPhoto" />
+<sticker-flight id="placement-flight" wx:if="{{placing}}" flight="{{placing}}" bind:peeled="stickerLifted" bind:landed="stickerLanded" />

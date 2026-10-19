@@ -118,22 +118,21 @@ function createBoardEditor(options = {}) { return {
     wx.navigateTo({ url: `/pages/memory/index?id=${encodeURIComponent(id)}${this.data.isTheme ? '&from=theme' : ''}` });
   },
   async sourceSheet() {
-    if (this.data.isTheme) return this.library();
     if (!this.data.canEdit || this.photoTask || this.data.placing || this.data.error || this.data.recovering) return;
     if (this.data.embedded) this.setData({ sourceStage: true, drawer: '' });
     else this.setData({ drawer: 'source' });
   },
-  camera() { this.add('camera'); }, album() { this.add('album'); },
+  camera() { return this.add('camera'); }, album() { return this.add('album'); },
   add(source) {
-    if (isThemeId(this.date) || this.photoTask || this.data.placing || this.data.recovering || this.mutating) return;
+    if (this.photoTask || this.data.placing || this.data.recovering || this.mutating || this.data.error || this.data.loading) return;
     if (!this.store.canEdit(this.date)) { platform.toast('日期已变化，请关闭卡片后重新记录'); return; }
     this.cancelGesture();
     if (this.draft.placements.length >= config.maxItems) { platform.toast(`每块板最多 ${config.maxItems} 件记忆`); return; }
     if (this.dirty && !this.persist()) { platform.toast('请先保存当前布局'); return; }
-    this.setData({ drawer: '' }); photo.begin(this, source, { date: this.date });
+    this.setData({ drawer: '' }); return photo.begin(this, source, { date: isThemeId(this.date) ? dates.key() : this.date, targetBoardId: this.date });
   },
   photoDone(id) { this.draft = this.store.board(this.date); this.history.reset(this.draft); this.setData({ selected: id, editable: true, canEdit: true, sourceStage: false }); this.display(); this.notifyChange(); },
-  retryPhoto() { photo.retry(this); }, originalPhoto() { photo.original(this); },
+  retryPhoto() { return photo.retry(this); }, originalPhoto() { return photo.original(this); },
   cancelPhoto(e) {
     if (this.data.placing) return;
     const task = this.photoTask, id = this.data.selected;

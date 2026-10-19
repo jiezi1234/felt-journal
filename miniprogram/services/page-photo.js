@@ -4,6 +4,7 @@ function current(page, task) { return !page.disposed && page.photoTask === task;
 function guard(page) {
   const pending = page.photoTask && !page.photoTask.committed;
   platform.unloadGuard(!!pending || !!page.dirty || !!page.noteDirty, pending ? '照片尚未保存，离开将取消处理。' : undefined);
+  if (page.syncNavigation) page.syncNavigation();
 }
 function begin(page, source, options) {
   if (page.disposed || page.photoTask) return;
@@ -23,7 +24,7 @@ function retry(page) {
   const task = page.photoTask; if (!task || page.disposed || task.committed) return;
   if (task.state === 'saveError') return task.save();
   if (task.state === 'sourceError') {
-    const options = { date: task.date, memoryId: task.memoryId }, source = page.photoSource;
+    const options = { date: task.date, memoryId: task.memoryId, targetBoardId: task.targetBoardId }, source = page.photoSource;
     return task.cancel().then(() => begin(page, source, options));
   }
   if (task.state === 'preview' || task.state === 'extractError') return task.process(false);

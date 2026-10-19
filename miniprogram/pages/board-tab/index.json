@@ -1,5 +1,9 @@
 {
   "navigationBarTitleText": "主题板",
-  "usingComponents": { "felt-board": "/components/felt-board/index" },
+  "usingComponents": {
+    "felt-board": "/components/felt-board/index",
+    "photo-panel": "/components/photo-panel/index",
+    "sticker-flight": "/components/sticker-flight/index"
+  },
   "disableScroll": true
 }

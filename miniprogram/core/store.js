@@ -72,21 +72,24 @@ function createStore(storage) {
     if (isThemeId(id)) return !!get().boards[id];
     return dates.valid(id) && id <= dates.key() && (id === dates.key() || board(id).placements.length > 0 || Object.values(get().memories).some(m => m.date === id));
   }
-  function add(taskId, date, photos) {
+  function add(taskId, date, photos, targetBoardId = date) {
     assert(dates.valid(date) && date <= dates.key(), '不能向未来或无效日期添加记忆');
+    assert(targetBoardId === date || isThemeId(targetBoardId), '照片只能添加到原日期或主题板');
     const current = get();
     if (current.operations[taskId]) return current.operations[taskId];
+    if (isThemeId(targetBoardId)) assert(!getDraft(targetBoardId), '目标板面存在未保存的布局，请先保存');
     // Authorization was captured at task start; a midnight rollover cannot retarget it.
     const id = `m_${taskId}`;
     commit(s => {
-      const b = s.boards[date] || board(date);
+      const b = s.boards[targetBoardId] || (targetBoardId === date ? board(date) : null);
+      assert(b, '主题板已被删除或不存在');
       assert(b.placements.length < config.maxItems, `每块板最多 ${config.maxItems} 件记忆`);
       const now = Date.now();
       s.memories[id] = Object.assign({ id, boardId: date, date, text: '', category: '未分类', createdAt: now, updatedAt: now }, photos);
       const z = Math.max(0, ...b.placements.map(p => p.z)) + 1;
       b.placements.push(geometry.create(id, photos.width, photos.height, z, now));
       touchMembers(b);
-      s.boards[date] = b; s.operations[taskId] = id;
+      s.boards[targetBoardId] = b; s.operations[taskId] = id;
     });
     return id;
   }
