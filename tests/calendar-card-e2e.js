@@ -49,6 +49,23 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     for (const r of rects.rects) assert.ok(r && r.width > 0 && r.height > 0 && r.top >= 0 && r.bottom <= rects.height, 'Day card stays within the viewport');
     await pause(500); await mini.screenshot({ path: path.join(output, 'day-board.png') });
     checks.push('Native date tap opens a bounded day card, hides navigation and preserves the calendar page and stack');
+    if ((await card.data()).canEdit) {
+      assert.equal((await card.data()).editable, false, 'Date opens in browsing mode');
+      const toolbar = await mini.evaluate(() => new Promise(resolve => {
+        const c = getCurrentPages().slice(-1)[0].selectComponent('#day-board-card');
+        c.createSelectorQuery().select('.day-board-dialog').boundingClientRect().select('#add-day-photo').boundingClientRect().select('#more-day-board').boundingClientRect().exec(resolve);
+      }));
+      for (const r of toolbar.slice(1)) assert.ok(r && r.width > 0 && r.height > 0 && r.top >= toolbar[0].top && r.bottom <= toolbar[0].bottom, 'Toolbar is visible within the card before long-press');
+      await (await card.$('#add-day-photo')).tap(); await wait(card, d => d.drawer === 'source');
+      assert.ok(await card.$('#source-camera')); assert.ok(await card.$('#source-album'));
+      await (await card.$('#close-drawer')).tap(); await wait(card, d => !d.drawer);
+      assert.equal((await card.data()).editable, false);
+      await (await card.$('#more-day-board')).tap(); await wait(card, d => d.drawer === 'selection');
+      await (await card.$('#add-from-library')).tap(); await wait(card, d => d.drawer === 'library');
+      await (await card.$('#close-drawer')).tap(); await wait(card, d => !d.drawer);
+      assert.equal((await mini.currentPage()).id, pageId); assert.equal((await mini.pageStack()).length, stack);
+      checks.push('Add and More stay visible in browsing mode and open their drawers without long-press or navigation');
+    }
     if (target.memoryId) {
       await card.callMethod('memory', { detail: { id: target.memoryId } }); await wait(card, d => d.memoryCardId === target.memoryId);
       const memory = await card.$('#memory-card'); await wait(memory, d => !!d.memory);
@@ -67,7 +84,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
       try {
         if (calendar && month) await mini.evaluate(month => {
           const p = getCurrentPages().slice(-1)[0], card = p.selectComponent('#day-board-card');
-          if (card) { if (card.data.memoryCardId) card.closeMemoryCard(); card.close(); }
+          if (card) { if (card.data.memoryCardId) card.closeMemoryCard(); if (card.data.drawer) card.closeDrawer(); card.close(); }
           p.year = month.year; p.month = month.month; p.refresh();
         }, month);
         if (before) assert.ok(JSON.stringify(await snapshot()) === JSON.stringify(before), 'Acceptance must leave records, drafts and server configuration unchanged');

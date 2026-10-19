@@ -30,6 +30,10 @@ Component({
     persist() { const saved = controller.persist.call(this); if (saved) this.notifyChange(); return saved; },
     async remove() { await controller.remove.call(this); if (!this.data.selected) this.closeDrawer(); this.notifyChange(); },
     memoryCardChanged() { this.refresh(); this.notifyChange(); },
-    openSelection() { if (this.canAdjust()) { this.cancelGesture(); this.setData({ drawer: 'selection' }); } }
+    openSelection() {
+      if (!this.data.canEdit || this.data.loading || this.data.error || this.data.drawer || this.data.memoryCardId || this.data.task || this.photoTask || this.data.placing || this.data.recovering || this.data.openingLibrary || this.mutating) return;
+      this.edit();
+      if (this.canAdjust()) { this.cancelGesture(); this.setData({ drawer: 'selection' }); }
+    }
   }
 });

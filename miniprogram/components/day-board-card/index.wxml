@@ -11,7 +11,7 @@
       <view class="day-board-stage"><felt-board id="board" layout="tall" style="height:100%;" model="{{model}}" editable="{{editable}}" can-edit="{{canEdit}}" selected="{{selected}}" covered="{{!!drawer || !!task || !!placing || !!memoryCardId}}" landing-id="{{placing.id || ''}}" bind:landingready="stickerTarget" bind:select="select" bind:edititem="editItem" bind:change="placementChanged" bind:transform="transform" bind:memory="memory" /></view>
       <view wx:if="{{saveError}}" class="error day-board-save-error">{{saveError}}<button class="ghost" bindtap="retrySave">重试保存</button></view>
       <view wx:if="{{!count}}" class="day-board-empty muted">这天还没有记忆</view>
-      <view wx:if="{{editable}}" class="row day-board-tools"><button id="add-day-photo" class="primary grow" disabled="{{task || recovering || !!placing}}" bindtap="sourceSheet">＋ 添加</button><button id="more-day-board" class="ghost" disabled="{{task || recovering || !!placing}}" bindtap="openSelection">更多</button></view>
+      <view wx:if="{{canEdit}}" class="row day-board-tools"><button id="add-day-photo" class="primary grow" disabled="{{task || recovering || !!placing}}" bindtap="sourceSheet">＋ 添加</button><button id="more-day-board" class="ghost" disabled="{{task || recovering || !!placing}}" bindtap="openSelection">更多</button></view>
     </block>
   </view>
 </view>
