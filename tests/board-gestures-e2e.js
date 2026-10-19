@@ -58,7 +58,7 @@ const output = path.resolve(__dirname, '../artifacts/board-gestures');
     let card = await page.$('#memory-card'); await wait(card, d => !!d.memory);
     await (await card.$('#close-memory-card')).tap(); await wait(page, d => !d.memoryCardId);
     await press(selector, ids[0], 850); await wait(page, d => d.editable && d.selected === ids[0]);
-    await wait(board, d => d.handles.length === 4); assert.equal((await page.data()).memoryCardId, '');
+    await wait(board, d => d.handles.length === 5); assert.equal((await page.data()).memoryCardId, '');
     const original = (await page.data()).model.items.find(item => item.memoryId === ids[0]);
     await (await board.$$('.grip'))[3].tap(); await wait(page, d => d.model.items.find(item => item.memoryId === ids[0]).width > original.width);
     await (await board.$$('.grip'))[1].tap(); await wait(page, d => d.model.items.find(item => item.memoryId === ids[0]).angle !== original.angle);

@@ -1,5 +1,6 @@
 // Read-only acceptance against current records: no fixture replacement, edits,
-// photo processing, draft recovery, API mocking or application restart.
+// photo processing, draft recovery or application restart. Deletion is always
+// canceled through a scoped showModal mock; current records are never deleted.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -9,7 +10,7 @@ const output = path.resolve(__dirname, '../artifacts/calendar-card');
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 (async () => {
-  let mini, before, calendar, month;
+  let mini, before, calendar, month, modalMocked = false;
   const checks = [];
   const snapshot = () => mini.evaluate(names => names.map(key => ({ key, exists: wx.getStorageInfoSync().keys.includes(key), value: wx.getStorageSync(key) })), keys);
   async function wait(target, predicate) {
@@ -74,6 +75,32 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
       await (await memory.$('#close-memory-card')).tap(); await wait(card, d => !d.memoryCardId);
       assert.equal((await card.data()).date, target.date); assert.equal((await mini.currentPage()).id, pageId);
       checks.push('Nested memory opens and flips in place, covers the canvas and closes back to the same day');
+      await wait(board, d => !d.covered);
+      await mini.evaluate(id => new Promise(resolve => {
+        const b = getCurrentPages().slice(-1)[0].selectComponent('#day-board-card').selectComponent('#board');
+        b.createSelectorQuery().select('.board-shell').boundingClientRect(rect => {
+          const p = b.displayModel.items.find(p => p.memoryId === id), config = require('core/config.js').board;
+          b.touchStart({ touches: [{ clientX: rect.left + (p.x + config.inset) * b.screenWidth / config.width, clientY: rect.top + (p.y + config.inset) * b.screenWidth / config.width }] }); resolve(true);
+        }).exec();
+      }), target.memoryId);
+      await wait(card, d => d.selected === target.memoryId);
+      await board.callMethod('touchEnd'); await wait(board, d => d.handles.length === 5);
+      await mini.screenshot({ path: path.join(output, 'delete-control.png') });
+      await mini.mockWxMethod('showModal', options => {
+        getCurrentPages().slice(-1)[0].acceptanceDeletePrompt = { title: options.title, confirmText: options.confirmText, cancelText: options.cancelText };
+        return { confirm: false, cancel: true };
+      }); modalMocked = true;
+      await (await board.$('.grip[data-op="remove"]')).tap();
+      for (let i = 0; i < 100; i++) {
+        if (await mini.evaluate(() => !!getCurrentPages().slice(-1)[0].acceptanceDeletePrompt)) break;
+        await pause(100);
+      }
+      assert.deepEqual(await mini.evaluate(() => getCurrentPages().slice(-1)[0].acceptanceDeletePrompt), { title: '是否删除该部件？', confirmText: '确定', cancelText: '取消' });
+      await mini.restoreWxMethod('showModal'); modalMocked = false;
+      assert.equal(await mini.evaluate(() => !!getCurrentPages().slice(-1)[0].selectComponent('#day-board-card').mutating), false);
+      assert.equal((await card.data()).selected, target.memoryId);
+      assert.ok((await card.data()).model.items.some(p => p.memoryId === target.memoryId));
+      checks.push('Long press reveals five controls; delete requests confirmation and a mocked cancel preserves the object');
     }
     await (await card.$('#close-day-board')).tap(); await wait(calendar, d => !d.boardDate);
     assert.equal((await calendar.data()).month, target.month); assert.equal((await calendar.data()).year, target.year);
@@ -82,8 +109,10 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
   } finally {
     if (mini) {
       try {
+        if (modalMocked) await mini.restoreWxMethod('showModal');
         if (calendar && month) await mini.evaluate(month => {
           const p = getCurrentPages().slice(-1)[0], card = p.selectComponent('#day-board-card');
+          delete p.acceptanceDeletePrompt;
           if (card) { if (card.data.memoryCardId) card.closeMemoryCard(); if (card.data.drawer) card.closeDrawer(); card.close(); }
           p.year = month.year; p.month = month.month; p.refresh();
         }, month);

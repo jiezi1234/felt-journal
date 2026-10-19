@@ -108,6 +108,11 @@ Component({
     },
     clearGesture() { this.gestureToken = (this.gestureToken || 0) + 1; clearTimeout(this.longTimer); this.gesture = null; this.dragModel = null; },
     touchCancel() { this.clearGesture(); this.refresh(); },
-    transform(e) { this.triggerEvent('transform', { op: e.currentTarget.dataset.op }); }
+    transform(e) {
+      if (this.dead || this.data.covered || !this.data.interactive || !this.data.canEdit || !this.data.editable || !this.data.selected || this.data.landingId) return;
+      const op = e.currentTarget.dataset.op;
+      if (op === 'remove') { this.touchCancel(); this.triggerEvent('remove', { id: this.data.selected }); }
+      else if (['ccw', 'cw', 'down', 'up'].includes(op)) this.triggerEvent('transform', { op });
+    }
   }
 });

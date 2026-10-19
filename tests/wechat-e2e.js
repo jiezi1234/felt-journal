@@ -84,7 +84,7 @@ const realService = process.env.WECHAT_EXTRACTION_ENDPOINT || '';
     } else checks.push('photo fallback -> persistent original/subject -> atomic memory/placement -> selected');
     console.log('STEP: add committed, checking four corner buttons');
     const component = await board.$('#board'); await board.waitFor(500); assert.ok(component, 'Board component must render');
-    const grips = await component.$$('.grip'); assert.equal(grips.length, 4);
+    const grips = await component.$$('.grip'); assert.equal(grips.length, 5);
     assert.equal(parseFloat(await grips[0].style('width')), 44, 'Native button defaults must not enlarge corner grips');
     const angle = data.model.items[0].angle; await grips[1].tap(); data = await wait(board, d => d.model.items[0].angle === (angle + 15) % 360); assert.equal(data.model.items[0].angle, (angle + 15) % 360);
     const width = data.model.items[0].width; await (await component.$$('.grip'))[3].tap(); data = await wait(board, d => d.model.items[0].width > width); assert.ok(data.model.items[0].width > width);

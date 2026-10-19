@@ -191,10 +191,10 @@ function createBoardEditor(options = {}) { return {
     if (!this.canAdjust() || !this.data.selected) return;
     this.cancelGesture();
     if (this.dirty && !this.persist()) return;
-    const selected = this.data.selected; this.mutating = true;
+    const selected = this.data.selected, boardId = this.date; this.mutating = true;
     try {
-      if (!await platform.confirmRemovePlacement() || this.disposed) return;
-      this.store.unplace(selected, this.date); this.draft = this.store.board(this.date); this.history.reset(this.draft); this.setData({ selected: '' }); this.refresh();
+      if (!await platform.confirmRemovePlacement() || this.disposed || this.date !== boardId) return;
+      this.store.unplace(selected, boardId); this.draft = this.store.board(boardId); this.history.reset(this.draft); this.setData({ selected: '' }); this.refresh();
     } catch (e) { if (!this.disposed) platform.toast(platform.message(e, '移除失败，请重试')); }
     finally { this.mutating = false; }
   },

@@ -46,10 +46,11 @@ test('all angles and edge moves fit inside felt, only selected item changes', ()
   }
   assert.deepEqual(f.store.board(today).placements[1], unchanged);
 });
-test('upright 44px corner handles stay visible and separated on 320-430 screens', () => {
-  for (const screen of [288, 320, 350, 390, 430]) for (const x of [-500, 0, geometry.W, 2000]) for (const y of [-500, 0, geometry.H, 2000]) {
-    const p = geometry.fit({ width: 110, height: 80, x, y, angle: 45 }); const hs = geometry.handles(p, screen).map(h => h.style.match(/[\d.]+/g).map(Number));
-    for (const [left, top] of hs) { assert.ok(left >= 0 && left + 44 <= screen + 0.001); assert.ok(top >= 0 && top + 44 <= screen * 2 / 3 + 0.001); }
+test('five 44px controls stay visible and separated for small, large and rotated edge stickers', () => {
+  for (const screen of [240, 288, 320, 350, 390, 430]) for (const height of [screen * 2 / 3, screen * 1.8]) for (const size of [110, 800]) for (const angle of [0, 45, 90]) for (const x of [-500, 0, geometry.W, 2000]) for (const y of [-500, 0, geometry.H, 2000]) {
+    const p = geometry.fit({ width: size, height: size * .7, x, y, angle }); const hs = geometry.handles(p, screen, height).map(h => h.style.match(/[\d.]+/g).map(Number));
+    assert.equal(hs.length, 5);
+    for (const [left, top] of hs) { assert.ok(left >= 0 && left + 44 <= screen + 0.001); assert.ok(top >= 0 && top + 44 <= height + 0.001); }
     for (let a = 0; a < hs.length; a++) for (let b = a + 1; b < hs.length; b++) assert.ok(Math.abs(hs[a][0] - hs[b][0]) >= 44 || Math.abs(hs[a][1] - hs[b][1]) >= 44);
   }
 });

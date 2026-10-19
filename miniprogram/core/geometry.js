@@ -42,8 +42,14 @@ function handles(p, screenWidth, screenHeight = screenWidth * B.height / B.width
   const cx = (B.inset + p.x) * s, cy = (B.inset + p.y) * s;
   const halfW = Math.max(50, e.w * s / 2 + 10), halfH = Math.max(50, e.h * s / 2 + 10);
   const clamp = (n, max) => Math.max(22, Math.min(max - 22, n));
-  const left = clamp(cx - halfW, screenWidth), right = clamp(cx + halfW, screenWidth);
+  let left = clamp(cx - halfW, screenWidth), right = clamp(cx + halfW, screenWidth);
+  // Keep room for the delete control between the two rotation controls,
+  // including small stickers against either edge of the board.
+  if (right - left < 104) {
+    const center = Math.max(74, Math.min(screenWidth - 74, (left + right) / 2));
+    left = center - 52; right = center + 52;
+  }
   const top = clamp(cy - halfH, height), bottom = clamp(cy + halfH, height);
-  return [ ['ccw', '↶', '逆时针旋转', left, top], ['cw', '↷', '顺时针旋转', right, top], ['down', '−', '缩小', left, bottom], ['up', '＋', '放大', right, bottom] ].map(a => ({ op: a[0], icon: a[1], label: a[2], style: `left:${a[3] - 22}px;top:${a[4] - 22}px;` }));
+  return [ ['ccw', '↶', '逆时针旋转', left, top], ['cw', '↷', '顺时针旋转', right, top], ['down', '−', '缩小', left, bottom], ['up', '＋', '放大', right, bottom], ['remove', '×', '删除物件', (left + right) / 2, top] ].map(a => ({ op: a[0], icon: a[1], label: a[2], style: `left:${a[3] - 22}px;top:${a[4] - 22}px;` }));
 }
 module.exports = { W, H, extent, fit, create, transform, hit, handles };

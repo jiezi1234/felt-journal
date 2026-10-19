@@ -51,9 +51,16 @@ function paintControls(ctx, handles, screenWidth) {
     const numbers = handle.style.match(/[\d.]+/g).map(Number);
     const x = (numbers[0] + 22) / scale, y = (numbers[1] + 22) / scale;
     ctx.save(); ctx.shadowColor = 'rgba(48,47,43,0.15)'; ctx.shadowBlur = 4 / scale; ctx.shadowOffsetY = 2 / scale;
-    ctx.beginPath(); ctx.arc(x, y, 21 / scale, 0, Math.PI * 2); ctx.fillStyle = '#F7F2E9'; ctx.fill();
-    ctx.shadowColor = 'transparent'; ctx.lineWidth = 1 / scale; ctx.strokeStyle = '#D9CBAF'; ctx.stroke();
-    ctx.font = `${27 / scale}px sans-serif`; ctx.fillStyle = '#4A3C2F'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(handle.icon, x, y); ctx.restore();
+    const removing = handle.op === 'remove';
+    ctx.beginPath(); ctx.arc(x, y, 21 / scale, 0, Math.PI * 2); ctx.fillStyle = removing ? '#FFF1ED' : '#F7F2E9'; ctx.fill();
+    ctx.shadowColor = 'transparent'; ctx.lineWidth = 1 / scale; ctx.strokeStyle = removing ? '#E8C1B7' : '#D9CBAF'; ctx.stroke();
+    if (removing) {
+      ctx.translate(x, y); ctx.scale(1 / scale, 1 / scale); ctx.strokeStyle = '#A44737'; ctx.lineWidth = 1.8; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      rounded(ctx, -6, -5, 12, 14, 2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-8, -7); ctx.lineTo(8, -7); ctx.moveTo(-3, -7); ctx.lineTo(-3, -10); ctx.lineTo(3, -10); ctx.lineTo(3, -7);
+      ctx.moveTo(-2, -2); ctx.lineTo(-2, 5); ctx.moveTo(2, -2); ctx.lineTo(2, 5); ctx.stroke();
+    } else { ctx.font = `${27 / scale}px sans-serif`; ctx.fillStyle = '#4A3C2F'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(handle.icon, x, y); }
+    ctx.restore();
   });
 }
 async function loadImages(canvas, items, cache, strict) {

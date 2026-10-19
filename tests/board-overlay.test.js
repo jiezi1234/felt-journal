@@ -111,3 +111,16 @@ test('read-only boards allow tap viewing but do not edit or open a card after ho
   const f = gestureFixture(t, { canEdit: false }); f.start(); t.mock.timers.tick(1000); f.board.touchEnd(); assert.deepEqual(f.events, []);
   f.start(); f.board.touchEnd(); assert.deepEqual(f.events.map(e => e.name), ['memory']); assert.equal(f.board.data.editable, false);
 });
+
+test('delete control requests removal of the selection without transforming or opening a card', t => {
+  const f = gestureFixture(t), p = f.board, tap = op => p.transform({ currentTarget: { dataset: { op } } });
+  f.start(); t.mock.timers.tick(650); p.touchEnd(); f.events.length = 0;
+  tap('remove'); assert.deepEqual(f.events, [{ name: 'remove', detail: { id: f.item.memoryId } }]);
+  f.events.length = 0;
+  for (const [key, value] of Object.entries({ covered: true, interactive: false, canEdit: false, editable: false, selected: '', landingId: 'in-flight' })) {
+    const original = p.data[key]; p.data[key] = value; tap('remove'); p.data[key] = original;
+  }
+  p.dead = true; tap('remove'); p.dead = false;
+  assert.deepEqual(f.events, []);
+  tap('cw'); assert.deepEqual(f.events, [{ name: 'transform', detail: { op: 'cw' } }]);
+});

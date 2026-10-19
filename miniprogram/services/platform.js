@@ -67,7 +67,7 @@ async function confirmDelete(count = 0) {
   return r.confirm;
 }
 async function confirmRemovePlacement() {
-  const r = await call('showModal', { title: '仅移除这处摆放？', content: '照片、文字和其他板面的摆放会保留，之后可从记忆库重新放回。', confirmText: '移除摆放', confirmColor: '#4D7D5B' }); return r.confirm;
+  const r = await call('showModal', { title: '是否删除该部件？', content: '将从当前毛毡板移除，照片、文字和其他板面的物件会保留。', confirmText: '确定', cancelText: '取消', confirmColor: '#A44737' }); return r.confirm;
 }
 function back() { if (getCurrentPages().length > 1) wx.navigateBack(); else wx.switchTab({ url: '/pages/index/index' }); }
 function syncTab(page, active, hidden = false) {

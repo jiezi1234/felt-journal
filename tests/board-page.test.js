@@ -130,3 +130,35 @@ test('long press cannot enter editing through an overlay, busy state, missing ob
   p.date = '2020-01-01'; p.editItem({ detail: { id: first } }); assert.equal(p.data.editable, false);
   assert.deepEqual(store.get(), before);
 });
+
+test('deletion waits for confirmation, cancel keeps the object, and repeated clicks open one dialog', async t => {
+  const { page: p, store, date, first, second } = fixture(t), theme = store.createTheme('delete_scope', '主题');
+  store.place(first, theme); const before = clone(store.get());
+  let answer, prompts = 0;
+  platform.confirmRemovePlacement = () => { prompts++; return new Promise(resolve => { answer = resolve; }); };
+  const canceled = p.remove(); await p.remove();
+  assert.equal(prompts, 1); assert.deepEqual(store.get(), before); assert.equal(p.mutating, true);
+  answer(false); await canceled;
+  assert.deepEqual(store.get(), before); assert.equal(p.data.selected, first); assert.equal(p.mutating, false);
+  const confirmed = p.remove(); assert.deepEqual(store.get(), before); answer(true); await confirmed;
+  assert.deepEqual(store.board(date).placements.map(p => p.memoryId), [second]);
+  assert.deepEqual(store.board(theme), before.boards[theme]); assert.deepEqual(store.get().memories, before.memories);
+  assert.equal(p.data.selected, ''); assert.equal(p.data.count, 1); assert.equal(p.mutating, false);
+});
+
+test('failed deletion retains the selected object and can be retried', async t => {
+  const f = fixture(t), before = clone(f.store.get());
+  f.fail(true); await f.page.remove();
+  assert.deepEqual(f.store.get(), before); assert.equal(f.page.data.selected, f.first); assert.equal(f.page.data.count, 2); assert.equal(f.page.mutating, false);
+  f.fail(false); await f.page.remove();
+  assert.equal(f.store.board(f.date).placements.some(p => p.memoryId === f.first), false); assert.equal(f.page.data.count, 1);
+});
+
+test('a pending confirmation cannot delete from a different or detached board', async t => {
+  const { page: p, store, date } = fixture(t), before = clone(store.get());
+  let answer; platform.confirmRemovePlacement = () => new Promise(resolve => { answer = resolve; });
+  const changedDate = p.remove(); p.date = '2020-01-01'; answer(true); await changedDate;
+  assert.deepEqual(store.get(), before);
+  p.date = date; const detached = p.remove(); p.disposed = true; answer(true); await detached;
+  assert.deepEqual(store.get(), before); assert.equal(p.mutating, false);
+});
