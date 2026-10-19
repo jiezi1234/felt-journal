@@ -15,12 +15,4 @@
     <view wx:if="{{themes.length}}" class="screen-pagination"><button id="previous-theme" class="ghost" disabled="{{page <= 1 || working}}" bindtap="previous" aria-label="上一块主题板">‹</button><text>{{page}} / {{pageCount}}</text><button id="next-theme" class="ghost" disabled="{{page >= pageCount || working}}" bindtap="next" aria-label="下一块主题板">›</button></view>
   </block>
 </view>
-<view wx:if="{{formOpen}}" class="theme-form-overlay" catchtouchmove="stop">
-  <view class="theme-form-scrim" bindtap="cancelForm" />
-  <view class="paper theme-form" role="dialog" aria-modal="true" aria-label="{{editingId ? '重命名主题板' : '新建主题板'}}">
-    <view class="section-title">{{editingId ? '重命名' : '主题名称'}}</view>
-    <input id="theme-title" class="theme-input" value="{{title}}" maxlength="{{maxTitle}}" placeholder="如：旅行、美食" disabled="{{working}}" bindinput="input" />
-    <view wx:if="{{formError}}" class="error">{{formError}}</view>
-    <view class="row"><button id="cancel-theme" class="secondary grow" disabled="{{working}}" bindtap="cancelForm">取消</button><button id="save-theme" class="primary grow" loading="{{working}}" disabled="{{working}}" bindtap="save">{{editingId ? '保存' : selecting ? '创建并放入' : '创建'}}</button></view>
-  </view>
-</view>
+<include src="./theme-form.wxml" />

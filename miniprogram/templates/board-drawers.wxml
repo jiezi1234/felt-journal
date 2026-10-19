@@ -1,14 +1,21 @@
 <view wx:if="{{drawer}}" class="drawer-veil" catchtouchmove="stop">
   <view class="drawer-scrim" bindtap="closeDrawer" />
-  <view class="drawer-sheet" role="dialog" aria-modal="true" aria-label="{{drawer === 'selection' ? '布置贴纸' : drawer === 'note' ? '写下记忆' : drawer === 'library' ? '找回当天记忆' : '添加照片'}}">
+  <view class="drawer-sheet" role="dialog" aria-modal="true" aria-label="{{drawer === 'theme' ? '主题选项' : drawer === 'selection' ? '布置贴纸' : drawer === 'note' ? '写下记忆' : drawer === 'library' ? (isTheme ? '添加记忆' : '找回当天记忆') : '添加照片'}}">
     <view class="drawer-handle" aria-hidden="true" />
-    <view class="row drawer-heading"><view class="section-title">{{drawer === 'selection' ? '布置贴纸' : drawer === 'note' ? '文字 / 分类' : drawer === 'library' ? '当天记忆' : '添加照片'}}</view><button id="close-drawer" class="ghost" aria-label="收起抽屉" bindtap="closeDrawer">收起 ⌄</button></view>
+    <view class="row drawer-heading"><view class="section-title">{{drawer === 'theme' ? '主题选项' : drawer === 'selection' ? '布置贴纸' : drawer === 'note' ? '文字 / 分类' : drawer === 'library' ? (isTheme ? '添加记忆' : '当天记忆') : '添加照片'}}</view><button id="close-drawer" class="ghost" aria-label="收起抽屉" bindtap="closeDrawer">收起 ⌄</button></view>
     <view class="drawer-scroll">
       <view class="drawer-content">
-        <view wx:if="{{drawer === 'selection'}}" class="source-actions">
+        <view wx:if="{{drawer === 'selection' || drawer === 'theme'}}" class="source-actions">
+          <block wx:if="{{!inlineTheme || (editable && selected)}}">
           <button id="edit-memory" class="secondary full" disabled="{{!selected}}" bindtap="memory">文字 / 分类</button>
           <view class="row"><button id="layer-front" class="secondary grow" data-direction="front" disabled="{{!canBringToFront}}" bindtap="layer">↑ 置顶</button><button id="layer-back" class="secondary grow" data-direction="back" disabled="{{!canSendToBack}}" bindtap="layer">↓ 置底</button></view>
-          <button id="remove-placement" class="danger full" disabled="{{!selected}}" bindtap="remove">移除摆放</button><button id="add-from-library" class="ghost full" bindtap="library">找回当天记忆</button>
+          <button id="remove-placement" class="danger full" disabled="{{!selected}}" bindtap="remove">移除摆放</button>
+          </block>
+          <button wx:if="{{!inlineTheme}}" id="add-from-library" class="ghost full" bindtap="library">找回当天记忆</button>
+          <block wx:if="{{inlineTheme}}">
+            <view class="row theme-management"><button id="rename-theme" class="ghost grow" bindtap="rename">重命名</button><button id="delete-theme" class="danger grow" bindtap="removeTheme">删除板面</button></view>
+            <button wx:if="{{count}}" id="share-theme" class="secondary full" bindtap="shareTheme">导出 / 分享 ↗</button>
+          </block>
         </view>
         <view wx:elif="{{drawer === 'source'}}" class="source-actions"><button id="source-camera" class="primary full" bindtap="camera">◎ 拍照</button><button id="source-album" class="secondary full" bindtap="album">▧ 相册</button></view>
         <block wx:elif="{{drawer === 'note'}}">
@@ -19,7 +26,7 @@
           <button id="save-record-note" class="primary full space" bindtap="saveNote">保存</button><button wx:if="{{noteError}}" class="ghost full space" bindtap="discardNote">放弃修改</button>
         </block>
         <block wx:elif="{{drawer === 'library'}}">
-          <view wx:if="{{!libraryItems.length}}" class="empty-library">暂无未摆放记忆</view>
+          <view wx:if="{{!libraryItems.length}}" class="empty-library">{{isTheme ? '暂无可添加的记忆' : '暂无未摆放记忆'}}</view>
           <button wx:for="{{visibleLibraryItems}}" wx:key="id" class="library-memory" data-id="{{item.id}}" bindtap="placeFromLibrary"><image src="{{item.path}}" mode="aspectFit" /><view><text class="muted">{{item.category}}</text><view wx:if="{{item.text}}" class="library-copy">{{item.text}}</view></view><text>＋</text></button>
           <view wx:if="{{libraryPageCount > 1}}" class="library-pagination"><button class="ghost" disabled="{{libraryPage <= 1}}" bindtap="libraryPrevious">‹</button><text>{{libraryPage}} / {{libraryPageCount}}</text><button class="ghost" disabled="{{libraryPage >= libraryPageCount}}" bindtap="libraryNext">›</button></view>
         </block>

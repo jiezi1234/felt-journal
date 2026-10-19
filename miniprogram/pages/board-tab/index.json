@@ -1,4 +1,5 @@
 {
   "navigationBarTitleText": "主题板",
+  "usingComponents": { "felt-board": "/components/felt-board/index" },
   "disableScroll": true
 }

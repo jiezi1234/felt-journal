@@ -11,7 +11,7 @@ $routes = (Get-Content -LiteralPath (Join-Path $projectRoot 'miniprogram\app.jso
 $sources = @($routes)
 $sources += @('components/felt-board/index','components/photo-panel/index','components/felt-swatch/index','components/main-nav/index','components/record-card/index','components/sticker-flight/index','custom-tab-bar/index')
 $wxml = @($sources | ForEach-Object { "$_.wxml" })
-$wxml += @('board-content','board-drawers','themes-content') | ForEach-Object { "templates/$_.wxml" }
+$wxml += @('board-content','board-drawers','themes-content','theme-form') | ForEach-Object { "templates/$_.wxml" }
 Push-Location (Join-Path $projectRoot 'miniprogram')
 try {
 & $wcc -o (Join-Path $artifactRoot 'wxml.js') @wxml

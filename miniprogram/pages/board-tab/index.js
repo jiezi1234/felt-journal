@@ -1,2 +1,2 @@
-const { createThemePage } = require('../../services/theme-page');
-Page(createThemePage({ tab: true }));
+const { createThemeBoardPage } = require('../../services/theme-board-page');
+Page(createThemeBoardPage());

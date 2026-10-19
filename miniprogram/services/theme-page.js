@@ -15,7 +15,9 @@ function createThemePage(options = {}) { return {
         id: b.id, title: b.title, color: b.color, count: b.placements.length, placed: b.placements.some(p => p.memoryId === this.memoryId),
         images: b.placements.slice(0, 3).map(p => ({ id: p.memoryId, path: state.memories[p.memoryId].subjectPath }))
       }));
-      const pageCount = Math.max(1, themes.length), page = Math.min(this.data.page, pageCount);
+      const activeIndex = options.inline ? themes.findIndex(theme => theme.id === this.activeThemeId) : -1;
+      const pageCount = Math.max(1, themes.length), page = activeIndex >= 0 ? activeIndex + 1 : Math.min(this.data.page, pageCount);
+      if (options.inline) this.activeThemeId = themes[page - 1] && themes[page - 1].id || '';
       this.setData({ themes, visibleThemes: themes.slice(page - 1, page), page, pageCount, loading: false, error: '' });
     } catch (error) { this.setData({ loading: false, error: platform.message(error, '主题板读取失败，请重试'), themes: [] }); }
   },
@@ -34,9 +36,11 @@ function createThemePage(options = {}) { return {
       if (editing) this.store.renameTheme(editing, this.data.title);
       else this.store.createTheme(this.createId, this.data.title, this.memoryId);
       const id = editing || `theme_${this.createId}`;
+      if (options.inline) this.activeThemeId = id;
       this.setData({ formOpen: false, title: '', editingId: '', page: 1 }); this.syncNavigation(); this.refresh();
       if (!editing) {
         if (this.memoryId) { platform.toast('已放入主题板'); platform.back(); }
+        else if (options.inline) this.edit();
         else await platform.call('navigateTo', { url: `/pages/board/index?board=${id}&mode=edit` });
       }
     } catch (error) { if (!this.disposed) { const message = platform.message(error, '主题板保存失败，请重试'); if (this.data.formOpen) this.setData({ formError: message }); else platform.toast(message); } }

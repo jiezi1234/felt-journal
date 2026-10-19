@@ -24,6 +24,8 @@ test('custom tab lifecycle respects open theme forms and restores navigation aft
   tabDefinition.lifetimes.attached.call(tab); assert.deepEqual(tab.data, { active: 'board', hidden: true });
   tabDefinition.pageLifetimes.show.call(tab); assert.equal(tab.data.hidden, true);
   page.data.formOpen = false; tabDefinition.pageLifetimes.show.call(tab); assert.equal(tab.data.hidden, false);
+  page.data.inlineTheme = true; page.data.drawer = 'library'; tabDefinition.pageLifetimes.show.call(tab); assert.equal(tab.data.hidden, true);
+  page.data.drawer = ''; tab.sync(); assert.equal(tab.data.hidden, false);
   page.route = 'pages/index/index'; page.data = { editorOpen: true }; tab.sync(); assert.deepEqual(tab.data, { active: 'today', hidden: true });
   page.route = 'pages/calendar/index'; page.data = {}; tab.sync(); assert.deepEqual(tab.data, { active: 'calendar', hidden: false });
 });
@@ -84,10 +86,10 @@ test('theme tab excludes daily boards, refreshes renamed themes, and does not cr
   assert.equal(page.data.themes.length, 1); assert.equal(page.store.get().boards['2099-01-02'], undefined);
 });
 
-test('theme tab opens its fixed collection as a child and prevents duplicate openings', async t => {
-  const page = boardFixture(t); page.store.createTheme('travel', '旅途'); page.refresh(); const calls = []; let finish;
-  platform.call = (method, options) => { calls.push({ method, ...options }); return new Promise(resolve => { finish = resolve; }); };
-  const first = page.open(event('theme_travel')); await page.open(event('theme_travel')); finish(); await first;
-  assert.deepEqual(calls, [{ method: 'navigateTo', url: '/pages/board/index?board=theme_travel' }]);
-  assert.equal(page.data.working, false);
+test('theme tab arranges its selected board in place without opening a child', t => {
+  const page = boardFixture(t); page.store.createTheme('travel', '旅途'); page.refresh(); const calls = [];
+  platform.call = async (method, options) => calls.push({ method, ...options });
+  const before = page.store.get(); page.open(event('theme_travel')); page.open(event('theme_travel'));
+  assert.deepEqual(calls, []); assert.equal(page.data.editable, true); assert.equal(page.data.model.id, 'theme_travel');
+  assert.deepEqual(page.store.get(), before);
 });

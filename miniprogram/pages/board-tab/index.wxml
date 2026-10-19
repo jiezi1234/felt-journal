@@ -1,1 +1,17 @@
-<include src="../../templates/themes-content.wxml" />
+<view class="page screen-page themes-page theme-board-page with-main-nav">
+  <view class="screen-header"><view class="title">主题板</view><button id="new-theme" class="primary theme-create" disabled="{{working || loading || recovering || !!error}}" bindtap="create">＋ 新建</button></view>
+  <view wx:if="{{loading}}" class="loading">加载中…</view>
+  <view wx:elif="{{error}}" class="error">{{error}}<button class="ghost" bindtap="refresh">重试读取</button></view>
+  <view wx:elif="{{!themes.length}}" class="paper empty-theme"><view class="muted">暂无主题板</view></view>
+  <block wx:else>
+    <view class="paper theme-card">
+      <view class="row theme-heading"><view class="theme-title-group"><view class="theme-name">{{dateLabel}}</view><text class="muted">{{count}} / {{maxItems}}</text></view><button wx:if="{{editable}}" id="finish-theme" class="ghost" disabled="{{recovering}}" bindtap="done">完成</button><button wx:else id="arrange-theme" class="ghost" disabled="{{recovering}}" bindtap="edit">布置</button></view>
+      <view class="theme-stage"><felt-board id="board" layout="tall" style="height:100%;" model="{{model}}" editable="{{editable}}" selected="{{selected}}" covered="{{formOpen || !!drawer}}" bind:select="select" bind:change="placementChanged" bind:transform="transform" bind:memory="memory" bind:boardtap="edit" /></view>
+    </view>
+    <view wx:if="{{saveError}}" class="error">{{saveError}}<button class="ghost" bindtap="retrySave">重试保存</button></view>
+    <view class="theme-toolbar"><button id="add-theme-memory" class="primary" disabled="{{working || recovering || count >= maxItems}}" bindtap="library">＋ 记忆</button><button id="undo-theme" class="ghost theme-history" disabled="{{!editable || !canUndo || recovering}}" bindtap="undo" aria-label="撤销布局调整">↶</button><button id="redo-theme" class="ghost theme-history" disabled="{{!editable || !canRedo || recovering}}" bindtap="redo" aria-label="重做布局调整">↷</button><button id="more-theme" class="ghost" disabled="{{working || recovering}}" bindtap="openSelection">更多</button></view>
+    <view class="screen-pagination"><button id="previous-theme" class="ghost" disabled="{{page <= 1 || working || recovering}}" bindtap="previous" aria-label="上一块主题板">‹</button><text>{{page}} / {{pageCount}}</text><button id="next-theme" class="ghost" disabled="{{page >= pageCount || working || recovering}}" bindtap="next" aria-label="下一块主题板">›</button></view>
+  </block>
+</view>
+<include src="../../templates/board-drawers.wxml" />
+<include src="../../templates/theme-form.wxml" />

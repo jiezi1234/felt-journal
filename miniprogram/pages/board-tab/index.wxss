@@ -1,1 +1,17 @@
 @import "../themes/index.wxss";
+@import "../../styles/board-editor.wxss";
+.theme-board-page .theme-card { padding:10px; gap:10px; }
+.theme-board-page .theme-heading { padding:0 4px; gap:8px; }
+.theme-title-group { min-width:0; flex:1; }
+.theme-board-page .theme-name { font-size:18px; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.theme-title-group .muted { font-size:11px; }
+.theme-heading button { min-height:44px; font-size:13px; }
+.theme-stage { flex:1; min-height:0; }
+.theme-toolbar { display:flex; flex-shrink:0; align-items:center; gap:6px; }
+.theme-toolbar .primary { flex:1; min-width:0; min-height:44px; padding:10px 12px; font-size:13px; }
+.theme-toolbar .ghost { min-width:44px; min-height:44px; padding:8px; }
+.theme-toolbar .theme-history { font-size:23px; line-height:1; }
+.theme-board-page .screen-pagination { padding-top:0; }
+.theme-management { border-top:1px solid #EEE8DE; padding-top:10px; }
+.theme-management button { font-size:13px; }
+@media (max-height:570px) { .theme-board-page { gap:4px; }.theme-board-page .screen-header { margin-bottom:0; }.theme-board-page .theme-card { gap:4px; padding:6px; }.theme-board-page .theme-name { font-size:16px; } }

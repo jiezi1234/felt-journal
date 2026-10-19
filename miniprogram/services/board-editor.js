@@ -114,7 +114,7 @@ function createBoardEditor(options = {}) { return {
     const id = e && e.detail && e.detail.id || this.data.selected; if (!id || this.photoTask || this.data.recovering) return;
     this.cancelGesture();
     if (this.dirty && !this.persist()) { platform.toast('请先重试保存当前布局'); return; }
-    if (this.data.embedded) { this.openNote(id); return; }
+    if (this.data.embedded || options.inline) { this.openNote(id); return; }
     wx.navigateTo({ url: `/pages/memory/index?id=${encodeURIComponent(id)}${this.data.isTheme ? '&from=theme' : ''}` });
   },
   async sourceSheet() {
@@ -164,9 +164,9 @@ function createBoardEditor(options = {}) { return {
     if (!this.data.canEdit || this.data.error || this.photoTask || this.data.placing || this.data.recovering || this.data.openingLibrary || this.mutating) return;
     this.cancelGesture(); if (this.dirty && !this.persist()) return;
     if (this.draft.placements.length >= config.maxItems) { platform.toast(`每块板最多 ${config.maxItems} 件记忆`); return; }
-    if (this.data.embedded) {
+    if (this.data.embedded || options.inline) {
       const used = new Set(this.draft.placements.map(p => p.memoryId));
-      const items = Object.values(this.store.get().memories).filter(m => m.date === this.date && !used.has(m.id)).sort((a,b) => b.createdAt - a.createdAt).map(m => ({ id: m.id, path: m.subjectPath, text: m.text, category: m.category }));
+      const items = Object.values(this.store.get().memories).filter(m => (this.data.isTheme || m.date === this.date) && !used.has(m.id)).sort((a,b) => b.createdAt - a.createdAt || a.id.localeCompare(b.id)).map(m => ({ id: m.id, path: m.subjectPath, text: m.text, category: m.category }));
       this.setData({ drawer: 'library', libraryItems: items, visibleLibraryItems: items.slice(0, 3), libraryPage: 1, libraryPageCount: Math.max(1, Math.ceil(items.length / 3)) }); return;
     }
     this.setData({ openingLibrary: true });
