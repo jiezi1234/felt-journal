@@ -1,11 +1,18 @@
 const serviceConfig = require('./extraction-config');
 // Backend contract: multipart photo -> { cutoutUrl, classification? }.
 // Credentials belong on that backend. Cancelling aborts the live network request.
-function network(task, invoke) {
+function network(task, invoke, local = false) {
   return new Promise((resolve, reject) => {
     let finished = false;
     const finish = (fn, result) => { if (finished) return; finished = true; task.abort = null; fn(result); };
-    const request = invoke(r => finish(resolve, r), e => finish(reject, e));
+    const request = invoke(r => finish(resolve, r), error => {
+      let failure = error;
+      if (task.cancelled) failure = new Error('处理已取消');
+      else if (local) failure = new Error(/timeout|timed out/i.test(error && (error.errMsg || error.message) || '')
+        ? '本机抠图服务响应超时，请稍后重新提取'
+        : '无法连接本机抠图服务，请启动服务后重新提取');
+      finish(reject, failure);
+    });
     task.abort = () => { request.abort(); finish(reject, new Error('处理已取消')); };
     if (task.cancelled) task.abort();
   });
@@ -19,7 +26,7 @@ async function extract(originalPath, task, onStage) {
     const request = wx.uploadFile({ url: c.endpoint, filePath: originalPath, name: 'photo', formData: { taskId: task.id }, timeout: c.timeout, success, fail });
     if (request.onProgressUpdate) request.onProgressUpdate(progress => { if (progress.progress >= 100 && !task.cancelled) onStage('extracting'); });
     return request;
-  });
+  }, c.local);
   if (uploaded.statusCode !== 200) {
     if (uploaded.statusCode === 413) throw new Error('照片过大，请选择 15 MB 以内的照片');
     if (uploaded.statusCode === 415) throw new Error('这张照片暂不支持，请使用 JPEG、PNG 或 WEBP 照片');
@@ -30,7 +37,7 @@ async function extract(originalPath, task, onStage) {
   if (!serviceConfig.acceptsResult(payload.cutoutUrl, c)) throw new Error('没有获得有效主体图片，请重试或使用原图');
   if (task.cancelled) throw new Error('处理已取消');
   onStage('extracting');
-  const downloaded = await network(task, (success, fail) => wx.downloadFile({ url: payload.cutoutUrl, timeout: c.timeout, success, fail }));
+  const downloaded = await network(task, (success, fail) => wx.downloadFile({ url: payload.cutoutUrl, timeout: c.timeout, success, fail }), c.local);
   if (downloaded.statusCode !== 200) throw new Error('主体图片下载失败，请重新提取');
   task.classification = payload.classification || null;
   return downloaded.tempFilePath;

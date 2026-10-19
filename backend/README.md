@@ -65,6 +65,22 @@ npm run test:e2e
 
 选图返回使用公开照片作为测试输入；`wx.uploadFile`、真实 CPU 模型、`wx.downloadFile`、持久文件、记忆提交和重新打开均为真实执行。报告为 `artifacts/wechat-real-extraction-e2e.json`。当前机器本地服务已运行，开发者工具本机开关已启用；重启电脑后需重新启动 Python 服务。
 
+### 本机服务停止后的恢复
+
+开发者工具会保留本机接口地址，但不会自动启动 Python 服务。电脑重启或服务退出后，端口无人监听会导致照片提取失败；重新编译前端不能代替启动后端。现在本机连接失败与处理超时会分别提示，原图仍由用户明确选择保留。
+
+先核对已启用开关的端口，再用相同端口启动服务。例如本机开关为 `http://127.0.0.1:8788/extract` 时，在项目根目录执行并保持该服务运行：
+
+```powershell
+$env:FELT_PUBLIC_BASE_URL = 'http://127.0.0.1:8788'
+$env:FELT_MODEL = 'nosh-mnn'
+backend/.venv/Scripts/python.exe -m uvicorn backend.app:app --host 127.0.0.1 --port 8788
+```
+
+`FELT_PUBLIC_BASE_URL` 与监听端口必须一致，否则上传可能成功而主体下载失败。若要改用默认 8787 端口，先启动对应服务，再运行 `npm run dev:extraction` 更新本机开关；未改端口时，启动服务后直接点击“重新提取”即可。此流程仅恢复开发者工具联调，手机仍需要正式 HTTPS 服务。
+
+2026-10-19 实测恢复：开发者工具开关指向 8788，该端口最初拒绝连接。恢复本机 `nosh-mnn` 后，公开动物样例通过真实模型上传与下载，返回 938×454 RGBA PNG；另在微信运行环境执行真实 `wx.uploadFile` 和 `wx.downloadFile`，两者均返回 200，解码检查 alpha 为 0–255。网络检查只创建并清理测试文件，未修改记忆记录或切换用户页面。
+
 ## nosh 模型离线部署
 
 Compose 与 Docker 默认选择 `nosh-mnn`，构建镜像不含 APK 或模型权重。先在本机运行上面的导入工具，再将校验后的模型导入服务器持久卷：
