@@ -1,5 +1,5 @@
 const automator = require('miniprogram-automator');
-const { DEVELOPMENT_KEY: key, supportsLocalStickers } = require('../miniprogram/services/extraction-config');
+const { DEVELOPMENT_KEY: key, SERVER_DEVELOPMENT_KEY: serverKey, supportsLocalStickers } = require('../miniprogram/services/extraction-config');
 (async () => {
   const off = process.argv.includes('--off'), endpoint = process.env.WECHAT_EXTRACTION_ENDPOINT || 'http://127.0.0.1:8787/extract';
   if (!off) {
@@ -13,6 +13,7 @@ const { DEVELOPMENT_KEY: key, supportsLocalStickers } = require('../miniprogram/
   try {
     const info = await mini.systemInfo(); if (info.platform !== 'devtools') throw new Error('此开关仅用于开发者工具');
     await mini.evaluate((key, value) => value ? wx.setStorageSync(key, value) : wx.removeStorageSync(key), key, off ? '' : endpoint);
+    if (!off) await mini.evaluate(key => wx.removeStorageSync(key), serverKey);
     await mini.reLaunch('/pages/index/index');
     console.log(off ? '本机提取已关闭' : '开发者工具已连接本机真实提取服务；手机预览不使用此开关');
   } finally { mini.disconnect(); }

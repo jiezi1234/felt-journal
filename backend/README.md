@@ -42,7 +42,47 @@ backend/.venv/Scripts/python.exe -m backend.verify_nosh path/to/photo.jpg
 4. 修改 `miniprogram/core/config.js` 的 `extraction`：`mode: 'remote'`，`endpoint: 'https://你的域名/extract'`。不要将供应商密钥写入小程序。
 5. 开发工具当前私有配置关闭了 URL 校验；正式验收须重新开启校验后在手机上测试。localhost、局域网 HTTP 和本地测试通过都不能替代 HTTPS 真机接通。
 
-2026-10-16 后端已切换至 `nosh-mnn` 并完成服务器内部真实推理及重启验收，公网域名解析、ICP备案、HTTPS 签发及微信域名配置尚未完成，小程序仍保持 `unconfigured`。它会如实显示提取尚未配置，并允许明确选择使用原图；不会把矩形原图标记为提取成功。
+2026-10-19 已接通下面的服务器 IP 开发接口，当前开发者工具使用服务器处理照片。正式配置仍保持 `unconfigured`；域名解析、ICP备案、HTTPS 签发及微信合法域名的上线验收尚未完成。没有显式开发配置的客户端会显示提取尚未配置，并允许明确选择使用原图。
+
+## 服务器 IP 开发调试（当前使用）
+
+当前接口为 `http://82.157.170.254/extract`，运行在腾讯云 Ubuntu 服务器；本机 Python 已停止，开发者工具仍可真实上传、抠图和下载。Docker 随服务器启动，容器配置 `restart: unless-stopped`；手动停止容器后应使用以下命令恢复，不要只运行基础 Compose 而遗漏开发覆盖文件。
+
+服务器 `/opt/felt-journal/backend/.env.development` 保存开发环境变量，权限为 600，不进入 Git：
+
+```dotenv
+FELT_DEV_ORIGIN=http://服务器公网IPv4
+FELT_DEV_PORT=80
+FELT_DEVELOPMENT_TOKEN=使用随机生成的32至128位URL安全字符
+```
+
+当前部署还在私有环境中指定 `FELT_DEV_IMAGE=felt-extractor-development:20261019`，使用已验证的镜像；新机器可省略此项并从完整源码构建。`FELT_DEV_ORIGIN` 的端口必须与 `FELT_DEV_PORT` 一致；默认 80 可以在地址中省略。基础 `.env` 中的 `FELT_DOMAIN` 仍保留未来正式域名。
+
+服务器启动或更新（必须同时指定两份环境和 Compose 文件）：
+
+```sh
+cd /opt/felt-journal
+docker compose --env-file backend/.env --env-file backend/.env.development \
+  -f backend/compose.yaml -f backend/compose.development.yaml up -d --build --wait extractor
+```
+
+已有已验证镜像时，用 `--no-build` 替换 `--build`。如未来启用 HTTPS，先停止开发部署，再仅使用基础 Compose 的 `public` profile；开发接口与 HTTPS 网关都会占用 80 端口，不能同时启动。基础配置恢复后不携带开发令牌，也不开放 IP HTTP 入口。
+
+开发接口要求上传和下载都带 `Authorization: Bearer <开发令牌>`；未授权返回 401，`/health` 保留无凭证健康检查。只有设置有效随机令牌时，后端才允许公开 IPv4 HTTP 地址。令牌只用于有限范围的开发联调；HTTP 不加密照片与令牌，正式使用须切换 HTTPS 及正式鉴权。
+
+本机被 Git 忽略的 `backend/.env.development` 保存相同 origin 和令牌。微信开发者工具开启自动化和“不校验合法域名、TLS 版本以及 HTTPS 证书”后，在项目根目录执行：
+
+```powershell
+npm run dev:server
+# 使用允许上传的测试照片验证完整链路，不创建或修改手账记录
+npm run test:server -- path/to/test-photo.jpg
+```
+
+连接命令会先检查服务器模型版本和凭证，再把配置写入当前开发者工具的本地存储，并移除旧的本机接口配置；不会跳转用户页面。存储保留时，重启电脑或开发工具无需再次运行，也无需启动本机 Python。清空开发工具存储后需重新执行 `npm run dev:server`。关闭此开发配置用 `npm run dev:server -- --off`。
+
+开发配置仅对 `envVersion=develop` 生效；体验版和正式版始终忽略它，下载仅允许返回到同一服务器 origin 的随机 PNG 路径。**当前已配置、验收的是开发者工具，手机配置尚未同步，不能直接把扫码预览视为已接通。** 手机开发联调还需独立配置开发凭证、开启微信调试；正式真机验收仍须 HTTPS 和微信合法域名。
+
+2026-10-19 验收：服务器候选容器真实推理通过；公网未授权上传和候选容器未授权下载均返回 401。已编译的小程序通过自身提取适配器执行真实 `wx.uploadFile` 和 `wx.downloadFile`，获得 938×454、alpha 0–255 的 RGBA PNG，并自动分类为“自然”。停止本机 8788 服务并重启服务器容器后再次通过，样例全流程约 0.94 秒；这不是并发或任意网络下的性能保证。服务器状态 healthy、无 OOM、Docker 开机启动已启用，容器重启策略为 unless-stopped。报告仅保存在被忽略的 `artifacts/server-extraction-verification.json`。
 
 ## 小程序本机真实联网调试
 
@@ -52,7 +92,7 @@ backend/.venv/Scripts/python.exe -m backend.verify_nosh path/to/photo.jpg
 npm run dev:extraction
 ```
 
-这会为当前开发者工具设置显式本机服务开关；只有 `platform=devtools` 且 `envVersion=develop` 时允许访问 `127.0.0.1:8787`。手机、体验版和发布版均忽略该设置，返回到正式 HTTPS 配置。下载只允许同一个回环地址下的随机 PNG 令牌路径。
+这会为当前开发者工具设置显式本机服务开关，并移除服务器开发配置；只有 `platform=devtools` 且 `envVersion=develop` 时允许访问 `127.0.0.1:8787`。手机、体验版和发布版均忽略本机开关。下载只允许同一个回环地址下的随机 PNG 令牌路径。
 
 启用前会检查 `model: nosh-mnn` 和 `stickerStyle: nosh-white-v1`，仅有 `status: ok` 的旧进程会被拒绝。更新 Python 后端文件或服务器不会自动更新已经运行的本机进程；须重启本机服务后再运行本命令。开发工具已保存的旧照片也不会因后端更新而改变，需要重新提取才能获得新白边。
 
@@ -63,7 +103,7 @@ $env:WECHAT_EXTRACTION_ENDPOINT='http://127.0.0.1:8787/extract'
 npm run test:e2e
 ```
 
-选图返回使用公开照片作为测试输入；`wx.uploadFile`、真实 CPU 模型、`wx.downloadFile`、持久文件、记忆提交和重新打开均为真实执行。报告为 `artifacts/wechat-real-extraction-e2e.json`。当前机器本地服务已运行，开发者工具本机开关已启用；重启电脑后需重新启动 Python 服务。
+选图返回使用公开照片作为测试输入；`wx.uploadFile`、真实 CPU 模型、`wx.downloadFile`、持久文件、记忆提交和重新打开均为真实执行。报告为 `artifacts/wechat-real-extraction-e2e.json`。只有选择本机模式时，重启电脑后才需重新启动 Python；当前使用上面的服务器开发模式。
 
 ### 本机服务停止后的恢复
 
@@ -79,7 +119,7 @@ backend/.venv/Scripts/python.exe -m uvicorn backend.app:app --host 127.0.0.1 --p
 
 `FELT_PUBLIC_BASE_URL` 与监听端口必须一致，否则上传可能成功而主体下载失败。若要改用默认 8787 端口，先启动对应服务，再运行 `npm run dev:extraction` 更新本机开关；未改端口时，启动服务后直接点击“重新提取”即可。此流程仅恢复开发者工具联调，手机仍需要正式 HTTPS 服务。
 
-2026-10-19 实测恢复：开发者工具开关指向 8788，该端口最初拒绝连接。恢复本机 `nosh-mnn` 后，公开动物样例通过真实模型上传与下载，返回 938×454 RGBA PNG；另在微信运行环境执行真实 `wx.uploadFile` 和 `wx.downloadFile`，两者均返回 200，解码检查 alpha 为 0–255。网络检查只创建并清理测试文件，未修改记忆记录或切换用户页面。
+2026-10-19 早前的本机恢复记录：开发者工具开关曾指向 8788，该端口最初拒绝连接。恢复本机 `nosh-mnn` 后，公开动物样例通过真实模型上传与下载，返回 938×454 RGBA PNG；另在微信运行环境执行真实 `wx.uploadFile` 和 `wx.downloadFile`，两者均返回 200，解码检查 alpha 为 0–255。网络检查只创建并清理测试文件，未修改记忆记录或切换用户页面。同日后续已切换服务器模式并停止本机服务。
 
 ## nosh 模型离线部署
 

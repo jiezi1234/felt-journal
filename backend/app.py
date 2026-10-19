@@ -6,9 +6,11 @@ For a phone deployment set FELT_PUBLIC_BASE_URL=https://your-domain.example.
 from __future__ import annotations
 
 import io
+import ipaddress
 import logging
 import os
 import re
+import secrets
 import threading
 import time
 import uuid
@@ -16,9 +18,10 @@ import warnings
 from email import policy
 from email.parser import BytesParser
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from PIL import Image, ImageOps, UnidentifiedImageError
 from starlette.concurrency import run_in_threadpool
 from backend.classification import PhotoClassifier
@@ -103,16 +106,37 @@ def decode_photo(data: bytes) -> Image.Image:
         raise HTTPException(415, '请选择 24 百万像素以内的 JPEG、PNG 或 WEBP 照片') from error
 
 
-def create_app(extractor=None, output_dir=None, public_base=None, classifier=None):
+def create_app(extractor=None, output_dir=None, public_base=None, classifier=None, development_token=None):
     service = FastAPI(title='毛毡手账主体提取', version='1.0.0')
     engine = extractor or SubjectExtractor()
     category_engine = classifier if classifier is not None else PhotoClassifier()
     output = Path(output_dir) if output_dir else RUNTIME / 'cutouts'
     output.mkdir(parents=True, exist_ok=True)
     base = (public_base or os.getenv('FELT_PUBLIC_BASE_URL', 'http://127.0.0.1:8787')).rstrip('/')
-    if not (base.startswith('https://') or base.startswith('http://127.0.0.1:')):
-        raise ValueError('FELT_PUBLIC_BASE_URL must be HTTPS (loopback allowed for local tests)')
+    token = development_token if development_token is not None else os.getenv('FELT_DEVELOPMENT_TOKEN', '')
+    if token and not re.fullmatch(r'[A-Za-z0-9_-]{32,128}', token):
+        raise ValueError('Development access requires a random token of 32–128 URL-safe characters')
+    parsed = urlsplit(base)
+    try:
+        ipv4 = ipaddress.IPv4Address(parsed.hostname or '')
+    except ValueError:
+        ipv4 = None
+    valid_origin = parsed.hostname and not (parsed.username or parsed.password or parsed.path or parsed.query or parsed.fragment)
+    valid_port = parsed.port is None or 0 < parsed.port <= 65535
+    allowed_http = parsed.scheme == 'http' and ipv4 and (str(ipv4) == '127.0.0.1' or token)
+    if not (valid_origin and valid_port and (parsed.scheme == 'https' or allowed_http)):
+        raise ValueError('Use an HTTPS origin; HTTP IPv4 development requires FELT_DEVELOPMENT_TOKEN')
     lock = threading.Lock()
+
+    @service.middleware('http')
+    async def development_access(request: Request, call_next):
+        # A development token protects both inference and the temporary photos.
+        # Health stays public so Docker can probe without embedding credentials.
+        if token and request.url.path != '/health':
+            supplied = request.headers.get('authorization', '').encode()
+            if not secrets.compare_digest(supplied, f'Bearer {token}'.encode()):
+                return JSONResponse({'detail': '开发接口访问凭证无效'}, status_code=401)
+        return await call_next(request)
 
     def prune():
         threshold = time.time() - TTL_SECONDS
@@ -126,7 +150,7 @@ def create_app(extractor=None, output_dir=None, public_base=None, classifier=Non
     @service.get('/health')
     def health():
         prune()
-        return {'status': 'ok', 'model': getattr(engine, 'model_name', os.getenv('FELT_MODEL', DEFAULT_MODEL)), 'modelLoaded': getattr(engine, 'session', None) is not None,
+        return {**({'developmentAccess': True} if token else {}), 'status': 'ok', 'model': getattr(engine, 'model_name', os.getenv('FELT_MODEL', DEFAULT_MODEL)), 'modelLoaded': getattr(engine, 'session', None) is not None,
                 'stickerStyle': getattr(engine, 'sticker_style', None),
                 'classificationEnabled': getattr(category_engine, 'enabled', bool(category_engine)),
                 'classificationLoaded': getattr(category_engine, 'session', None) is not None}

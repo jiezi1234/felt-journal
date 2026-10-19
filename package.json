@@ -15,6 +15,8 @@
     "test:record": "node tests/record-card-e2e.js",
     "test:recognition": "node tests/recognition-e2e.js",
     "dev:extraction": "node scripts/local-extraction.js",
+    "dev:server": "node scripts/server-extraction.js",
+    "test:server": "node scripts/verify-server-extraction.js",
     "test:layout": "node tests/screen-layout-e2e.js"
   },
   "devDependencies": {

@@ -53,6 +53,35 @@ class BackendTests(unittest.TestCase):
         self.assertEqual(self.client.post('/extract', content=b'bad').status_code, 415)
         self.assertEqual(self.client.get('/cutouts/not-a-token.png').status_code, 404)
 
+    def test_http_development_requires_token_and_protects_photos(self):
+        token = 'd' * 43
+        args = dict(extractor=lambda image: image.convert('RGBA'), output_dir=self.directory.name,
+                    public_base='http://192.0.2.10', classifier=False)
+        with self.assertRaises(ValueError):
+            create_app(**args, development_token='')
+        with self.assertRaises(ValueError):
+            create_app(**args, development_token='too-short')
+        with TestClient(create_app(**args, development_token=token)) as client:
+            self.assertTrue(client.get('/health').json()['developmentAccess'])
+            for auth in ['', 'Bearer wrong', 'Bearer ' + token + 'x']:
+                response = client.post('/extract', files={'photo': ('a.jpg', self.photo())}, headers={'Authorization': auth})
+                self.assertEqual(response.status_code, 401)
+                self.assertNotIn(token, response.text)
+            headers = {'Authorization': f'Bearer {token}'}
+            response = client.post('/extract', files={'photo': ('a.jpg', self.photo())}, headers=headers)
+            self.assertEqual(response.status_code, 200)
+            url = response.json()['cutoutUrl']
+            self.assertTrue(url.startswith('http://192.0.2.10/cutouts/'))
+            self.assertEqual(client.get(url).status_code, 401)
+            self.assertEqual(client.get(url, headers=headers).status_code, 200)
+
+    def test_public_base_cannot_contain_paths_credentials_or_fake_loopback(self):
+        for base in ['http://127.0.0.1:80@evil.example', 'http://example.com',
+                     'http://192.0.2.10/path', 'https://felt.example?x=1', 'http://192.0.2.10:0',
+                     'http://192.0.2.10:99999', 'https:///missing-host']:
+            with self.subTest(base=base), self.assertRaises(ValueError):
+                create_app(public_base=base, output_dir=self.directory.name, development_token='d' * 43)
+
     def test_inference_failure_and_retry_releases_lock(self):
         def broken(image):
             raise RuntimeError('fake internal path or secret')

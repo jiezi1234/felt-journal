@@ -27,3 +27,24 @@ test('local preview rejects a healthy obsolete extractor without white sticker s
   assert.equal(service.supportsLocalStickers({ status: 'ok', model: 'nosh-mnn', stickerStyle: 'nosh-white-v1', modelLoaded: false }), true);
   assert.equal(service.supportsLocalStickers(null), false);
 });
+
+test('server development requires explicit credentials and is ignored in trial/release', t => {
+  const original = global.wx; t.after(() => { global.wx = original; });
+  const value = { endpoint: 'http://192.0.2.10/extract', token: 'd'.repeat(43) };
+  for (const platform of ['ios', 'android', 'devtools']) for (const env of ['develop', 'trial', 'release']) {
+    global.wx = { getSystemInfoSync: () => ({ platform }), getAccountInfoSync: () => ({ miniProgram: { envVersion: env } }),
+      getStorageSync: key => key === service.SERVER_DEVELOPMENT_KEY ? value : '' };
+    const resolved = service.resolve();
+    assert.equal(!!resolved.developmentServer, env === 'develop');
+    assert.equal(resolved.local, false);
+    if (env === 'develop') {
+      assert.equal(resolved.header.Authorization, 'Bearer ' + value.token);
+      assert.ok(service.acceptsResult('http://192.0.2.10/cutouts/' + 'a'.repeat(32) + '.png', resolved));
+      for (const url of ['http://192.0.2.11/cutouts/' + 'a'.repeat(32) + '.png', 'https://evil.example/a.png', 'http://192.0.2.10/cutouts/../secret']) assert.equal(service.acceptsResult(url, resolved), false);
+    } else { assert.equal(resolved.endpoint, config.extraction.endpoint); assert.equal(resolved.header, undefined); }
+  }
+  for (const endpoint of ['http://evil.example/extract', 'http://192.0.2.10:99999/extract', 'http://192.0.2.10/extract?x=1', 'http://256.0.0.1/extract', 'http://127.0.0.1:8788/extract', 'http://192.0.2.01/extract']) {
+    assert.equal(service.validServerDevelopment({ ...value, endpoint }), false);
+  }
+  assert.equal(service.validServerDevelopment({ ...value, token: '' }), false);
+});

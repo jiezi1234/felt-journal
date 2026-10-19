@@ -5,3 +5,5 @@ backend/.venv/
 backend/.runtime/
 backend/**/__pycache__/
 backend/.env
+backend/.env.*
+!backend/.env.example
