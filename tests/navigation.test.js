@@ -4,14 +4,29 @@ const platform = require('../miniprogram/services/platform');
 const dates = require('../miniprogram/core/date');
 const config = require('../miniprogram/core/config');
 const { createStore, clone } = require('../miniprogram/core/store');
-let navDefinition, boardDefinition;
+let navDefinition, boardDefinition, tabDefinition;
 global.Component = value => { navDefinition = value; };
 require('../miniprogram/components/main-nav/index');
+global.Component = value => { tabDefinition = value; };
+require('../miniprogram/custom-tab-bar/index');
 delete global.Component;
 global.Page = value => { boardDefinition = value; };
 require('../miniprogram/pages/board-tab/index');
 delete global.Page;
 const event = id => ({ currentTarget: { dataset: { id } } });
+
+test('custom tab lifecycle respects open theme forms and restores navigation after dismissal', t => {
+  const originalPages = global.getCurrentPages;
+  t.after(() => { global.getCurrentPages = originalPages; });
+  const page = { route: 'pages/board-tab/index', data: { formOpen: true } };
+  global.getCurrentPages = () => [page];
+  const tab = { ...tabDefinition.methods, data: clone(tabDefinition.data), setData(value) { Object.assign(this.data, value); } };
+  tabDefinition.lifetimes.attached.call(tab); assert.deepEqual(tab.data, { active: 'board', hidden: true });
+  tabDefinition.pageLifetimes.show.call(tab); assert.equal(tab.data.hidden, true);
+  page.data.formOpen = false; tabDefinition.pageLifetimes.show.call(tab); assert.equal(tab.data.hidden, false);
+  page.route = 'pages/index/index'; page.data = { editorOpen: true }; tab.sync(); assert.deepEqual(tab.data, { active: 'today', hidden: true });
+  page.route = 'pages/calendar/index'; page.data = {}; tab.sync(); assert.deepEqual(tab.data, { active: 'calendar', hidden: false });
+});
 
 function navFixture(t, route) {
   const original = { ...platform }, originalPages = global.getCurrentPages;
