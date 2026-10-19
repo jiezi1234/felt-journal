@@ -75,7 +75,7 @@ const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-
     s = await call('transform', { detail: { op: 'cw' } }); assert.notEqual(s.data.model.items[0].angle, angle);
     s = await call('undo'); assert.equal(s.data.model.items[0].angle, angle);
     s = await call('redo'); assert.notEqual(s.data.model.items[0].angle, angle);
-    await call('openSelection'); await inspect('selected memory and theme actions', ['.drawer-sheet', '#edit-memory', '#layer-front', '#remove-placement', '#rename-theme', '#delete-theme', '#share-theme'], false);
+    await call('openSelection'); await inspect('selected memory and theme actions', ['.drawer-sheet', '#edit-memory', '#layer-front', '#remove-placement', '#rename-theme', '#delete-theme'], false);
     await call('memory'); await inspect('memory card front', ['.memory-card-dialog', '#flip-card', '#card-photo'], false, '#memory-card');
     await mini.evaluate(() => { const c = getCurrentPages().slice(-1)[0].selectComponent('#memory-card'); c.flip(); c.edit(); c.input({ detail: { value: '留在这块主题板上的小记忆' } }); }); await pause(500);
     await inspect('memory card back editor', ['#card-note-input', '#save-card-note', '#cancel-card-note'], false, '#memory-card');
@@ -88,7 +88,7 @@ const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-
     await call('create'); await call('input', { detail: { value: '第二块主题板' } }); s = await call('save'); const second = s.data.date;
     assert.notEqual(first, second); assert.equal(s.data.count, 0); assert.equal(s.data.canUndo, false);
     s = await call('open', event(first)); assert.equal(s.data.count, 1); assert.equal(s.data.canUndo, false); assert.equal(s.data.selected, '');
-    await call('done'); await inspect('completed board stays in place', ['.theme-stage', '#arrange-theme', '#add-theme-memory'], true);
+    await call('done'); await inspect('completed board stays in place', ['.theme-stage', '#share-theme', '#add-theme-memory'], true);
     assert.ok(checks.at(-1).rects[0].height >= initialRect.height, 'completing arrangement keeps the board space');
     const saved = JSON.parse((await snapshot())[0].value); assert.deepEqual(saved.boards[dates.key()], daily);
     assert.equal(Object.keys(saved.boards).filter(id => id.startsWith('theme_')).length, 2);

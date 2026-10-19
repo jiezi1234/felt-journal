@@ -69,7 +69,7 @@ const output = path.resolve(__dirname, '../artifacts/screen-layout-e2e.json');
     store.commit(state => { state.localNoticeSeen = true; });
     await mini.evaluate((keys, value) => { keys.forEach(key => wx.removeStorageSync(key)); wx.setStorageSync(keys[0], value); }, keys, disk[keys[0]]);
     await mini.evaluate(() => wx.reLaunch({ url: '/pages/index/index' })); await pause(700);
-    const home = await inspect('today', ['.today-stage', '#record-today', '#arrange-today', '.today-sheet', '.sheet-binding']);
+    const home = await inspect('today', ['.today-stage', '#record-today', '#export-today', '.today-sheet', '.sheet-binding']);
     assert.ok(home.rects[0].height > home.rects[0].width, 'home board should use the portrait space');
     assert.ok(home.rects[3].left < home.rects[4].left && home.rects[4].right < home.rects[0].left, 'notebook binding stays beside the board');
     assert.ok(home.rects[0].bottom < home.rects[3].bottom && home.rects[3].bottom < home.rects[1].top, 'board stays inside the paper; add button stays outside');

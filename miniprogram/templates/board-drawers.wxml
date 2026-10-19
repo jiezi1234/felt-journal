@@ -14,7 +14,6 @@
           <button wx:if="{{!inlineTheme}}" id="add-from-library" class="ghost full" bindtap="library">找回当天记忆</button>
           <block wx:if="{{inlineTheme}}">
             <view class="row theme-management"><button id="rename-theme" class="ghost grow" bindtap="rename">重命名</button><button id="delete-theme" class="danger grow" bindtap="removeTheme">删除板面</button></view>
-            <button wx:if="{{count}}" id="share-theme" class="secondary full" bindtap="shareTheme">导出 / 分享 ↗</button>
           </block>
         </view>
         <view wx:elif="{{drawer === 'source'}}" class="source-actions"><button id="source-camera" class="primary full" bindtap="camera">◎ 拍照</button><button id="source-album" class="secondary full" bindtap="album">▧ 相册</button><button wx:if="{{isTheme}}" id="source-library" class="ghost full" bindtap="library">从记忆库添加</button></view>
