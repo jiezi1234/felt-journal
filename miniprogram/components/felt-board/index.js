@@ -4,11 +4,12 @@ const B = require('../../core/config').board;
 const stickerMotion = require('../../core/sticker-motion');
 const viewport = require('../../core/board-viewport');
 Component({
-  properties: { model: { type: Object, value: null }, layout: String, editable: Boolean, selected: String, covered: Boolean, landingId: String, tapOpensMemory: Boolean, interactive: { type: Boolean, value: true } },
+  properties: { model: { type: Object, value: null }, layout: String, editable: Boolean, canEdit: Boolean, selected: String, covered: Boolean, landingId: String, interactive: { type: Boolean, value: true } },
   data: { height: 210, width: 0, handles: [], imageError: false, snapshot: '' },
-  observers: { 'model, editable, selected, covered, landingId': function () { this.refresh(); if (this.data.layout) wx.nextTick(() => this.measure()); }, layout() { this.measure(); } },
-  lifetimes: { ready() { this.measure(); }, detached() { this.dead = true; clearTimeout(this.longTimer); } },
-  pageLifetimes: { resize() { this.measure(); }, show() { if (this.canvas) this.refresh(); } },
+  observers: { 'model, editable, selected, covered, landingId': function () { this.refresh(); if (this.data.layout) wx.nextTick(() => this.measure()); },
+    'covered, interactive': function () { if (this.data.covered || !this.data.interactive) this.touchCancel(); }, layout() { this.measure(); } },
+  lifetimes: { ready() { this.measure(); }, detached() { this.dead = true; this.clearGesture(); } },
+  pageLifetimes: { resize() { this.touchCancel(); this.measure(); }, hide() { this.touchCancel(); }, show() { if (this.canvas) this.refresh(); } },
   methods: {
     stop() {},
     measure() {
@@ -61,43 +62,52 @@ Component({
     },
     point(touch) { return { x: (touch.clientX - this.rect.left) * B.width / this.screenWidth - B.inset, y: (touch.clientY - this.rect.top) * B.width / this.screenWidth - B.inset }; },
     touchStart(e) {
-      if (this.data.covered || !this.data.interactive || !this.data.model || !e.touches[0]) return;
-      const touch = e.touches[0]; this.gestureToken = (this.gestureToken || 0) + 1; const token = this.gestureToken;
+      this.clearGesture();
+      if (this.dead || this.data.covered || !this.data.interactive || !this.data.model || e.touches.length !== 1) return;
+      const touch = e.touches[0], token = this.gestureToken;
+      const g = this.gesture = { touch, moved: false, long: false, pending: true };
       this.createSelectorQuery().select('.board-shell').boundingClientRect(rect => {
-        if (!rect || token !== this.gestureToken) return;
+        if (!rect || this.dead || token !== this.gestureToken) return;
         this.rect = rect;
         const point = this.point(touch), hit = ((this.displayModel || this.data.model).items || []).slice().reverse().find(p => geometry.hit(p, point.x, point.y));
         const item = hit && this.data.model.items.find(p => p.id === hit.id);
-        this.gesture = { point, item, moved: false, long: false };
-        if (this.data.editable && item) {
-          this.triggerEvent('select', { id: item.memoryId });
-          this.longTimer = setTimeout(() => { if (this.gesture && !this.gesture.moved) { this.gesture.long = true; this.triggerEvent('memory', { id: item.memoryId }); } }, 650);
+        Object.assign(g, { point, item, pending: false, draggable: this.data.editable && item && this.data.selected === item.memoryId });
+        if (g.ended) { this.touchEnd(); return; }
+        if (item && !g.moved) {
+          this.longTimer = setTimeout(() => {
+            if (this.dead || token !== this.gestureToken || g.moved || this.data.covered || !this.data.interactive) return;
+            // Consume the press before notifying the page, so release cannot open a card.
+            g.long = true;
+            if (this.data.canEdit) this.triggerEvent('edititem', { id: item.memoryId });
+          }, 650);
         }
       }).exec();
     },
     touchMove(e) {
-      const g = this.gesture; if (!g || !e.touches[0]) return;
+      if (e.touches.length !== 1 || this.data.covered || !this.data.interactive) { this.touchCancel(); return; }
+      const g = this.gesture; if (!g) return;
+      if (Math.hypot(e.touches[0].clientX - g.touch.clientX, e.touches[0].clientY - g.touch.clientY) > 6) { g.moved = true; clearTimeout(this.longTimer); }
+      if (!g.point) return;
       const point = this.point(e.touches[0]), dx = point.x - g.point.x, dy = point.y - g.point.y;
-      if (Math.hypot(dx, dy) * this.screenWidth / B.width > 6) { g.moved = true; clearTimeout(this.longTimer); }
-      if (!g.moved || !g.item || !this.data.editable || g.long) return;
+      if (!g.moved || !g.item || !this.data.editable || this.data.selected !== g.item.memoryId || !(g.draggable || g.long)) return;
       const ratio = this.data.layout === 'tall' ? viewport.verticalRatio(this.screenWidth, this.data.height) : 1;
       const next = geometry.fit(Object.assign({}, g.item, { x: g.item.x + dx, y: g.item.y + dy / ratio }));
       g.next = next; this.dragModel = Object.assign({}, this.data.model, { items: this.data.model.items.map(p => p.id === next.id ? next : p) }); this.refresh();
     },
     touchEnd() {
-      this.gestureToken = (this.gestureToken || 0) + 1; clearTimeout(this.longTimer);
-      const g = this.gesture; this.gesture = null; this.dragModel = null; if (!g) return;
+      const g = this.gesture;
+      if (g && g.pending) { g.ended = true; return; }
+      this.clearGesture();
+      if (!g || this.dead || this.data.covered || !this.data.interactive) return;
       if (g.next) this.triggerEvent('change', { placement: g.next });
       else if (!g.moved && !g.long) {
-        if (this.data.editable) {
-          this.triggerEvent('select', { id: g.item ? g.item.memoryId : '' });
-          if (g.item && this.data.tapOpensMemory) this.triggerEvent('memory', { id: g.item.memoryId });
-        }
-        else this.triggerEvent(g.item ? 'memory' : 'boardtap', { id: g.item ? g.item.memoryId : '' });
+        if (g.item) this.triggerEvent('memory', { id: g.item.memoryId });
+        else this.triggerEvent(this.data.editable ? 'select' : 'boardtap', { id: '' });
       }
       this.refresh();
     },
-    touchCancel() { this.gestureToken = (this.gestureToken || 0) + 1; clearTimeout(this.longTimer); this.gesture = null; this.dragModel = null; this.refresh(); },
+    clearGesture() { this.gestureToken = (this.gestureToken || 0) + 1; clearTimeout(this.longTimer); this.gesture = null; this.dragModel = null; },
+    touchCancel() { this.clearGesture(); this.refresh(); },
     transform(e) { this.triggerEvent('transform', { op: e.currentTarget.dataset.op }); }
   }
 });

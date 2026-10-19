@@ -109,3 +109,24 @@ test('recovering a failed draft is undoable and can save the restored previous l
   assert.equal(p.data.recovering, false); assert.equal(p.data.canUndo, true); assert.equal(store.board(date).color, config.colors[1].value);
   p.undo(); assert.deepEqual(store.board(date), initial);
 });
+
+test('long press starts editing and switches selection without saving or clearing undo history', t => {
+  const { page: p, store, first, second } = fixture(t);
+  p.done(); const revision = store.get().revision;
+  p.editItem({ detail: { id: first } });
+  assert.equal(p.data.editable, true); assert.equal(p.data.selected, first); assert.equal(p.data.memoryCardId, ''); assert.equal(store.get().revision, revision);
+  p.transform({ detail: { op: 'cw' } });
+  p.editItem({ detail: { id: second } }); assert.equal(p.data.selected, second); assert.equal(p.data.canUndo, true);
+  p.undo(); assert.equal(store.board(p.date).placements.find(i => i.memoryId === first).angle, 0);
+});
+
+test('long press cannot enter editing through an overlay, busy state, missing object or read-only date', t => {
+  const { page: p, first, store } = fixture(t); p.done(); const before = clone(store.get());
+  for (const key of ['loading', 'error', 'drawer', 'formOpen', 'editorOpen', 'memoryCardId', 'task', 'placing', 'recovering', 'openingLibrary', 'working']) {
+    const previous = p.data[key]; p.data[key] = true; p.editItem({ detail: { id: first } }); p.data[key] = previous;
+    assert.equal(p.data.editable, false, key); assert.equal(p.data.selected, '');
+  }
+  p.editItem({ detail: { id: 'missing' } }); assert.equal(p.data.editable, false);
+  p.date = '2020-01-01'; p.editItem({ detail: { id: first } }); assert.equal(p.data.editable, false);
+  assert.deepEqual(store.get(), before);
+});

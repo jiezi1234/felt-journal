@@ -83,6 +83,13 @@ function createBoardEditor(options = {}) { return {
   },
   retrySave() { this.persist(); },
   edit() { if (this.data.canEdit && !this.data.editable && !this.photoTask && !this.data.recovering) { this.history.reset(this.draft); this.setData({ editable: true }); this.display(); } },
+  editItem(e) {
+    const id = e.detail.id;
+    if (!this.data.canEdit || !this.store.canEdit(this.date) || this.data.loading || this.data.error || this.data.drawer || this.data.formOpen || this.data.editorOpen ||
+      this.data.memoryCardId || this.data.task || this.photoTask || this.data.placing || this.data.recovering || this.data.openingLibrary || this.data.working || this.mutating ||
+      !this.draft.placements.some(p => p.memoryId === id) || !this.store.get().memories[id]) return;
+    this.edit(); this.select(e);
+  },
   done() {
     if (!this.canAdjust() || this.noteDirty && !this.saveNote()) return;
     this.cancelGesture();
