@@ -7,7 +7,6 @@
   <view class="caption">{{count ? count + ' 件记忆' : '暂无记忆'}}{{editable && count ? ' · 拖动布置' : ''}}</view>
   <block wx:if="{{editable}}">
     <view class="editor-toolbar"><button id="add-photo" class="primary" disabled="{{task || recovering}}" bindtap="sourceSheet">{{isTheme ? '＋ 添加记忆' : '＋ 添加照片'}}</button></view>
-    <view class="row history-tools"><button id="undo-layout" class="ghost grow" disabled="{{!canUndo || task || recovering}}" bindtap="undo" aria-label="撤销上一步布局调整">↶ 撤销</button><button id="redo-layout" class="ghost grow" disabled="{{!canRedo || task || recovering}}" bindtap="redo" aria-label="重做布局调整">↷ 重做</button></view>
     <view class="selected-tools" style="visibility:{{selected ? 'visible' : 'hidden'}};">
       <view class="row selected-heading"><text class="muted">已选中</text><button id="edit-memory" class="ghost small" disabled="{{task || recovering}}" bindtap="memory">{{embedded ? '文字 / 分类' : '详情 ↗'}}</button></view>
       <view class="selection-actions"><button id="layer-front" class="secondary" data-direction="front" disabled="{{!canBringToFront || task || recovering}}" bindtap="layer">↑ 置顶</button><button id="layer-back" class="secondary" data-direction="back" disabled="{{!canSendToBack || task || recovering}}" bindtap="layer">↓ 置底</button><button id="remove-placement" class="danger" disabled="{{task || recovering}}" bindtap="remove">移除摆放</button></view>

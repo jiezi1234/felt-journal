@@ -9,6 +9,5 @@
 .home-actions button.ghost { min-height:40px; height:40px; font-size:12px; padding:8px 4px; }
 .today-stage { flex:1; min-height:0; }
 .record-dock { height:48px; flex-shrink:0; display:flex; justify-content:flex-end; padding:0 8px; }
-.today-tools { display:flex; flex:1; align-items:center; gap:2px; }.today-tools button.ghost { font-size:12px; padding:8px; min-height:44px; }
 button.record-fab { width:48px; min-width:48px; height:48px; min-height:48px; padding:0; border-radius:50%; font-size:30px; font-weight:400; line-height:44px; box-shadow:0 5px 15px rgba(38,35,33,.16); }
 @media (max-width:350px) { .today-sheet { padding-left:21px; padding-right:5px; }.memory-count { margin-left:6px; }.home-actions { gap:0; } }

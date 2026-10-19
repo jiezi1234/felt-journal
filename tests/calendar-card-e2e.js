@@ -54,18 +54,16 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
       assert.equal((await card.data()).editable, false, 'Date opens in browsing mode');
       const toolbar = await mini.evaluate(() => new Promise(resolve => {
         const c = getCurrentPages().slice(-1)[0].selectComponent('#day-board-card');
-        c.createSelectorQuery().select('.day-board-dialog').boundingClientRect().select('#add-day-photo').boundingClientRect().select('#more-day-board').boundingClientRect().exec(resolve);
+        c.createSelectorQuery().select('.day-board-dialog').boundingClientRect().select('#add-day-photo').boundingClientRect().exec(resolve);
       }));
       for (const r of toolbar.slice(1)) assert.ok(r && r.width > 0 && r.height > 0 && r.top >= toolbar[0].top && r.bottom <= toolbar[0].bottom, 'Toolbar is visible within the card before long-press');
       await (await card.$('#add-day-photo')).tap(); await wait(card, d => d.drawer === 'source');
       assert.ok(await card.$('#source-camera')); assert.ok(await card.$('#source-album'));
       await (await card.$('#close-drawer')).tap(); await wait(card, d => !d.drawer);
       assert.equal((await card.data()).editable, false);
-      await (await card.$('#more-day-board')).tap(); await wait(card, d => d.drawer === 'selection');
-      await (await card.$('#add-from-library')).tap(); await wait(card, d => d.drawer === 'library');
-      await (await card.$('#close-drawer')).tap(); await wait(card, d => !d.drawer);
+      assert.equal(await card.$('#more-day-board'), null);
       assert.equal((await mini.currentPage()).id, pageId); assert.equal((await mini.pageStack()).length, stack);
-      checks.push('Add and More stay visible in browsing mode and open their drawers without long-press or navigation');
+      checks.push('Add stays visible in browsing mode and opens its drawer in place; More is absent');
     }
     if (target.memoryId) {
       await card.callMethod('memory', { detail: { id: target.memoryId } }); await wait(card, d => d.memoryCardId === target.memoryId);
@@ -85,6 +83,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
       }), target.memoryId);
       await wait(card, d => d.selected === target.memoryId);
       await board.callMethod('touchEnd'); await wait(board, d => d.handles.length === 5);
+      assert.equal(await card.$('#more-day-board'), null, 'More stays absent after long press');
       await mini.screenshot({ path: path.join(output, 'delete-control.png') });
       await mini.mockWxMethod('showModal', options => {
         getCurrentPages().slice(-1)[0].acceptanceDeletePrompt = { title: options.title, confirmText: options.confirmText, cancelText: options.cancelText };

@@ -64,7 +64,7 @@ const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-
     await call('input', { detail: { value: '秋日散步与旅行途中收集的那些值得珍藏的小小日常和温柔时光记忆' } });
     let s = await call('save'); const first = s.data.date;
     assert.equal(s.data.editable, true); assert.equal(s.data.formOpen, false);
-    await inspect('new board in the existing page', ['.theme-stage', '#finish-theme', '#add-theme-memory', '#more-theme', '#next-theme'], true);
+    await inspect('new board in the existing page', ['.theme-stage', '#finish-theme', '#add-theme-memory', '#next-theme'], true);
     const initialRect = checks.at(-1).rects[0];
     await call('sourceSheet'); await inspect('camera, album and memory sources', ['.drawer-sheet', '#source-camera', '#source-album', '#source-library'], false);
     await call('library'); await inspect('memory drawer', ['.drawer-sheet', '.library-memory', '.library-pagination'], false);

@@ -11,7 +11,7 @@
       <view class="today-stage"><felt-board id="today-board" layout="tall" style="height:100%;" can-edit="{{canEdit}}" covered="{{editorOpen || !!placing || !!drawer || !!memoryCardId}}" landing-id="{{placing.id || ''}}" model="{{model}}" editable="{{editable}}" selected="{{selected}}" bind:landingready="stickerTarget" bind:select="select" bind:edititem="editItem" bind:change="placementChanged" bind:transform="transform" bind:remove="remove" bind:memory="openMemory" bind:boardtap="openBoard" /></view>
     </view>
     <view wx:if="{{saveError}}" class="error">{{saveError}}<button bindtap="retrySave">重试保存</button></view>
-    <view class="record-dock"><view wx:if="{{editable}}" class="today-tools"><button id="undo-today" class="ghost" disabled="{{!canUndo || editorOpen || !!placing}}" bindtap="undo">↶ 撤销</button><button id="redo-today" class="ghost" disabled="{{!canRedo || editorOpen || !!placing}}" bindtap="redo">↷ 重做</button><button id="more-today" class="ghost" disabled="{{editorOpen || !!placing}}" bindtap="openSelection">更多</button></view><button id="record-today" class="primary record-fab" disabled="{{editorOpen || !!placing}}" aria-label="{{count ? '再记一件' : '记录今天'}}" bindtap="primary">＋</button></view>
+    <view class="record-dock"><button id="record-today" class="primary record-fab" disabled="{{editorOpen || !!placing}}" aria-label="{{count ? '再记一件' : '记录今天'}}" bindtap="primary">＋</button></view>
   </block>
 </view>
 <include src="../../templates/board-drawers.wxml" />
