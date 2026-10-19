@@ -31,6 +31,8 @@ test('custom tab lifecycle respects open theme forms and restores navigation aft
   page.data.placing = null; tab.sync(); assert.equal(tab.data.hidden, false);
   page.route = 'pages/index/index'; page.data = { editorOpen: true }; tab.sync(); assert.deepEqual(tab.data, { active: 'today', hidden: true });
   page.route = 'pages/calendar/index'; page.data = {}; tab.sync(); assert.deepEqual(tab.data, { active: 'calendar', hidden: false });
+  page.data.boardDate = '2024-02-12'; tabDefinition.pageLifetimes.show.call(tab); assert.deepEqual(tab.data, { active: 'calendar', hidden: true });
+  page.data.boardDate = ''; tab.sync(); assert.equal(tab.data.hidden, false);
 });
 
 function navFixture(t, route) {

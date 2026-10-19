@@ -1,0 +1,9 @@
+{
+  "component": true,
+  "usingComponents": {
+    "felt-board": "/components/felt-board/index",
+    "memory-card": "/components/memory-card/index",
+    "photo-panel": "/components/photo-panel/index",
+    "sticker-flight": "/components/sticker-flight/index"
+  }
+}

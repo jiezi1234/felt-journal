@@ -2,9 +2,10 @@ const { getStore } = require('../../core/store');
 const dates = require('../../core/date');
 const platform = require('../../services/platform');
 Page({
-  data: { loading: true, error: '', year: 0, month: 0, cells: [], weekdays: ['一', '二', '三', '四', '五', '六', '日'], canNext: false, itemCount: 0, dayCount: 0 },
+  data: { boardDate: '', loading: true, error: '', year: 0, month: 0, cells: [], weekdays: ['一', '二', '三', '四', '五', '六', '日'], canNext: false, itemCount: 0, dayCount: 0 },
   onLoad() { this.store = getStore(); const now = new Date(); this.year = now.getFullYear(); this.month = now.getMonth() + 1; },
-  onShow() { platform.syncTab(this, 'calendar'); this.refresh(); clearInterval(this.timer); this.timer = setInterval(() => { if (dates.key() !== this.today) this.refresh(); }, 30000); },
+  syncNavigation() { platform.syncTab(this, 'calendar', !!this.data.boardDate); },
+  onShow() { this.syncNavigation(); this.refresh(); clearInterval(this.timer); this.timer = setInterval(() => { if (dates.key() !== this.today) this.refresh(); }, 30000); },
   onHide() { clearInterval(this.timer); }, onUnload() { clearInterval(this.timer); },
   refresh() {
     try {
@@ -21,14 +22,20 @@ Page({
     } catch (e) { this.setData({ loading: false, error: platform.message(e, '月历读取失败，请重试') }); }
   },
   previous() { this.shift(-1); }, next() { if (this.data.canNext) this.shift(1); },
-  shift(offset) { const next = dates.shiftMonth(this.year, this.month, offset); this.year = next.year; this.month = next.month; this.refresh(); },
-  current() { const now = new Date(); this.year = now.getFullYear(); this.month = now.getMonth() + 1; this.refresh(); },
-  open(e) { const d = e.currentTarget.dataset.date; if (!d || d > dates.key()) return; wx.navigateTo({ url: `/pages/board/index?date=${d}` }); },
+  shift(offset) { if (this.data.boardDate) return; const next = dates.shiftMonth(this.year, this.month, offset); this.year = next.year; this.month = next.month; this.refresh(); },
+  current() { if (this.data.boardDate) return; const now = new Date(); this.year = now.getFullYear(); this.month = now.getMonth() + 1; this.refresh(); },
+  open(e) {
+    const d = e.currentTarget.dataset.date;
+    if (this.data.boardDate || this.data.loading || this.data.error || !dates.valid(d) || d > dates.key()) return;
+    this.setData({ boardDate: d }); this.syncNavigation();
+  },
+  closeBoard() { this.setData({ boardDate: '' }); this.refresh(); this.syncNavigation(); },
+  boardChanged() { this.refresh(); },
   imageError(e) {
     const { cell, image } = e.currentTarget.dataset;
     this.setData({ [`cells[${cell}].images[${image}].missing`]: true });
   },
-  memories() { wx.navigateTo({ url: `/pages/memories/index?month=${this.year}-${String(this.month).padStart(2, '0')}` }); },
-  categories() { wx.navigateTo({ url: '/pages/memories/index' }); },
+  memories() { if (!this.data.boardDate) wx.navigateTo({ url: `/pages/memories/index?month=${this.year}-${String(this.month).padStart(2, '0')}` }); },
+  categories() { if (!this.data.boardDate) wx.navigateTo({ url: '/pages/memories/index' }); },
   back() { platform.back(); }
 });

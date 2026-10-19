@@ -1,0 +1,21 @@
+<view class="day-board-overlay" catchtouchmove="stop">
+  <view class="day-board-scrim" bindtap="close" />
+  <view class="day-board-dialog" role="dialog" aria-modal="true" aria-label="{{dateLabel || '当天毛毡板'}}">
+    <view class="row day-board-heading">
+      <view class="day-board-title"><view>{{dateLabel}}</view><text class="muted">{{count}} 件记忆</text></view>
+      <view class="day-board-actions"><button wx:if="{{editable}}" id="finish-day-board" class="ghost" disabled="{{task || recovering || !!placing}}" bindtap="done">完成</button><button wx:if="{{count}}" id="share-day-board" class="ghost" disabled="{{task || recovering || !!placing}}" bindtap="exportBoard">分享 ↗</button><button id="close-day-board" class="ghost day-board-close" disabled="{{recovering || !!placing}}" aria-label="关闭当天毛毡板" bindtap="close">×</button></view>
+    </view>
+    <view wx:if="{{loading}}" class="loading">加载中…</view>
+    <view wx:elif="{{error}}" class="error">{{error}}<button class="ghost" bindtap="refresh">重试</button></view>
+    <block wx:else>
+      <view class="day-board-stage"><felt-board id="board" layout="tall" style="height:100%;" model="{{model}}" editable="{{editable}}" can-edit="{{canEdit}}" selected="{{selected}}" covered="{{!!drawer || !!task || !!placing || !!memoryCardId}}" landing-id="{{placing.id || ''}}" bind:landingready="stickerTarget" bind:select="select" bind:edititem="editItem" bind:change="placementChanged" bind:transform="transform" bind:memory="memory" /></view>
+      <view wx:if="{{saveError}}" class="error day-board-save-error">{{saveError}}<button class="ghost" bindtap="retrySave">重试保存</button></view>
+      <view wx:if="{{!count}}" class="day-board-empty muted">这天还没有记忆</view>
+      <view wx:if="{{editable}}" class="row day-board-tools"><button id="add-day-photo" class="primary grow" disabled="{{task || recovering || !!placing}}" bindtap="sourceSheet">＋ 添加</button><button id="more-day-board" class="ghost" disabled="{{task || recovering || !!placing}}" bindtap="openSelection">更多</button></view>
+    </block>
+  </view>
+</view>
+<include src="../../templates/board-drawers.wxml" />
+<photo-panel note-open="{{photoNoteOpen}}" note-text="{{photoNoteText}}" note-error="{{photoNoteError}}" bind:noteopen="openPhotoNote" bind:noteinput="photoNoteInput" task="{{task}}" lifting="{{!!placing}}" continue-label="开始布置" bind:retry="retryPhoto" bind:original="originalPhoto" bind:cancel="cancelPhoto" />
+<sticker-flight wx:if="{{placing}}" flight="{{placing}}" bind:peeled="stickerLifted" bind:landed="stickerLanded" />
+<memory-card wx:if="{{memoryCardId}}" id="memory-card" memory-id="{{memoryCardId}}" bind:close="closeMemoryCard" bind:change="memoryCardChanged" />

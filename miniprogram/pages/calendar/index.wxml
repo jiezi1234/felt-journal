@@ -9,3 +9,4 @@
     <view class="month-summary"><button id="find-month-memories" class="ghost month-stats" bindtap="memories" aria-label="查看本月记忆"><text>{{itemCount}} 件记忆</text><text class="muted">{{dayCount}} 天记录</text></button><button id="find-memories" class="secondary" bindtap="categories">记忆分类 ↗</button></view>
   </block>
 </view>
+<day-board-card wx:if="{{boardDate}}" id="day-board-card" board-date="{{boardDate}}" bind:close="closeBoard" bind:change="boardChanged" />

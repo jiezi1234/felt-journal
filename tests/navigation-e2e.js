@@ -85,15 +85,16 @@ const pause = () => new Promise(resolve => setTimeout(resolve, 150));
     await tap('calendar'); let calendar = await route('calendar'); await nav(calendar, 'calendar'); const calendarId = calendar.id;
     assert.equal((await mini.pageStack()).length, 1); await calendar.callMethod('previous'); const historical = await calendar.data();
     await calendar.callMethod('open', { currentTarget: { dataset: { date: `${historical.year}-${String(historical.month).padStart(2, '0')}-01` } } });
-    board = await route('board'); await nav(board, 'today'); assert.equal((await board.data()).canEdit, false);
-    await board.callMethod('back'); calendar = await route('calendar'); await nav(calendar, 'calendar');
+    await wait(calendar, d => !!d.boardDate); board = await calendar.$('#day-board-card'); await wait(board, d => !d.loading);
+    assert.equal((await mini.currentPage()).id, calendarId); assert.equal((await mini.pageStack()).length, 1); assert.equal((await board.data()).canEdit, false);
+    await board.callMethod('close'); await wait(calendar, d => !d.boardDate); await nav(calendar, 'calendar');
     assert.equal((await calendar.data()).month, historical.month); assert.equal((await calendar.data()).year, historical.year);
     if (process.env.WECHAT_NAV_SCREENSHOT === '1') {
       await mini.callWxMethod('pageScrollTo', { scrollTop: 0, duration: 0 }); await calendar.waitFor(500);
       try { await mini.screenshot({ path: path.join(output, 'wechat-bottom-navigation.png') }); screenshots.push('wechat-bottom-navigation.png'); }
       catch (error) { console.warn(`Screenshot skipped: ${error.message}`); }
     }
-    checks.push('calendar tab selection; historical board keeps its date and back returns to the same calendar month');
+    checks.push('calendar date opens an in-place board card; closing keeps the same month and page');
     console.log('STEP: tab routes and historical return passed; checking repeated switching and child pages');
     const ids = { index: homeId, 'board-tab': boardId, calendar: calendarId };
     for (const [id, name] of [['today', 'index'], ['calendar', 'calendar'], ['board', 'board-tab'], ['today', 'index'], ['board', 'board-tab'], ['calendar', 'calendar']]) {
@@ -104,9 +105,11 @@ const pause = () => new Promise(resolve => setTimeout(resolve, 150));
       if (name === 'index') { assert.ok(Math.abs(await page.scrollTop() - homeScroll) <= 1); assert.equal((await page.data()).model.color, config.colors[0].value); assert.equal((await page.data()).count, 0); }
       if (name === 'board-tab') assert.equal(await mini.evaluate(() => getCurrentPages().slice(-1)[0].navigationTestMarker), 'retained-themes');
     }
-    // Historical daily boards belong to the daily section; the theme tab remains separate.
+    // Closing the historical card restores the calendar tab before switching themes.
     await calendar.callMethod('open', { currentTarget: { dataset: { date: `${historical.year}-${String(historical.month).padStart(2, '0')}-01` } } });
-    board = await route('board'); await nav(board, 'today'); await tap('board'); board = await route('board-tab'); assert.equal(board.id, boardId); assert.equal((await board.data()).themes[0].id, themeId);
+    await wait(calendar, d => !!d.boardDate); board = await calendar.$('#day-board-card'); await wait(board, d => !d.loading);
+    await board.callMethod('close'); await wait(calendar, d => !d.boardDate); await nav(calendar, 'calendar');
+    await tap('board'); board = await route('board-tab'); assert.equal(board.id, boardId); assert.equal((await board.data()).themes[0].id, themeId);
     await tap('calendar');
     calendar = await route('calendar'); await (await calendar.$('#find-memories')).tap(); const memories = await route('memories'); assert.equal(await memories.$('#main-nav'), null);
     await memories.callMethod('back'); calendar = await route('calendar'); await nav(calendar, 'calendar');

@@ -260,7 +260,7 @@ function createBoardEditor(options = {}) { return {
       const r = await platform.call('showModal', { title: '布局尚未保存', content: '请重试保存；也可放弃未保存的布局，已保存的记忆会保留。', confirmText: '重试', cancelText: '放弃' });
       if (r.confirm) { this.persist(); return; } this.store.clearDraft(this.date); this.dirty = false;
     }
-    platform.unloadGuard(false); if (this.data.embedded) this.closeCard(); else platform.back();
+    platform.unloadGuard(false); if (this.data.embedded || options.modal) this.closeCard(); else platform.back();
     } finally { this.closing = false; }
   }
 }; }

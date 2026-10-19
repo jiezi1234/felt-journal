@@ -14,6 +14,7 @@
     "test:navigation": "node tests/navigation-e2e.js",
     "test:record": "node tests/record-card-e2e.js",
     "test:gestures": "node tests/board-gestures-e2e.js",
+    "test:calendar-card": "node tests/calendar-card-e2e.js",
     "test:recognition": "node tests/recognition-e2e.js",
     "dev:extraction": "node scripts/local-extraction.js",
     "dev:server": "node scripts/server-extraction.js",

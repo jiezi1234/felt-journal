@@ -1,4 +1,7 @@
 {
   "navigationBarTitleText": "时光回顾",
+  "usingComponents": {
+    "day-board-card": "/components/day-board-card/index"
+  },
   "disableScroll": true
 }
