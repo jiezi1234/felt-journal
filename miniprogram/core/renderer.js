@@ -44,7 +44,7 @@ function loadImage(canvas, path) {
 }
 function paintControls(ctx, handles, screenWidth) {
   // Canvas drawing and touch hit testing share the same screen-pixel centers.
-  // Overlay buttons also expose these actions to accessibility and DOM taps.
+  // Overlay controls and native canvas both accept the same touch gestures.
   // Export calls paint() alone and never includes this UI-only pass.
   const scale = screenWidth / B.width;
   handles.forEach(handle => {
@@ -58,7 +58,19 @@ function paintControls(ctx, handles, screenWidth) {
       rounded(ctx, -6, -5, 12, 14, 2); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(-8, -7); ctx.lineTo(8, -7); ctx.moveTo(-3, -7); ctx.lineTo(-3, -10); ctx.lineTo(3, -10); ctx.lineTo(3, -7);
       ctx.moveTo(-2, -2); ctx.lineTo(-2, 5); ctx.moveTo(2, -2); ctx.lineTo(2, 5); ctx.stroke();
-    } else { ctx.font = `${27 / scale}px sans-serif`; ctx.fillStyle = '#4A3C2F'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(handle.icon, x, y); }
+    } else {
+      // Draw vectors so Android fonts cannot substitute missing handle glyphs.
+      ctx.translate(x, y); ctx.scale(1 / scale, 1 / scale); ctx.strokeStyle = '#4A3C2F'; ctx.lineWidth = 1.8; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.beginPath();
+      if (handle.op === 'resize') {
+        ctx.moveTo(-7, 7); ctx.lineTo(7, -7); ctx.moveTo(1, -7); ctx.lineTo(7, -7); ctx.lineTo(7, -1);
+        ctx.moveTo(-1, 7); ctx.lineTo(-7, 7); ctx.lineTo(-7, 1);
+      } else {
+        ctx.arc(0, 0, 8, -Math.PI * .35, Math.PI * 1.25);
+        ctx.moveTo(4, -10); ctx.lineTo(6, -5); ctx.lineTo(11, -7);
+      }
+      ctx.stroke();
+    }
     ctx.restore();
   });
 }

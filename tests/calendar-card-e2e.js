@@ -82,7 +82,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
         }).exec();
       }), target.memoryId);
       await wait(card, d => d.selected === target.memoryId);
-      await board.callMethod('touchEnd'); await wait(board, d => d.handles.length === 5);
+      await board.callMethod('touchEnd'); await wait(board, d => d.handles.length === 3);
       assert.equal(await card.$('#more-day-board'), null, 'More stays absent after long press');
       await mini.screenshot({ path: path.join(output, 'delete-control.png') });
       await mini.mockWxMethod('showModal', options => {
@@ -99,7 +99,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
       assert.equal(await mini.evaluate(() => !!getCurrentPages().slice(-1)[0].selectComponent('#day-board-card').mutating), false);
       assert.equal((await card.data()).selected, target.memoryId);
       assert.ok((await card.data()).model.items.some(p => p.memoryId === target.memoryId));
-      checks.push('Long press reveals five controls; delete requests confirmation and a mocked cancel preserves the object');
+      checks.push('Long press reveals three controls; delete requests confirmation and a mocked cancel preserves the object');
     }
     await (await card.$('#close-day-board')).tap(); await wait(calendar, d => !d.boardDate);
     assert.equal((await calendar.data()).month, target.month); assert.equal((await calendar.data()).year, target.year);

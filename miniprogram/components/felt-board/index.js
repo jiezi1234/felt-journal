@@ -76,35 +76,40 @@ Component({
       return handle && handle.memoryId === this.data.selected ? handle : null;
     },
     controlStart(e) {
-      this.clearGesture(); this.controlTapBlock = null;
-      if (this.dead || this.data.covered || !this.data.interactive || !this.data.canEdit || !this.data.editable || !this.data.selected || this.data.landingId || e.touches.length !== 1) return;
       const op = e.currentTarget.dataset.op;
-      if (!['ccw', 'cw', 'down', 'up', 'remove'].includes(op) || !this.localPoint(e.touches[0])) return;
-      // On Android the overlay itself can receive the touch sequence without
-      // a later tap. Handle that sequence directly, before any canvas hit test.
-      this.gesture = { touch: e.touches[0], moved: false, control: op, selection: this.data.selected, button: true };
+      if (['rotate', 'resize', 'remove'].includes(op)) this.beginGesture(e, op);
     },
     controlTap(e) {
       const block = this.controlTapBlock;
-      // A normal tap can follow touchend. A new physical press clears this
-      // latch, so fast repeated presses still apply exactly once each.
       if (block && block.op === e.currentTarget.dataset.op && Date.now() < block.until) return;
+      // Size and angle are continuous drag gestures. A tap only deletes.
       this.transform(e);
     },
-    touchStart(e) {
-      this.clearGesture();
+    touchStart(e) { this.beginGesture(e); },
+    canControl() {
+      return !this.dead && !this.data.covered && this.data.interactive && this.data.canEdit && this.data.editable && !!this.data.selected && !this.data.landingId;
+    },
+    beginGesture(e, buttonOp) {
+      this.clearGesture(); this.controlTapBlock = null;
       if (this.dead || this.data.covered || !this.data.interactive || !this.data.model || e.touches.length !== 1) return;
+      if (buttonOp && !this.canControl()) return;
       const touch = e.touches[0], token = this.gestureToken;
-      const g = this.gesture = { touch, moved: false, long: false, pending: true };
+      const g = this.gesture = { touch, lastTouch: touch, moved: false, long: false, pending: true, button: !!buttonOp, control: buttonOp, selection: this.data.selected };
       this.createSelectorQuery().select('.board-shell').boundingClientRect(rect => {
         if (!rect || this.dead || token !== this.gestureToken) return;
         this.rect = rect;
         const point = this.point(touch); if (!point) { this.clearGesture(); return; }
-        // The visible controls belong to the canvas. Resolve them before objects
-        // or empty space even when a phone's native canvas covers the DOM buttons.
-        const control = this.controlAt(touch);
+        // Both DOM and native canvas touches enter the same drag state machine.
+        const control = buttonOp ? { op: buttonOp } : this.controlAt(touch);
         if (control) {
-          Object.assign(g, { control: control.op, selection: this.data.selected, pending: false });
+          if (!this.canControl() || this.data.selected !== g.selection) { this.touchCancel(); return; }
+          const item = this.data.model.items.find(p => p.memoryId === g.selection);
+          if (!item) { this.touchCancel(); return; }
+          const ratio = this.data.layout === 'tall' ? viewport.verticalRatio(this.screenWidth, this.data.height) : 1;
+          const s = this.screenWidth / B.width;
+          Object.assign(g, { control: control.op, item, pending: false,
+            center: { x: (B.inset + item.x) * s, y: (B.inset + item.y * ratio) * s } });
+          if (g.lastTouch !== touch) this.touchMove({ touches: [g.lastTouch] });
           if (g.ended) this.touchEnd(g.endEvent);
           return;
         }
@@ -125,29 +130,54 @@ Component({
     touchMove(e) {
       if (e.touches.length !== 1 || this.data.covered || !this.data.interactive) { this.touchCancel(); return; }
       const g = this.gesture; if (!g) return;
+      g.lastTouch = e.touches[0];
       const start = this.localPoint(g.touch), current = this.localPoint(e.touches[0]);
       if (!start || !current) { this.touchCancel(); return; }
-      if (Math.hypot(current.x - start.x, current.y - start.y) > (g.button ? 12 : 6)) { g.moved = true; clearTimeout(this.longTimer); }
-      if (g.control) return;
+      const threshold = g.control === 'remove' ? 12 : g.control ? 2 : 6;
+      if (Math.hypot(current.x - start.x, current.y - start.y) > threshold) { g.moved = true; clearTimeout(this.longTimer); }
+      if (g.pending) return;
+      if (g.control) {
+        if (!this.canControl() || this.data.selected !== g.selection) { this.touchCancel(); return; }
+        if (g.control !== 'remove' && g.moved) {
+          const next = geometry.dragControl(g.item, g.control, g.center, start, current);
+          if (next) this.previewPlacement(g, next);
+        }
+        return;
+      }
       if (!g.point) return;
       const point = this.point(e.touches[0]), dx = point.x - g.point.x, dy = point.y - g.point.y;
       if (!g.moved || !g.item || !this.data.editable || this.data.selected !== g.item.memoryId || !(g.draggable || g.long)) return;
       const ratio = this.data.layout === 'tall' ? viewport.verticalRatio(this.screenWidth, this.data.height) : 1;
       const next = geometry.fit(Object.assign({}, g.item, { x: g.item.x + dx, y: g.item.y + dy / ratio }));
-      g.next = next; this.dragModel = Object.assign({}, this.data.model, { items: this.data.model.items.map(p => p.id === next.id ? next : p) }); this.refresh();
+      this.previewPlacement(g, next);
+    },
+    previewPlacement(g, next) {
+      g.next = next;
+      this.dragModel = Object.assign({}, this.data.model, { items: this.data.model.items.map(p => p.id === next.id ? next : p) });
+      this.refresh();
     },
     touchEnd(e) {
       const g = this.gesture;
       if (g && g.pending) { g.ended = true; g.endEvent = e; return; }
-      if (g && g.button) this.controlTapBlock = { op: g.control, until: Date.now() + 700 };
+      if (g && g.control && g.control !== 'remove' && e && e.changedTouches && e.changedTouches.length) {
+        this.touchMove({ touches: [e.changedTouches[0]] });
+        if (this.gesture !== g) return;
+      }
+      if (g && g.control) this.controlTapBlock = { op: g.control, until: Date.now() + 700 };
       this.clearGesture();
       if (!g || this.dead || this.data.covered || !this.data.interactive) return;
       if (g.control) {
-        const end = e && e.changedTouches && e.changedTouches[0] || g.touch;
-        const start = this.localPoint(g.touch), finish = this.localPoint(end);
-        const control = g.button ? { op: g.control } : this.controlAt(end);
-        if (!g.moved && start && finish && Math.hypot(finish.x - start.x, finish.y - start.y) <= (g.button ? 12 : 6) && control && control.op === g.control && this.data.selected === g.selection) {
-          this.transform({ currentTarget: { dataset: { op: g.control } } });
+        if (this.canControl() && this.data.selected === g.selection) {
+          if (g.control === 'remove') {
+            const end = e && e.changedTouches && e.changedTouches[0] || g.lastTouch;
+            const start = this.localPoint(g.touch), finish = this.localPoint(end);
+            const control = g.button ? { op: g.control } : this.controlAt(end);
+            if (!g.moved && start && finish && Math.hypot(finish.x - start.x, finish.y - start.y) <= 12 && control && control.op === 'remove') {
+              this.transform({ currentTarget: { dataset: { op: 'remove' } } });
+            }
+          } else if (g.next && (['x', 'y', 'width', 'height'].some(key => Math.abs(g.next[key] - g.item[key]) > 0.001) || Math.abs(((g.next.angle - g.item.angle + 540) % 360) - 180) > 0.001)) {
+            this.triggerEvent('change', { placement: g.next });
+          }
         }
       } else if (g.next) this.triggerEvent('change', { placement: g.next });
       else if (!g.moved && !g.long) {
@@ -158,14 +188,13 @@ Component({
     },
     clearGesture() { this.gestureToken = (this.gestureToken || 0) + 1; clearTimeout(this.longTimer); this.gesture = null; this.dragModel = null; },
     touchCancel() {
-      if (this.gesture && this.gesture.button) this.controlTapBlock = { op: this.gesture.control, until: Date.now() + 700 };
+      if (this.gesture && this.gesture.control) this.controlTapBlock = { op: this.gesture.control, until: Date.now() + 700 };
       this.clearGesture(); this.refresh();
     },
     transform(e) {
       if (this.dead || this.data.covered || !this.data.interactive || !this.data.canEdit || !this.data.editable || !this.data.selected || this.data.landingId) return;
       const op = e.currentTarget.dataset.op;
       if (op === 'remove') { this.touchCancel(); this.triggerEvent('remove', { id: this.data.selected }); }
-      else if (['ccw', 'cw', 'down', 'up'].includes(op)) this.triggerEvent('transform', { op });
     }
   }
 });

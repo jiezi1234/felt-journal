@@ -68,6 +68,24 @@ function transform(p, op) {
   }
   return fit(next);
 }
+// Use the original placement and the displayed center for the whole gesture.
+// This also works on tall boards, whose displayed y differs from saved y.
+function dragControl(p, op, center, start, current) {
+  const sx = start.x - center.x, sy = start.y - center.y;
+  const dx = current.x - center.x, dy = current.y - center.y;
+  const next = Object.assign({}, p);
+  if (op === 'resize') {
+    const distance = Math.hypot(sx, sy), longest = Math.max(p.width, p.height);
+    if (distance < 1 || longest <= 0) return next;
+    const target = Math.max(config.minSize, Math.min(config.maxSize, longest * Math.hypot(dx, dy) / distance));
+    next.width *= target / longest; next.height *= target / longest;
+  } else if (op === 'rotate') {
+    // Ignore the unstable angle immediately around the sticker's center.
+    if (Math.hypot(sx, sy) < 8 || Math.hypot(dx, dy) < 8) return null;
+    next.angle += (Math.atan2(dy, dx) - Math.atan2(sy, sx)) * 180 / Math.PI;
+  } else return null;
+  return fit(next);
+}
 function hit(p, x, y) {
   const a = -p.angle * Math.PI / 180, dx = x - p.x, dy = y - p.y;
   return Math.abs(dx * Math.cos(a) - dy * Math.sin(a)) <= p.width / 2 && Math.abs(dx * Math.sin(a) + dy * Math.cos(a)) <= p.height / 2;
@@ -78,16 +96,19 @@ function handles(p, screenWidth, screenHeight = screenWidth * B.height / B.width
   const halfW = Math.max(50, e.w * s / 2 + 10), halfH = Math.max(50, e.h * s / 2 + 10);
   const clamp = (n, max) => Math.max(22, Math.min(max - 22, n));
   let left = clamp(cx - halfW, screenWidth), right = clamp(cx + halfW, screenWidth);
-  // Keep room for the delete control between the two rotation controls,
-  // including small stickers against either edge of the board.
-  if (right - left < 104) {
-    const center = Math.max(74, Math.min(screenWidth - 74, (left + right) / 2));
-    left = center - 52; right = center + 52;
+  // Keep the three 44px targets separate for small / edge-adjacent stickers.
+  if (right - left < 52) {
+    const center = Math.max(48, Math.min(screenWidth - 48, (left + right) / 2));
+    left = center - 26; right = center + 26;
   }
-  const top = clamp(cy - halfH, height), bottom = clamp(cy + halfH, height);
-  return [ ['ccw', '↶', '逆时针旋转', left, top], ['cw', '↷', '顺时针旋转', right, top], ['down', '−', '缩小', left, bottom], ['up', '＋', '放大', right, bottom], ['remove', '×', '删除物件', (left + right) / 2, top] ].map(a => ({ op: a[0], icon: a[1], label: a[2], x: a[3], y: a[4], memoryId: p.memoryId, style: `left:${a[3] - 22}px;top:${a[4] - 22}px;` }));
+  let top = clamp(cy - halfH, height), bottom = clamp(cy + halfH, height);
+  if (bottom - top < 52) {
+    const center = Math.max(48, Math.min(height - 48, (top + bottom) / 2));
+    top = center - 26; bottom = center + 26;
+  }
+  return [ ['remove', '×', '删除物件', left, top], ['rotate', '↻', '按住拖动旋转', right, top], ['resize', '⤢', '按住拖动缩放', right, bottom] ].map(a => ({ op: a[0], icon: a[1], label: a[2], x: a[3], y: a[4], memoryId: p.memoryId, style: `left:${a[3] - 22}px;top:${a[4] - 22}px;` }));
 }
 function hitControl(handles, x, y) {
   return (handles || []).find(handle => Math.abs(x - handle.x) <= 22 && Math.abs(y - handle.y) <= 22);
 }
-module.exports = { W, H, extent, fit, create, transform, hit, handles, hitControl };
+module.exports = { W, H, extent, fit, create, transform, dragControl, hit, handles, hitControl };

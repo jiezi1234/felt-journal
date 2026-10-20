@@ -4,9 +4,11 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const automator = require('miniprogram-automator');
+const dragControl = require('./helpers/drag-control');
 const output = path.resolve('artifacts/board-controls');
 const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-drafts:v1', 'felt-journal:dev-extraction:v1', 'felt-journal:server-extraction:v1'];
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+const difference = (op, actual, expected) => op === 'rotate' ? Math.abs(((actual - expected + 540) % 360) - 180) : Math.abs(actual - expected);
 
 (async () => {
   let mini, before, originalRoute, installed = false, modalMocked = false;
@@ -32,7 +34,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
   }
   async function press(board, selector, id, op, duration = 70) {
     const canvas = await board.$('#feltCanvas'), touch = await touchAt(selector, id, op);
-    await canvas.touchstart({ touches: [touch], changeTouches: [touch] });
+    await canvas.touchstart({ touches: [touch], changedTouches: [touch] });
     await pause(duration);
     if (op) {
       const detected = await mini.evaluate(selector => {
@@ -44,7 +46,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     await canvas.touchend({ touches: [], changedTouches: [touch] });
   }
   async function pressOverlay(board, selector, id, op) {
-    const button = (await board.$$('.grip'))[['ccw', 'cw', 'down', 'up', 'remove'].indexOf(op)];
+    const button = await board.$('.grip[data-op="' + op + '"]');
     const touch = await touchAt(selector, id, op);
     await button.touchstart({ touches: [touch], changedTouches: [touch] }); await pause(60);
     const g = await mini.evaluate(selector => {
@@ -65,20 +67,36 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     const initial = (await page.data()).model.items[0], other = (await page.data()).model.items[1], id = initial.memoryId;
     await press(board, selector, id, null, 850);
     await wait(page, d => d.editable && d.selected === id && !d.memoryCardId, 'long press');
-    await wait(board, d => d.handles.length === 5, 'controls');
+    await wait(board, d => d.handles.length === 3, 'controls');
     const placement = d => d.model.items.find(p => p.memoryId === id);
-    await press(board, selector, id, 'up'); await wait(page, d => placement(d).width > initial.width, 'grow');
-    await press(board, selector, id, 'down'); await wait(page, d => Math.abs(placement(d).width - initial.width) < .001, 'shrink');
-    await press(board, selector, id, 'cw'); await wait(page, d => placement(d).angle === 15, 'clockwise');
-    await press(board, selector, id, 'ccw'); await wait(page, d => placement(d).angle === 0, 'counterclockwise');
-    await pressOverlay(board, selector, id, 'up'); await wait(page, d => placement(d).width > initial.width, 'overlay grow');
-    await pressOverlay(board, selector, id, 'down'); await wait(page, d => Math.abs(placement(d).width - initial.width) < .001, 'overlay shrink');
-    await pressOverlay(board, selector, id, 'cw'); await wait(page, d => placement(d).angle === 15, 'overlay clockwise');
-    await pressOverlay(board, selector, id, 'ccw'); await wait(page, d => placement(d).angle === 0, 'overlay counterclockwise');
-    // The accessibility/DOM path must continue to work without duplicate actions.
-    await (await board.$$('.grip'))[1].tap(); await wait(page, d => placement(d).angle === 15, 'DOM control');
+    async function drag(op, value, canvas = false, cancel = false) {
+      const original = placement(await page.data()), stored = JSON.stringify(await state());
+      const node = await dragControl(mini, board, selector, op, value, { canvas, cancel, onMove: async fraction => {
+        const preview = await mini.evaluate(selector => {
+          const b = getCurrentPages().slice(-1)[0].selectComponent(selector);
+          return b.dragModel && b.dragModel.items.find(p => p.memoryId === b.data.selected);
+        }, selector);
+        assert.ok(preview, 'A live preview must exist while holding');
+        const expected = op === 'resize' ? original.width * (1 + (value - 1) * fraction) : ((original.angle + value * fraction) % 360 + 360) % 360;
+        const actual = op === 'resize' ? preview.width : preview.angle;
+        assert.ok(difference(op, actual, expected) < .01, `Preview must follow intermediate finger positions: ${op}, fraction=${fraction}, actual=${actual}, expected=${expected}`);
+        assert.equal(JSON.stringify(await state()), stored, 'Gesture previews must not persist yet');
+      } });
+      if (cancel) assert.equal(JSON.stringify(await state()), stored, 'Cancellation restores original placement');
+      else await wait(page, d => difference(op, op === 'resize' ? placement(d).width : placement(d).angle, op === 'resize' ? original.width * value : ((original.angle + value) % 360 + 360) % 360) < .01, 'drag commit');
+      const after = JSON.stringify(await state());
+      if (!canvas) { await node.tap(); assert.equal(JSON.stringify(await state()), after, 'A synthetic tap cannot add a transform'); }
+    }
+    await drag('resize', 1.25, true); await drag('resize', .8, true);
+    await drag('rotate', 37.5, true); await drag('rotate', -37.5, true);
+    await drag('resize', 1.2); await drag('resize', 1 / 1.2);
+    await drag('rotate', -28.3); await drag('rotate', 65.8);
+    await drag('resize', 1.2, false, true); await drag('rotate', 30, true, true);
+    const beforeTap = JSON.stringify(await state());
+    for (const op of ['resize', 'rotate']) await (await board.$('.grip[data-op="' + op + '"]')).tap();
+    assert.equal(JSON.stringify(await state()), beforeTap, 'A tap alone never scales or rotates');
     const current = await page.data(), saved = await state();
-    assert.equal(saved.boards[current.date].placements.find(p => p.memoryId === id).angle, 15);
+    assert.ok(Math.abs(saved.boards[current.date].placements.find(p => p.memoryId === id).angle - 37.5) < .01);
     assert.deepEqual(current.model.items.find(p => p.memoryId === other.memoryId), other);
     assert.equal(current.memoryCardId, ''); assert.equal(current.selected, id);
     await mini.screenshot({ path: path.join(output, name + '.png') });
@@ -100,7 +118,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     for (const [boardId, value] of Object.entries(saved.boards)) if (boardId !== current.date) assert.deepEqual(removed.boards[boardId], value);
     await mini.restoreWxMethod('showModal'); modalMocked = false;
     await page.callMethod('done');
-    checks.push(name + ': Canvas and overlay touch sequences scale/rotate once; overlay removal confirms/cancels; persistence/scope checked');
+    checks.push(name + ': Canvas and overlay continuous scale/rotate; intermediate previews; release saves; cancellation restores; taps do not transform; removal and storage scope checked');
     console.log('PASS:', name);
   }
   try {
