@@ -30,7 +30,7 @@ module.exports = async function dragControl(mini, board, selector, op, value, op
   if (!ready) throw Error('Drag control did not receive touchstart: ' + op);
   for (let i = 1; i < points.length; i++) {
     await node.touchmove({ touches: [points[i]], changedTouches: [points[i]] }); await pause(60);
-    if (options.onMove) await options.onMove(i / (points.length - 1));
+    if (options.onMove) await options.onMove(i / (points.length - 1), points[i]);
   }
   if (options.cancel) await node.dispatchEvent({ eventName: 'touchcancel', touches: [], changedTouches: [points[4]] });
   else await node.touchend({ touches: [], changedTouches: [points[4]] });

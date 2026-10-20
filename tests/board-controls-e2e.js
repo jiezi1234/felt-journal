@@ -37,6 +37,19 @@ const difference = (op, actual, expected) => op === 'rotate' ? Math.abs(((actual
     const canvas = await board.$('#feltCanvas'), touch = await touchAt(selector, id, op);
     await canvas.touchstart({ touches: [touch], changedTouches: [touch] });
     await pause(duration);
+    // Hidden DevTools windows throttle timers; do not release a held gesture
+    // until its long-press has actually fired. Unit tests check the 650ms bound.
+    if (!op && duration > 650) {
+      let held = false;
+      for (let n = 0; n < 60; n++) {
+        held = await mini.evaluate(selector => {
+          const g = getCurrentPages().slice(-1)[0].selectComponent(selector).gesture;
+          return !!(g && g.long);
+        }, selector);
+        if (held) break; await pause(50);
+      }
+      assert.ok(held, 'Long press must fire before release');
+    }
     if (op) {
       const detected = await mini.evaluate(selector => {
         const g = getCurrentPages().slice(-1)[0].selectComponent(selector).gesture;
@@ -72,7 +85,8 @@ const difference = (op, actual, expected) => op === 'rotate' ? Math.abs(((actual
     const placement = d => d.model.items.find(p => p.memoryId === id);
     async function drag(op, value, canvas = false, cancel = false) {
       const original = placement(await page.data()), stored = JSON.stringify(await state());
-      const node = await dragControl(mini, board, selector, op, value, { canvas, cancel, onMove: async fraction => {
+      let previousGrip;
+      const node = await dragControl(mini, board, selector, op, value, { canvas, cancel, onMove: async (fraction, touch) => {
         const preview = await mini.evaluate(selector => {
           const b = getCurrentPages().slice(-1)[0].selectComponent(selector);
           return b.dragModel && b.dragModel.items.find(p => p.memoryId === b.data.selected);
@@ -81,6 +95,23 @@ const difference = (op, actual, expected) => op === 'rotate' ? Math.abs(((actual
         const expected = op === 'resize' ? original.width * (1 + (value - 1) * fraction) : ((original.angle + value * fraction) % 360 + 360) % 360;
         const actual = op === 'resize' ? preview.width : preview.angle;
         assert.ok(difference(op, actual, expected) < .01, `Preview must follow intermediate finger positions: ${op}, fraction=${fraction}, actual=${actual}, expected=${expected}`);
+        if (op === 'rotate') {
+          const position = await mini.evaluate(selector => new Promise(resolve => {
+            const b = getCurrentPages().slice(-1)[0].selectComponent(selector), grip = b.data.handles.find(h => h.op === 'rotate');
+            const q = b.createSelectorQuery(); q.select('.board-shell').boundingClientRect(); q.select('#control-rotate').boundingClientRect();
+            q.exec(([r, button]) => resolve(!r || !button ? { missing:true } : { x:r.left + grip.x, y:r.top + grip.y, width:r.width, height:r.height,
+              button: { x:button.left + button.width / 2, y:button.top + button.height / 2 },
+              fits: button.left >= r.left - 1 && button.top >= r.top - 1 && button.right <= r.right + 1 && button.bottom <= r.bottom + 1 }));
+          }), selector);
+          assert.ok(!position.missing, 'The rotation button must be measurable');
+          assert.ok(Math.hypot(position.x - position.button.x, position.y - position.button.y) < 1, 'Canvas and DOM control centers agree');
+          assert.ok(position.fits, 'All of the held target remains inside the board');
+          // Compact fitted boards constrain the whole control frame to the
+          // viewport. Today has room for the complete unconstrained finger arc.
+          if (name === 'today') assert.ok(Math.hypot(position.x - touch.clientX, position.y - touch.clientY) < 1, 'The held rotation button follows the finger through quadrant crossings');
+          if (previousGrip) assert.ok(Math.hypot(position.x - previousGrip.x, position.y - previousGrip.y) < 40, 'A viewport constraint cannot make the control swap corners');
+          previousGrip = position;
+        }
         assert.equal(JSON.stringify(await state()), stored, 'Gesture previews must not persist yet');
       } });
       if (cancel) assert.equal(JSON.stringify(await state()), stored, 'Cancellation restores original placement');
@@ -151,7 +182,7 @@ const difference = (op, actual, expected) => op === 'rotate' ? Math.abs(((actual
       ['one', 'two'].forEach(id => isolated.add('control_old_' + id, past, photos));
       const theme = isolated.createTheme('controls', '按钮验证'); ids.forEach(id => isolated.place(id, theme));
       for (const id of [today, past, theme]) {
-        const b = isolated.board(id); b.placements.forEach((p, i) => { p.x = 380 + 600 * i; p.y = 460; p.width = p.height = 280; }); isolated.saveBoard(b);
+        const b = isolated.board(id); b.placements.forEach((p, i) => { p.x = 705 + 470 * i; p.y = 460; p.width = p.height = 280; }); isolated.saveBoard(b);
       }
       isolated.commit(s => { s.localNoticeSeen = true; }); Object.assign(store, isolated);
       platform.confirmRemovePlacement = () => { q.prompts++; return q.confirmRemovePlacement(); };

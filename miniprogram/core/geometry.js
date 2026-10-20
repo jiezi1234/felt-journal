@@ -91,22 +91,27 @@ function hit(p, x, y) {
   return Math.abs(dx * Math.cos(a) - dy * Math.sin(a)) <= p.width / 2 && Math.abs(dx * Math.sin(a) + dy * Math.cos(a)) <= p.height / 2;
 }
 function handles(p, screenWidth, screenHeight = screenWidth * B.height / B.width) {
-  const s = screenWidth / B.width, e = extent(p), height = screenHeight;
-  const cx = (B.inset + p.x) * s, cy = (B.inset + p.y) * s;
-  const halfW = Math.max(50, e.w * s / 2 + 10), halfH = Math.max(50, e.h * s / 2 + 10);
-  const clamp = (n, max) => Math.max(22, Math.min(max - 22, n));
-  let left = clamp(cx - halfW, screenWidth), right = clamp(cx + halfW, screenWidth);
-  // Keep the three 44px targets separate for small / edge-adjacent stickers.
-  if (right - left < 52) {
-    const center = Math.max(48, Math.min(screenWidth - 48, (left + right) / 2));
-    left = center - 26; right = center + 26;
+  const s = screenWidth / B.width, angle = p.angle * Math.PI / 180;
+  const c = Math.cos(angle), sn = Math.sin(angle), ac = Math.abs(c), as = Math.abs(sn);
+  const wantedW = Math.max(50, p.width * s / 2 + 10), wantedH = Math.max(50, p.height * s / 2 + 10);
+  const availableW = (screenWidth - 44) / 2, availableH = (screenHeight - 44) / 2;
+  // Rotate the same three corners with the sticker. Recomputing corners from
+  // its axis-aligned bounds makes the held grip move against the user's finger.
+  // Fit and translate the whole frame at edges, rather than clamping each grip
+  // independently and letting targets collide or exchange positions.
+  const size = scale => ({ w: Math.max(32, wantedW * scale), h: Math.max(32, wantedH * scale) });
+  let low = 0, high = 1;
+  for (let i = 0; i < 20; i++) {
+    const mid = (low + high) / 2, box = size(mid);
+    if (box.w * ac + box.h * as <= availableW && box.w * as + box.h * ac <= availableH) low = mid; else high = mid;
   }
-  let top = clamp(cy - halfH, height), bottom = clamp(cy + halfH, height);
-  if (bottom - top < 52) {
-    const center = Math.max(48, Math.min(height - 48, (top + bottom) / 2));
-    top = center - 26; bottom = center + 26;
-  }
-  return [ ['remove', '删除物件', left, top], ['rotate', '按住拖动旋转', right, top], ['resize', '按住拖动缩放', right, bottom] ].map(a => ({ op: a[0], label: a[1], x: a[2], y: a[3], memoryId: p.memoryId, style: `left:${a[2] - 22}px;top:${a[3] - 22}px;` }));
+  const box = size(low), ex = box.w * ac + box.h * as, ey = box.w * as + box.h * ac;
+  const cx = Math.max(22 + ex, Math.min(screenWidth - 22 - ex, (B.inset + p.x) * s));
+  const cy = Math.max(22 + ey, Math.min(screenHeight - 22 - ey, (B.inset + p.y) * s));
+  return [ ['remove', '删除物件', -box.w, -box.h], ['rotate', '按住拖动旋转', box.w, -box.h], ['resize', '按住拖动缩放', box.w, box.h] ].map(a => {
+    const x = cx + a[2] * c - a[3] * sn, y = cy + a[2] * sn + a[3] * c;
+    return { op: a[0], label: a[1], x, y, memoryId: p.memoryId, style: `left:${x - 22}px;top:${y - 22}px;` };
+  });
 }
 function hitControl(handles, x, y) {
   return (handles || []).find(handle => Math.abs(x - handle.x) <= 22 && Math.abs(y - handle.y) <= 22);
