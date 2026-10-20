@@ -1,0 +1,13 @@
+毛毡生活手账 · 小程序头像 v1
+生成日期：2026-10-20（Asia/Shanghai）
+生成方式：内置 image_gen 图像生成工具，非 CLI。
+用途：小程序头像设计素材；不自动修改微信公众平台资料。
+
+Use case: logo-brand.
+Asset type: a finished square WeChat mini-program avatar, 1024x1024, for “毛毡生活手账”, a personal journal that turns everyday photographs into cut-out keepsakes arranged on felt boards.
+Primary request: Create ONE refined, memorable, minimal app avatar. A single small rounded-square felt board seen perfectly front-on, with a slim smooth dark walnut-brown frame and warm oatmeal felt inside. On the board, one generous ivory heart-shaped memory sticker, slightly tilted, with a clean softly raised cream cut edge and a tiny lifted lower corner suggesting a cherished photograph. One small butter-yellow four-point glint beside the upper-right of the heart conveys a lovely moment. The heart must be bold and instantly legible, not lace or intricate embroidery.
+Style/medium: premium tactile craft-inspired icon, gentle shallow 3D relief, refined soft felt microtexture, precise simple silhouette, restrained and contemporary, editorial warmth. Not a photoreal room scene. Not a fluffy toy.
+Composition: one centered emblem filling approximately 72% of the square width, ample balanced breathing room. The board and glint sit safely inside a circular avatar crop. No external badge, no surrounding device, no presentation layout. Full-bleed opaque warm off-white background with an almost imperceptible white-to-cream gradient, no outer rounded-corner clipping.
+Palette: warm white dominates, oatmeal beige felt, walnut brown frame for clear contrast, a tiny muted butter-yellow accent only. Restrained color count, no pink, green or rainbow.
+Lighting: soft upper-left studio light, subtle short contact shadows separating heart and board, no dramatic drop shadow, no harsh gloss.
+Constraints: original ownable brand symbol, clean at 48px, clear hierarchy, no words or letters or numbers, no typography, no watermark, no branded characters, no multiple alternatives, no mockup, no UI elements. Finished full-size avatar artwork.
