@@ -58,7 +58,10 @@ test('front/back preserve geometry, images and calendar order with tied layers',
   assert.deepEqual(layers.availability(bottom, 'm_a'), { canBringToFront: true, canSendToBack: false });
 });
 test('rendered overlap follows persisted layer order and undo restores original top object', () => {
-  const { store, date, board } = fixture(), history = createBoardHistory(board), images = {};
+  const { store, date, board } = fixture(), images = {};
+  // Layering deliberately overlaps objects; new objects now seek free space.
+  board.placements.forEach(p => { p.x = 705; p.y = 455; }); store.saveBoard(board);
+  const history = createBoardHistory(board);
   for (const [id, color] of [['a', '#FF0000'], ['b', '#00FF00'], ['c', '#0000FF']]) {
     const canvas = createCanvas(400, 300), context = canvas.getContext('2d'); context.fillStyle = color; context.fillRect(0, 0, 400, 300); images[`/${id}.png`] = canvas;
   }

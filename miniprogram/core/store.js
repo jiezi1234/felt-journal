@@ -87,7 +87,7 @@ function createStore(storage) {
       const now = Date.now();
       s.memories[id] = Object.assign({ id, boardId: date, date, text: '', category: '未分类', createdAt: now, updatedAt: now }, photos);
       const z = Math.max(0, ...b.placements.map(p => p.z)) + 1;
-      b.placements.push(geometry.create(id, photos.width, photos.height, z, now));
+      b.placements.push(geometry.create(id, photos.width, photos.height, z, now, b.placements));
       touchMembers(b);
       s.boards[targetBoardId] = b; s.operations[taskId] = id;
     });
@@ -111,7 +111,7 @@ function createStore(storage) {
     if (b.placements.some(p => p.memoryId === memoryId)) return;
     assert(b.placements.length < config.maxItems, `每块板最多 ${config.maxItems} 件记忆`);
     const z = Math.max(0, ...b.placements.map(p => p.z)) + 1;
-    b.placements.push(geometry.create(memoryId, m.width || 300, m.height || 300, z, Date.now())); touchMembers(b); s.boards[boardId] = b;
+    b.placements.push(geometry.create(memoryId, m.width || 300, m.height || 300, z, Date.now(), b.placements)); touchMembers(b); s.boards[boardId] = b;
   }
   function place(memoryId, boardId) {
     const current = get(), target = current.boards[boardId];

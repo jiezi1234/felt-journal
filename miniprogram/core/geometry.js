@@ -18,9 +18,44 @@ function fit(input) {
   p.y = Math.max(margin + box.h / 2, Math.min(H - margin - box.h / 2, p.y));
   return p;
 }
-function create(memoryId, width, height, z, createdAt) {
-  const size = 380, ratio = Math.min(size / width, size / height);
-  return fit({ id: `p_${memoryId}`, memoryId, x: W / 2, y: H / 2, width: width * ratio, height: height * ratio, angle: 0, z, createdAt });
+function overlap(a, b, gap = 24) {
+  const ae = extent(a), be = extent(b);
+  const w = Math.max(0, Math.min(a.x + ae.w / 2 + gap, b.x + be.w / 2) - Math.max(a.x - ae.w / 2 - gap, b.x - be.w / 2));
+  const h = Math.max(0, Math.min(a.y + ae.h / 2 + gap, b.y + be.h / 2) - Math.max(a.y - ae.h / 2 - gap, b.y - be.h / 2));
+  return w * h;
+}
+function create(memoryId, width, height, z, createdAt, existing = []) {
+  // Only the incoming object moves/shrinks. Never rearrange the user's work.
+  const sizes = existing.length ? [420, 360, 300, 240, 180, 130] : [560];
+  let best, bestScore = Infinity;
+  for (const size of sizes) {
+    const ratio = size / Math.max(width, height);
+    const base = fit({ id: `p_${memoryId}`, memoryId, x: W / 2, y: H / 2, width: width * ratio, height: height * ratio, angle: 0, z, createdAt });
+    const margin = B.innerRadius * (1 - Math.SQRT1_2) + 4;
+    const xs = [W / 2], ys = [H / 2];
+    // A regular grid plus exact neighbour edges finds gaps missed by the grid.
+    for (let n = 0; n <= 16; n++) {
+      xs.push(margin + base.width / 2 + (W - 2 * margin - base.width) * n / 16);
+      ys.push(margin + base.height / 2 + (H - 2 * margin - base.height) * n / 16);
+    }
+    existing.forEach(p => {
+      const e = extent(p);
+      xs.push(p.x - (e.w + base.width) / 2 - 24, p.x + (e.w + base.width) / 2 + 24);
+      ys.push(p.y - (e.h + base.height) / 2 - 24, p.y + (e.h + base.height) / 2 + 24);
+    });
+    let free, distance = Infinity;
+    for (const x of xs) for (const y of ys) {
+      const candidate = fit({ ...base, x, y });
+      const area = existing.reduce((sum, p) => sum + overlap(candidate, p), 0);
+      const d = Math.pow((candidate.x - W / 2) / W, 2) + Math.pow((candidate.y - H / 2) / H, 2);
+      if (area < 0.001 && d < distance) { free = candidate; distance = d; }
+      // Full boards still accept a bounded object at the least covered location.
+      const score = area / (candidate.width * candidate.height) + d * 0.001;
+      if (score < bestScore) { bestScore = score; best = candidate; }
+    }
+    if (free) return free;
+  }
+  return best;
 }
 function transform(p, op) {
   const next = Object.assign({}, p);
