@@ -32,7 +32,11 @@ button.color[disabled],button.texture[disabled] { opacity:.55; }
 .selected-heading .ghost { min-height:30px; padding:4px; font-size:11px; }
 .selection-actions>button { min-height:36px; padding:7px 2px; font-size:11px; }
 .board-page .library-add,.record-body .library-add { min-height:32px; padding:5px; margin-top:0 !important; }
-.board-page .board-export { margin-top:4px; flex-shrink:0; }
+.board-page .board-export { margin-top:4px; flex-shrink:0; align-self:flex-end; }
+button.board-share-button { display:flex; align-items:center; justify-content:center; flex-shrink:0; width:44px; min-width:44px; height:44px; min-height:44px; margin:0; padding:0!important; border:0; border-radius:50%; background:transparent; box-shadow:none; }
+.board-share-icon { display:block; width:24px; height:24px; pointer-events:none; }
+button.board-share-button.board-share-pressed { background:#F2EEE8; }
+button.board-share-button[disabled] { background:transparent; opacity:.4; }
 .drawer-scroll { max-height:none; }.drawer-content { padding:12px 16px 16px; }.drawer-heading { padding:4px 16px; }
 .drawer-content .colors { margin-top:8px; gap:6px; }.drawer-content .color { min-height:36px; padding:7px 2px; font-size:12px; }
 .drawer-content .divider { margin:12px 0; }.drawer-content .caption { margin:10px 0 0; }

@@ -13,6 +13,6 @@
     </view>
     <button id="add-from-library" class="ghost full library-add" disabled="{{task || recovering || openingLibrary}}" bindtap="library">{{isTheme ? '从记忆库添加' : '找回当天记忆'}}</button>
   </block>
-  <button wx:if="{{!editable && count}}" id="export-board" class="primary full space board-export" bindtap="exportBoard">导出 / 分享 ↗</button>
+  <button wx:if="{{!editable && count}}" id="export-board" class="board-share-button board-export" hover-class="board-share-pressed" aria-label="分享毛毡板" bindtap="exportBoard"><image class="board-share-icon" src="/images/actions/share.png" mode="aspectFit" aria-hidden="true" /></button>
   <button wx:if="{{!editable && !count && canEdit}}" class="primary full space" bindtap="sourceSheet">＋ 添加记忆</button>
 </block>

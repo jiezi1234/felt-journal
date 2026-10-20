@@ -6,7 +6,7 @@
       <view class="sheet-binding" aria-hidden="true"><view/><view/><view/><view/><view/><view/></view>
       <view class="row home-meta">
         <view class="sheet-date">{{dateLabel}}<text class="memory-count">{{count}} 件</text></view>
-        <view class="home-actions"><button wx:if="{{editable}}" id="finish-today" class="ghost" disabled="{{editorOpen || !!placing || recovering}}" bindtap="done">完成</button><button wx:if="{{count}}" id="export-today" class="ghost" disabled="{{editorOpen || !!placing || recovering}}" bindtap="exportToday">分享 ↗</button></view>
+        <view class="home-actions"><button wx:if="{{editable}}" id="finish-today" class="ghost" disabled="{{editorOpen || !!placing || recovering}}" bindtap="done">完成</button><button wx:if="{{count}}" id="export-today" class="board-share-button" hover-class="board-share-pressed" aria-label="分享毛毡板" disabled="{{editorOpen || !!placing || recovering}}" bindtap="exportToday"><image class="board-share-icon" src="/images/actions/share.png" mode="aspectFit" aria-hidden="true" /></button></view>
       </view>
       <view class="today-stage"><felt-board id="today-board" layout="tall" style="height:100%;" can-edit="{{canEdit}}" covered="{{editorOpen || !!placing || !!drawer || !!memoryCardId || !!shareBoardId}}" landing-id="{{placing.id || ''}}" model="{{model}}" editable="{{editable}}" selected="{{selected}}" bind:landingready="stickerTarget" bind:select="select" bind:edititem="editItem" bind:change="placementChanged" bind:transform="transform" bind:remove="remove" bind:memory="openMemory" bind:boardtap="openBoard" /></view>
     </view>

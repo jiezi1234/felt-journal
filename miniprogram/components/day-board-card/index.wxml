@@ -3,7 +3,7 @@
   <view class="day-board-dialog" role="dialog" aria-modal="true" aria-label="{{dateLabel || '当天毛毡板'}}">
     <view class="row day-board-heading">
       <view class="day-board-title"><view>{{dateLabel}}</view><text class="muted">{{count}} 件记忆</text></view>
-      <view class="day-board-actions"><button wx:if="{{editable}}" id="finish-day-board" class="ghost" disabled="{{task || recovering || !!placing}}" bindtap="done">完成</button><button wx:if="{{count}}" id="share-day-board" class="ghost" disabled="{{task || recovering || !!placing}}" bindtap="exportBoard">分享 ↗</button><button id="close-day-board" class="ghost day-board-close" disabled="{{recovering || !!placing}}" aria-label="关闭当天毛毡板" bindtap="close">×</button></view>
+      <view class="day-board-actions"><button wx:if="{{editable}}" id="finish-day-board" class="ghost" disabled="{{task || recovering || !!placing}}" bindtap="done">完成</button><button wx:if="{{count}}" id="share-day-board" class="board-share-button" hover-class="board-share-pressed" aria-label="分享毛毡板" disabled="{{task || recovering || !!placing}}" bindtap="exportBoard"><image class="board-share-icon" src="/images/actions/share.png" mode="aspectFit" aria-hidden="true" /></button><button id="close-day-board" class="ghost day-board-close" disabled="{{recovering || !!placing}}" aria-label="关闭当天毛毡板" bindtap="close">×</button></view>
     </view>
     <view wx:if="{{loading}}" class="loading">加载中…</view>
     <view wx:elif="{{error}}" class="error">{{error}}<button class="ghost" bindtap="refresh">重试</button></view>
