@@ -61,7 +61,20 @@ Component({
         if (target) this.triggerEvent('landingready', { id, target });
       }).exec();
     },
-    point(touch) { return { x: (touch.clientX - this.rect.left) * B.width / this.screenWidth - B.inset, y: (touch.clientY - this.rect.top) * B.width / this.screenWidth - B.inset }; },
+    localPoint(touch) {
+      if (!touch) return null;
+      // View touches use viewport coordinates; native CanvasTouch uses local x/y.
+      const rect = this.rect || { left: 0, top: 0 };
+      if (Number.isFinite(touch.clientX) && Number.isFinite(touch.clientY)) return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+      if (Number.isFinite(touch.x) && Number.isFinite(touch.y)) return { x: touch.x, y: touch.y };
+      return null;
+    },
+    point(touch) { const p = this.localPoint(touch); return p && { x: p.x * B.width / this.screenWidth - B.inset, y: p.y * B.width / this.screenWidth - B.inset }; },
+    controlAt(touch) {
+      if (this.dead || this.data.covered || !this.data.interactive || !this.data.canEdit || !this.data.editable || !this.data.selected || this.data.landingId) return null;
+      const p = this.localPoint(touch), handle = p && geometry.hitControl(this.data.handles, p.x, p.y);
+      return handle && handle.memoryId === this.data.selected ? handle : null;
+    },
     touchStart(e) {
       this.clearGesture();
       if (this.dead || this.data.covered || !this.data.interactive || !this.data.model || e.touches.length !== 1) return;
@@ -70,10 +83,19 @@ Component({
       this.createSelectorQuery().select('.board-shell').boundingClientRect(rect => {
         if (!rect || this.dead || token !== this.gestureToken) return;
         this.rect = rect;
-        const point = this.point(touch), hit = ((this.displayModel || this.data.model).items || []).slice().reverse().find(p => geometry.hit(p, point.x, point.y));
+        const point = this.point(touch); if (!point) { this.clearGesture(); return; }
+        // The visible controls belong to the canvas. Resolve them before objects
+        // or empty space even when a phone's native canvas covers the DOM buttons.
+        const control = this.controlAt(touch);
+        if (control) {
+          Object.assign(g, { control: control.op, selection: this.data.selected, pending: false });
+          if (g.ended) this.touchEnd(g.endEvent);
+          return;
+        }
+        const hit = ((this.displayModel || this.data.model).items || []).slice().reverse().find(p => geometry.hit(p, point.x, point.y));
         const item = hit && this.data.model.items.find(p => p.id === hit.id);
         Object.assign(g, { point, item, pending: false, draggable: this.data.editable && item && this.data.selected === item.memoryId });
-        if (g.ended) { this.touchEnd(); return; }
+        if (g.ended) { this.touchEnd(g.endEvent); return; }
         if (item && !g.moved) {
           this.longTimer = setTimeout(() => {
             if (this.dead || token !== this.gestureToken || g.moved || this.data.covered || !this.data.interactive) return;
@@ -87,7 +109,10 @@ Component({
     touchMove(e) {
       if (e.touches.length !== 1 || this.data.covered || !this.data.interactive) { this.touchCancel(); return; }
       const g = this.gesture; if (!g) return;
-      if (Math.hypot(e.touches[0].clientX - g.touch.clientX, e.touches[0].clientY - g.touch.clientY) > 6) { g.moved = true; clearTimeout(this.longTimer); }
+      const start = this.localPoint(g.touch), current = this.localPoint(e.touches[0]);
+      if (!start || !current) { this.touchCancel(); return; }
+      if (Math.hypot(current.x - start.x, current.y - start.y) > 6) { g.moved = true; clearTimeout(this.longTimer); }
+      if (g.control) return;
       if (!g.point) return;
       const point = this.point(e.touches[0]), dx = point.x - g.point.x, dy = point.y - g.point.y;
       if (!g.moved || !g.item || !this.data.editable || this.data.selected !== g.item.memoryId || !(g.draggable || g.long)) return;
@@ -95,12 +120,18 @@ Component({
       const next = geometry.fit(Object.assign({}, g.item, { x: g.item.x + dx, y: g.item.y + dy / ratio }));
       g.next = next; this.dragModel = Object.assign({}, this.data.model, { items: this.data.model.items.map(p => p.id === next.id ? next : p) }); this.refresh();
     },
-    touchEnd() {
+    touchEnd(e) {
       const g = this.gesture;
-      if (g && g.pending) { g.ended = true; return; }
+      if (g && g.pending) { g.ended = true; g.endEvent = e; return; }
       this.clearGesture();
       if (!g || this.dead || this.data.covered || !this.data.interactive) return;
-      if (g.next) this.triggerEvent('change', { placement: g.next });
+      if (g.control) {
+        const end = e && e.changedTouches && e.changedTouches[0] || g.touch;
+        const start = this.localPoint(g.touch), finish = this.localPoint(end), control = this.controlAt(end);
+        if (!g.moved && start && finish && Math.hypot(finish.x - start.x, finish.y - start.y) <= 6 && control && control.op === g.control && this.data.selected === g.selection) {
+          this.transform({ currentTarget: { dataset: { op: g.control } } });
+        }
+      } else if (g.next) this.triggerEvent('change', { placement: g.next });
       else if (!g.moved && !g.long) {
         if (g.item) this.triggerEvent('memory', { id: g.item.memoryId });
         else this.triggerEvent(this.data.editable ? 'select' : 'boardtap', { id: '' });

@@ -43,13 +43,12 @@ function loadImage(canvas, path) {
   return new Promise((resolve, reject) => { const image = canvas.createImage(); image.onload = () => resolve(image); image.onerror = () => reject(new Error('照片文件缺失，请在记忆详情替换照片')); image.src = path; });
 }
 function paintControls(ctx, handles, screenWidth) {
-  // Render the editor's control faces in the canvas too: native canvas capture
-  // may omit overlay layers. Hit targets remain independent native buttons.
+  // Canvas drawing and touch hit testing share the same screen-pixel centers.
+  // Overlay buttons also expose these actions to accessibility and DOM taps.
   // Export calls paint() alone and never includes this UI-only pass.
   const scale = screenWidth / B.width;
   handles.forEach(handle => {
-    const numbers = handle.style.match(/[\d.]+/g).map(Number);
-    const x = (numbers[0] + 22) / scale, y = (numbers[1] + 22) / scale;
+    const x = handle.x / scale, y = handle.y / scale;
     ctx.save(); ctx.shadowColor = 'rgba(48,47,43,0.15)'; ctx.shadowBlur = 4 / scale; ctx.shadowOffsetY = 2 / scale;
     const removing = handle.op === 'remove';
     ctx.beginPath(); ctx.arc(x, y, 21 / scale, 0, Math.PI * 2); ctx.fillStyle = removing ? '#FFF1ED' : '#F7F2E9'; ctx.fill();

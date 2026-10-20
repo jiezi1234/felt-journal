@@ -1,0 +1,144 @@
+// Exercises Canvas touch bindings, not just DOM button taps. All journal writes
+// go to a temporary in-memory adapter; actual device storage is never replaced.
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const automator = require('miniprogram-automator');
+const output = path.resolve('artifacts/board-controls');
+const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-drafts:v1', 'felt-journal:dev-extraction:v1', 'felt-journal:server-extraction:v1'];
+const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+(async () => {
+  let mini, before, originalRoute, installed = false, modalMocked = false;
+  const checks = [], errors = [];
+  const snapshot = () => mini.evaluate(names => names.map(key => ({ key, exists: wx.getStorageInfoSync().keys.includes(key), value: wx.getStorageSync(key) })), keys);
+  async function wait(target, predicate, label) {
+    for (let n = 0; n < 100; n++) { const data = await target.data(); if (predicate(data)) return data; await pause(100); }
+    const data = await target.data();
+    throw Error('Timed out: ' + label + ' ' + JSON.stringify({ loading: data.loading, count: data.count, error: data.error, selected: data.selected, editable: data.editable, imageError: data.imageError }));
+  }
+  const state = () => mini.evaluate(() => require('core/store.js').getStore().get());
+  async function touchAt(selector, id, op) {
+    return mini.evaluate((selector, id, op) => new Promise(resolve => {
+      const board = getCurrentPages().slice(-1)[0].selectComponent(selector);
+      board.createSelectorQuery().select('#feltCanvas').boundingClientRect(rect => {
+        const item = board.displayModel.items.find(p => p.memoryId === id);
+        const handle = op && board.data.handles.find(h => h.op === op);
+        const x = handle ? handle.x : (item.x + 45) * board.screenWidth / 1500;
+        const y = handle ? handle.y : (item.y + 45) * board.screenWidth / 1500;
+        resolve({ identifier: 0, clientX: rect.left + x, clientY: rect.top + y });
+      }).exec();
+    }), selector, id, op);
+  }
+  async function press(board, selector, id, op, duration = 70) {
+    const canvas = await board.$('#feltCanvas'), touch = await touchAt(selector, id, op);
+    await canvas.touchstart({ touches: [touch], changeTouches: [touch] });
+    await pause(duration);
+    if (op) {
+      const detected = await mini.evaluate(selector => {
+        const g = getCurrentPages().slice(-1)[0].selectComponent(selector).gesture;
+        return g && g.control;
+      }, selector);
+      assert.equal(detected, op, 'Canvas binding must resolve the visible control before release');
+    }
+    await canvas.touchend({ touches: [], changedTouches: [touch] });
+  }
+  async function exercise(selector, name) {
+    const page = await mini.currentPage(); await wait(page, d => !d.loading && d.count === 2, name + ' board');
+    const board = await page.$(selector); await wait(board, d => d.width > 0 && !d.covered && !d.imageError, 'canvas');
+    const initial = (await page.data()).model.items[0], other = (await page.data()).model.items[1], id = initial.memoryId;
+    await press(board, selector, id, null, 850);
+    await wait(page, d => d.editable && d.selected === id && !d.memoryCardId, 'long press');
+    await wait(board, d => d.handles.length === 5, 'controls');
+    const placement = d => d.model.items.find(p => p.memoryId === id);
+    await press(board, selector, id, 'up'); await wait(page, d => placement(d).width > initial.width, 'grow');
+    await press(board, selector, id, 'down'); await wait(page, d => Math.abs(placement(d).width - initial.width) < .001, 'shrink');
+    await press(board, selector, id, 'cw'); await wait(page, d => placement(d).angle === 15, 'clockwise');
+    await press(board, selector, id, 'ccw'); await wait(page, d => placement(d).angle === 0, 'counterclockwise');
+    // The accessibility/DOM path must continue to work without duplicate actions.
+    await (await board.$$('.grip'))[1].tap(); await wait(page, d => placement(d).angle === 15, 'DOM control');
+    const current = await page.data(), saved = await state();
+    assert.equal(saved.boards[current.date].placements.find(p => p.memoryId === id).angle, 15);
+    assert.deepEqual(current.model.items.find(p => p.memoryId === other.memoryId), other);
+    assert.equal(current.memoryCardId, ''); assert.equal(current.selected, id);
+    await mini.screenshot({ path: path.join(output, name + '.png') });
+
+    const prompts = await mini.evaluate(() => getApp().__boardControls.prompts);
+    await mini.mockWxMethod('showModal', { confirm: false, cancel: true }); modalMocked = true;
+    await press(board, selector, id, 'remove');
+    for (let n = 0; n < 100; n++) {
+      const done = await mini.evaluate(() => getApp().__boardControls.prompts > 0 && !getCurrentPages().slice(-1)[0].mutating);
+      if (done) break; await pause(50);
+    }
+    assert.equal(await mini.evaluate(() => getApp().__boardControls.prompts), prompts + 1);
+    assert.deepEqual(await state(), saved, 'Cancel keeps every memory and placement');
+    await mini.mockWxMethod('showModal', { confirm: true, cancel: false });
+    await press(board, selector, id, 'remove'); await wait(page, d => d.count === 1 && !d.selected, 'confirmed removal');
+    assert.equal(await mini.evaluate(() => getApp().__boardControls.prompts), prompts + 2);
+    const removed = await state();
+    assert.deepEqual(removed.memories, saved.memories, 'Removing a placement preserves original memories');
+    for (const [boardId, value] of Object.entries(saved.boards)) if (boardId !== current.date) assert.deepEqual(removed.boards[boardId], value);
+    await mini.restoreWxMethod('showModal'); modalMocked = false;
+    await page.callMethod('done');
+    checks.push(name + ': native Canvas touch bindings select, scale, rotate and request confirmed removal; cancel/persistence/scope checked');
+    console.log('PASS:', name);
+  }
+  try {
+    mini = await automator.connect({ wsEndpoint: process.env.WECHAT_AUTOMATION_URL || 'ws://127.0.0.1:9420' });
+    mini.on('exception', error => errors.push(error)); fs.mkdirSync(output, { recursive: true });
+    originalRoute = await mini.evaluate(() => {
+      if (wx.getSystemInfoSync().platform !== 'devtools') throw Error('Run this acceptance in the simulator only');
+      const p = getCurrentPages().slice(-1)[0];
+      if (!p || !['pages/index/index', 'pages/board-tab/index', 'pages/calendar/index'].includes(p.route)) throw Error('Start from an idle tab');
+      for (const p of getCurrentPages()) if (p.dirty || p.noteDirty || p.photoTask || p.data.editable || p.data.editorOpen || p.data.drawer || p.data.memoryCardId || p.data.shareBoardId || p.data.boardDate || p.data.formOpen) throw Error('Finish current editing before acceptance');
+      return '/' + p.route;
+    });
+    before = await snapshot();
+    await mini.callWxMethod('switchTab', { url: '/pages/index/index' }); await pause(500);
+    installed = true;
+    await mini.evaluate(() => {
+      const storeModule = require('core/store.js'), store = storeModule.getStore(), platform = require('services/platform.js');
+      const q = getApp().__boardControls = { originalStore: { ...store }, confirmRemovePlacement: platform.confirmRemovePlacement, prompts: 0 };
+      const disk = {}, isolated = storeModule.createStore({ get: key => disk[key], set: (key, value) => { disk[key] = value; } });
+      const photos = { originalPath: '/images/navigation/board-active.png', subjectPath: '/images/navigation/today-active.png', width: 72, height: 72 };
+      const today = require('core/date.js').key(), past = '2020-01-01';
+      const ids = ['one', 'two'].map(id => isolated.add('control_' + id, today, photos));
+      ['one', 'two'].forEach(id => isolated.add('control_old_' + id, past, photos));
+      const theme = isolated.createTheme('controls', '按钮验证'); ids.forEach(id => isolated.place(id, theme));
+      for (const id of [today, past, theme]) {
+        const b = isolated.board(id); b.placements.forEach((p, i) => { p.x = 380 + 600 * i; p.y = 460; p.width = p.height = 280; }); isolated.saveBoard(b);
+      }
+      isolated.commit(s => { s.localNoticeSeen = true; }); Object.assign(store, isolated);
+      platform.confirmRemovePlacement = () => { q.prompts++; return q.confirmRemovePlacement(); };
+      getCurrentPages().slice(-1)[0].refresh();
+    });
+    await exercise('#today-board', 'today');
+    await mini.callWxMethod('switchTab', { url: '/pages/board-tab/index' }); await pause(500);
+    await exercise('#board', 'theme');
+    await mini.callWxMethod('navigateTo', { url: '/pages/board/index?date=2020-01-01' }); await pause(500);
+    await exercise('#board', 'history');
+    assert.deepEqual(errors, []); assert.ok(JSON.stringify(await snapshot()) === JSON.stringify(before), 'User storage must remain unchanged');
+  } finally {
+    if (mini) {
+      try {
+        if (modalMocked) await mini.restoreWxMethod('showModal');
+        if (installed) {
+          // Finish isolated page lifecycles while their isolated store still owns all data.
+          const current = await mini.currentPage();
+          if (current && current.path === 'pages/board/index') await mini.callWxMethod('navigateBack', {});
+          await mini.evaluate(() => {
+            const q = getApp().__boardControls; if (!q) return;
+            for (const p of getCurrentPages()) { if (p.cancelGesture) p.cancelGesture(); p.dirty = false; p.noteDirty = false; p.history = null; p.draft = null; p.setData({ editable: false, selected: '' }); }
+            const store = require('core/store.js').getStore(); Object.assign(store, q.originalStore); store.load();
+            require('services/platform.js').confirmRemovePlacement = q.confirmRemovePlacement; delete getApp().__boardControls;
+            getCurrentPages().forEach(p => p.refresh && p.refresh());
+            if (wx.disableAlertBeforeUnload) wx.disableAlertBeforeUnload({});
+          });
+        }
+        if (originalRoute) await mini.callWxMethod('switchTab', { url: originalRoute });
+        if (before) assert.ok(JSON.stringify(await snapshot()) === JSON.stringify(before), 'User storage must remain unchanged');
+      } finally { mini.disconnect(); }
+    }
+  }
+  fs.writeFileSync(path.join(output, 'verification.json'), JSON.stringify({ passed: true, userStorageUnchanged: true, checks, limitations: ['Simulator touch dispatch; physical device still needs verification', 'System confirmation choices mocked; actual removal uses only isolated test records'] }, null, 2));
+})().catch(error => { console.error(error.stack || error.message); process.exitCode = 1; });

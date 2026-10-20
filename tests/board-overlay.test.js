@@ -124,3 +124,70 @@ test('delete control requests removal of the selection without transforming or o
   assert.deepEqual(f.events, []);
   tap('cw'); assert.deepEqual(f.events, [{ name: 'transform', detail: { op: 'cw' } }]);
 });
+
+function controlFixture(t, delayed = false) {
+  const f = gestureFixture(t, { editable: true, selected: 'memory', height: 600, layout: 'tall' }, delayed);
+  const geometry = require('../miniprogram/core/geometry');
+  f.board.data.handles = geometry.handles(f.item, f.board.screenWidth, 600);
+  f.at = (op, canvas = false) => {
+    const h = f.board.data.handles.find(h => h.op === op);
+    return canvas ? { x: h.x, y: h.y } : { clientX: h.x + 20, clientY: h.y + 40 };
+  };
+  f.begin = touch => f.board.touchStart({ touches: [touch] });
+  f.end = touch => f.board.touchEnd({ changedTouches: [touch] });
+  return f;
+}
+
+test('canvas controls respond once to all five actions with either touch coordinate format on fit and tall boards', t => {
+  const f = controlFixture(t), geometry = require('../miniprogram/core/geometry'), viewport = require('../miniprogram/core/board-viewport');
+  for (const height of [240, 600]) for (const canvas of [false, true]) {
+    const display = viewport.present(f.board.data.model, 360, height).model;
+    f.board.displayModel = display;
+    f.board.data.handles = geometry.handles(display.items[0], 360, height);
+    for (const op of ['ccw', 'cw', 'down', 'up', 'remove']) {
+      f.events.length = 0;
+      const touch = f.at(op, canvas); f.begin(touch); t.mock.timers.tick(800); f.end(touch); f.end(touch);
+      assert.deepEqual(f.events, [op === 'remove' ? { name: 'remove', detail: { id: f.item.memoryId } } : { name: 'transform', detail: { op } }]);
+    }
+  }
+});
+
+test('control touches cancel on movement, cancellation, multitouch, selection changes and overlays', t => {
+  const f = controlFixture(t), touch = f.at('remove', true);
+  const cancel = [
+    () => f.board.touchMove({ touches: [{ x: touch.x + 20, y: touch.y }] }),
+    () => f.board.touchCancel(),
+    () => f.board.touchMove({ touches: [touch, touch] }),
+    () => { f.board.data.selected = 'other'; },
+    () => { f.board.data.covered = true; },
+    () => { f.board.data.landingId = 'flying'; }
+  ];
+  for (const action of cancel) {
+    Object.assign(f.board.data, { selected: 'memory', covered: false, landingId: '' });
+    f.begin(touch); action(); f.end(touch);
+    assert.deepEqual(f.events, []);
+  }
+  f.board.data.landingId = ''; f.begin(touch);
+  f.end({ x: touch.x + 30, y: touch.y }); assert.deepEqual(f.events, [], 'Release outside cancels even if no move event arrives');
+});
+
+test('a quick canvas control tap survives delayed measurement without opening a memory or deselecting', t => {
+  const f = controlFixture(t, true), touch = f.at('up', true);
+  f.begin(touch); f.end(touch); assert.deepEqual(f.events, []);
+  f.measure(); assert.deepEqual(f.events, [{ name: 'transform', detail: { op: 'up' } }]);
+  f.events.length = 0;
+  f.begin(touch); f.board.touchMove({ touches: [{ x: touch.x + 20, y: touch.y }] }); f.end(touch); f.measure();
+  assert.deepEqual(f.events, []);
+});
+
+test('native canvas x/y also supports long press, drag and movement cancellation', t => {
+  const f = gestureFixture(t), B = require('../miniprogram/core/config').board;
+  const touch = { x: (f.item.x + B.inset) * 360 / B.width, y: (f.item.y + B.inset) * 360 / B.width };
+  f.board.touchStart({ touches: [touch] }); t.mock.timers.tick(650);
+  f.board.touchMove({ touches: [{ x: touch.x + 20, y: touch.y }] }); f.board.touchEnd();
+  assert.deepEqual(f.events.map(e => e.name), ['edititem', 'change']);
+  assert.ok(f.events[1].detail.placement.x > f.item.x);
+  f.events.length = 0; f.board.data.selected = '';
+  f.board.touchStart({ touches: [touch] }); f.board.touchMove({ touches: [{ x: touch.x + 20, y: touch.y }] });
+  t.mock.timers.tick(1000); f.board.touchEnd(); assert.deepEqual(f.events, []);
+});
