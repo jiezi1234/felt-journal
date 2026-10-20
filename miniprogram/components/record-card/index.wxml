@@ -1,20 +1,20 @@
-<view class="record-overlay" catchtouchmove="stop">
-  <view class="record-scrim" bindtap="back" />
-  <view class="record-card {{task ? 'is-processing' : ''}}" role="dialog" aria-modal="true" aria-label="记录今天">
+<view class="record-overlay modal-overlay {{modalClosing ? 'is-closing' : ''}} {{modalKeyboard ? 'has-keyboard' : ''}}" style="{{modalHeight ? 'height:' + modalHeight + 'px;padding-bottom:' + modalBottom + 'px;' : ''}}" catchtouchmove="stop" catchtap="stop">
+  <view class="record-scrim modal-scrim" bindtap="back" />
+  <view class="record-card modal-surface {{task ? 'is-processing' : 'is-source'}}" role="dialog" aria-modal="true" aria-label="记录今天">
     <view class="record-handle" aria-hidden="true" />
-    <view class="row record-header"><view><view class="section-title">记录今天</view><text class="muted record-date">{{dateLabel}}</text></view><button id="close-record" class="record-close" disabled="{{lifting}}" aria-label="关闭记录卡片" bindtap="back">×</button></view>
+    <view class="row record-header"><view><view class="section-title">记录今天</view><text class="muted record-date">{{dateLabel}}</text></view><button hover-class="ui-pressed" id="close-record" class="record-close ui-close" disabled="{{lifting}}" aria-label="关闭记录卡片" bindtap="back">×</button></view>
     <view class="record-scroll">
       <view class="record-body">
         <view wx:if="{{!task}}" class="record-source">
           <view class="source-intro">留住今天的一件小事</view>
           <view class="source-actions">
-            <button id="record-camera" class="source-button" disabled="{{loading || recovering || !!error}}" bindtap="camera"><view class="source-circle"><view class="source-camera-icon"><view /></view></view><text>拍照</text></button>
-            <button id="record-album" class="source-button" disabled="{{loading || recovering || !!error}}" bindtap="album"><view class="source-circle"><view class="source-album-icon"><view /></view></view><text>相册</text></button>
+            <button hover-class="ui-pressed" id="record-camera" class="source-button" disabled="{{loading || recovering || !!error}}" bindtap="camera"><view class="source-circle"><view class="source-camera-icon"><view /></view></view><text>拍照</text></button>
+            <button hover-class="ui-pressed" id="record-album" class="source-button" disabled="{{loading || recovering || !!error}}" bindtap="album"><view class="source-circle"><view class="source-album-icon"><view /></view></view><text>相册</text></button>
           </view>
           <view class="source-hint">选好照片，自动提取成贴纸</view>
           <view wx:if="{{error}}" class="error">{{error}}</view>
         </view>
-        <photo-panel adjusting="{{photoAdjusting}}" adjustment-error="{{photoAdjustmentError}}" bind:adjust="adjustPhoto" note-open="{{photoNoteOpen}}" note-text="{{photoNoteText}}" note-error="{{photoNoteError}}" bind:noteopen="openPhotoNote" bind:noteinput="photoNoteInput" wx:if="{{task}}" id="record-photo" style="height:100%; min-height:0;" inline="{{true}}" lifting="{{lifting}}" continue-label="开始布置" task="{{task}}" bind:retry="retryPhoto" bind:original="originalPhoto" bind:cancel="cancelPhoto" />
+        <photo-panel keyboard="{{modalKeyboard}}" adjusting="{{photoAdjusting}}" adjustment-error="{{photoAdjustmentError}}" bind:adjust="adjustPhoto" note-open="{{photoNoteOpen}}" note-text="{{photoNoteText}}" note-error="{{photoNoteError}}" bind:noteopen="openPhotoNote" bind:noteinput="photoNoteInput" wx:if="{{task}}" id="record-photo" style="height:100%; min-height:0;" inline="{{true}}" lifting="{{lifting}}" continue-label="开始布置" task="{{task}}" bind:retry="retryPhoto" bind:original="originalPhoto" bind:cancel="cancelPhoto" />
       </view>
     </view>
   </view>

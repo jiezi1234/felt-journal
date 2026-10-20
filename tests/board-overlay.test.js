@@ -80,6 +80,30 @@ test('movement cancels long press and cannot move an unselected object', t => {
   assert.deepEqual(f.events, []); assert.equal(f.board.dragModel, null);
 });
 
+test('rapid movement paints once per frame and saves the final release position', t => {
+  const f = gestureFixture(t), p = f.board, frames = new Map(); let id = 0, paints = 0;
+  p.canvas = { requestAnimationFrame(fn) { frames.set(++id, fn); return id; }, cancelAnimationFrame(key) { frames.delete(key); } };
+  p.refresh = () => { paints++; };
+  f.start(); t.mock.timers.tick(650); f.events.length = 0;
+  for (const x of [10, 20, 30]) f.move(x);
+  assert.equal(frames.size, 1); assert.equal(paints, 0); assert.deepEqual(f.events, []);
+  const latest = p.dragModel.items[0].x;
+  const draw = frames.values().next().value; frames.clear(); draw(); assert.equal(paints, 1);
+  const release = { ...p.gesture.touch, clientX: p.gesture.touch.clientX + 50 };
+  p.touchEnd({ changedTouches: [release] });
+  assert.equal(f.events.length, 1); assert.ok(f.events[0].detail.placement.x > latest);
+  assert.equal(frames.size, 0); assert.equal(p.dragModel, null);
+  f.start(); f.move(20); assert.equal(frames.size, 1); p.touchCancel();
+  assert.equal(frames.size, 0); assert.equal(f.events.length, 1);
+});
+
+test('a replacement finger cancels the pending gesture instead of saving a jump', t => {
+  const f = gestureFixture(t); f.start(); t.mock.timers.tick(650); f.events.length = 0;
+  f.board.gesture.touch.identifier = 1;
+  f.board.touchMove({ touches: [{ identifier: 2, clientX: 300, clientY: 300 }] }); f.board.touchEnd();
+  assert.equal(f.board.gesture, null); assert.deepEqual(f.events, []);
+});
+
 test('dragging works after long press and on a subsequent gesture of the selected object', t => {
   const f = gestureFixture(t); f.start(); t.mock.timers.tick(650); f.move(20); f.board.touchEnd();
   assert.deepEqual(f.events.map(e => e.name), ['edititem', 'change']); assert.ok(f.events[1].detail.placement.x > f.item.x);

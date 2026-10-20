@@ -1,0 +1,11 @@
+@import "./controls.wxss";
+/* Shared spatial language. The overlay remains mounted until the exit ends. */
+.modal-overlay { height:100vh; }
+.modal-overlay .modal-scrim { animation:modal-scrim-in 220ms ease-out both; }
+.modal-overlay .modal-surface { animation:modal-surface-in 260ms cubic-bezier(.2,.7,.2,1) both; }
+.modal-overlay.is-closing .modal-scrim { animation:modal-scrim-out 180ms ease-in both; }
+.modal-overlay.is-closing .modal-surface { animation:modal-surface-out 180ms cubic-bezier(.4,0,1,1) both; pointer-events:none; }
+@keyframes modal-scrim-in { from { opacity:0; } to { opacity:1; } }
+@keyframes modal-scrim-out { from { opacity:1; } to { opacity:0; } }
+@keyframes modal-surface-in { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+@keyframes modal-surface-out { from { opacity:1; transform:translateY(0); } to { opacity:0; transform:translateY(12px); } }

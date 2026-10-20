@@ -1,0 +1,5 @@
+<view class="board-feedback" aria-live="polite">
+  <text wx:if="{{layoutSaved && !saveError}}" class="board-feedback-saved">✓ 已自动保存</text>
+  <text wx:elif="{{selected}}">拖动调整 · 点空白取消选中</text>
+  <text wx:elif="{{showBoardGuide}}">轻点看记忆 · 长按布置</text>
+</view>

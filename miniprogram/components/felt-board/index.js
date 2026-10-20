@@ -130,7 +130,9 @@ Component({
     touchMove(e) {
       if (e.touches.length !== 1 || this.data.covered || !this.data.interactive) { this.touchCancel(); return; }
       const g = this.gesture; if (!g) return;
-      g.lastTouch = e.touches[0];
+      const touch = e.touches[0];
+      if (g.touch.identifier != null && touch.identifier != null && g.touch.identifier !== touch.identifier) { this.touchCancel(); return; }
+      g.lastTouch = touch;
       const start = this.localPoint(g.touch), current = this.localPoint(e.touches[0]);
       if (!start || !current) { this.touchCancel(); return; }
       const threshold = g.control === 'remove' ? 12 : g.control ? 2 : 6;
@@ -154,12 +156,19 @@ Component({
     previewPlacement(g, next) {
       g.next = next;
       this.dragModel = Object.assign({}, this.data.model, { items: this.data.model.items.map(p => p.id === next.id ? next : p) });
-      this.refresh();
+      // Touch events can arrive faster than the display refreshes. Keep the
+      // latest geometry immediately, and paint at most once per native frame.
+      if (!this.canvas || !this.canvas.requestAnimationFrame) { this.refresh(); return; }
+      if (this.previewFrame != null) return;
+      this.previewFrame = this.canvas.requestAnimationFrame(() => {
+        this.previewFrame = null;
+        if (!this.dead && this.dragModel) this.refresh();
+      });
     },
     touchEnd(e) {
       const g = this.gesture;
       if (g && g.pending) { g.ended = true; g.endEvent = e; return; }
-      if (g && g.control && g.control !== 'remove' && e && e.changedTouches && e.changedTouches.length) {
+      if (g && (g.moved || g.control) && g.control !== 'remove' && e && e.changedTouches && e.changedTouches.length) {
         this.touchMove({ touches: [e.changedTouches[0]] });
         if (this.gesture !== g) return;
       }
@@ -186,7 +195,11 @@ Component({
       }
       this.refresh();
     },
-    clearGesture() { this.gestureToken = (this.gestureToken || 0) + 1; clearTimeout(this.longTimer); this.gesture = null; this.dragModel = null; },
+    clearGesture() {
+      this.gestureToken = (this.gestureToken || 0) + 1; clearTimeout(this.longTimer);
+      if (this.previewFrame != null && this.canvas && this.canvas.cancelAnimationFrame) this.canvas.cancelAnimationFrame(this.previewFrame);
+      this.previewFrame = null; this.gesture = null; this.dragModel = null;
+    },
     touchCancel() {
       if (this.gesture && this.gesture.control) this.controlTapBlock = { op: this.gesture.control, until: Date.now() + 700 };
       this.clearGesture(); this.refresh();

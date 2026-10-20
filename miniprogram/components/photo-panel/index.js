@@ -3,10 +3,15 @@ const stageLabels = {
   extracting: '主体提取中…', saving: '保存记忆中…'
 };
 Component({
-  properties: { task: Object, inline: Boolean, lifting: Boolean, adjusting: Boolean, adjustmentError: String, continueLabel: { type: String, value: '继续' }, noteOpen: Boolean, noteText: String, noteError: String, maxText: { type: Number, value: 1000 } },
+  properties: { task: Object, inline: Boolean, keyboard: Boolean, lifting: Boolean, adjusting: Boolean, adjustmentError: String, continueLabel: { type: String, value: '继续' }, noteOpen: Boolean, noteText: String, noteError: String, maxText: { type: Number, value: 1000 } },
   data: { showOriginal: false, preview: false, done: false, failed: false, analyzing: false, stageLabel: '', resultLabel: '', displayImage: '', canCompare: false },
-  lifetimes: { detached() { this.dead = true; } },
+  lifetimes: { detached() { this.dead = true; this.pendingContinue = null; } },
   observers: {
+    keyboard(visible) {
+      if (visible || !this.pendingContinue) return;
+      const task = this.pendingContinue; this.pendingContinue = null;
+      wx.nextTick(() => { if (!this.dead && this.data.task === task) this.cancel(); });
+    },
     task(task) {
       const state = task && task.state || '', original = task && task.original || '';
       const done = state === 'done', failed = ['extractError', 'saveError', 'sourceError'].includes(state);
@@ -32,14 +37,26 @@ Component({
       if (this.data.adjusting || this.data.lifting) return;
       if (!this.data.done) { this.triggerEvent('cancel'); return; }
       const task = this.data.task;
+      // Inline keyboard layout hides the photo. Wait for its restored bounds
+      // before measuring the source of the peel animation.
+      if (this.data.inline && this.data.keyboard) {
+        if (this.pendingContinue === task) return;
+        this.pendingContinue = task;
+        wx.hideKeyboard({ fail: () => { if (this.pendingContinue === task) this.pendingContinue = null; } });
+        return;
+      }
       if (this.continuing === task) return;
       this.continuing = task;
-      this.createSelectorQuery().select('#task-image').boundingClientRect(rect => {
+      const measure = () => this.createSelectorQuery().select('#task-image').boundingClientRect(rect => {
         if (this.continuing !== task) return;
         this.continuing = null;
         if (this.dead || this.data.task !== task) return;
         this.triggerEvent('cancel', { rect });
       }).exec();
+      // The board receives the saved subject even when the user was comparing
+      // the original. Measure that same subject's 92% container after reflow.
+      if (this.data.showOriginal) this.setData({ showOriginal: false, displayImage: task.subject || task.original }, () => wx.nextTick(measure));
+      else measure();
     },
     compare() {
       if (!this.data.canCompare) return;

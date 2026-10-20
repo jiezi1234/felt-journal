@@ -25,7 +25,9 @@ button.color[disabled],button.texture[disabled] { opacity:.55; }
 .board-page .board-heading,.record-body .board-heading { flex-shrink:0; margin:0; min-height:32px; }
 .board-page .board-heading .section-title { font-size:17px; max-height:52px; overflow:hidden; }
 .editor-stage { flex:1; min-height:0; }
-.board-page .caption,.record-body .caption { flex-shrink:0; margin:2px 0; font-size:11px; }
+.board-page .caption,.record-body .caption { flex-shrink:0; margin:2px 0; font-size:12px; }
+.board-feedback { flex-shrink:0; min-height:20px; color:#7D6D5E; font-size:12px; line-height:20px; text-align:center; }
+.board-feedback-saved { color:#4D7153; }
 .editor-toolbar,.selected-tools,.library-add { flex-shrink:0; }
 .board-page .editor-toolbar>button,.record-body .editor-toolbar>button { min-height:44px; padding:6px; font-size:12px; }
 .board-page .selected-tools,.record-body .selected-tools { margin:0; padding:0 8px 6px; border-radius:16px; }

@@ -21,6 +21,7 @@ function themeTitle(value) {
 function assert(condition, text) { if (!condition) throw new Error(text); }
 function record(value) { return !!value && typeof value === 'object' && !Array.isArray(value); }
 function validate(s) {
+  assert(s && (s.boardGuideSeen === undefined || typeof s.boardGuideSeen === 'boolean'), '操作引导状态异常');
   assert(record(s) && [1, 2].includes(s.version) && Number.isInteger(s.revision) && s.revision >= 0 && record(s.boards) && record(s.memories) && record(s.operations) && Array.isArray(s.garbage) && s.garbage.every(p => typeof p === 'string') && typeof s.localNoticeSeen === 'boolean', '本地记录格式异常，请保留数据并重试');
   const seen = {};
   Object.keys(s.boards).forEach(id => {
@@ -93,13 +94,14 @@ function createStore(storage) {
     });
     return id;
   }
-  function saveBoard(draft) {
+  function saveBoard(draft, options = {}) {
     commit(s => {
       const original = s.boards[draft.id];
       assert(dates.valid(draft.id) && draft.id === draft.date && draft.date <= dates.key() || isThemeId(draft.id) && original && original.type === 'theme', '板面已不存在或日期无效');
       const ids = (original ? original.placements : []).map(p => p.memoryId).sort().join(',');
       assert(ids === draft.placements.map(p => p.memoryId).sort().join(',') && membership(original) === membership(draft), '记忆已变化，请重新打开板面');
       s.boards[draft.id] = felt.withTexture(Object.assign({}, original || draft, { color: draft.color, texture: felt.textureOf(draft), placements: clone(draft.placements) }));
+      if (options.boardGuideSeen === true) s.boardGuideSeen = true;
     });
     clearDraft(draft.id);
   }

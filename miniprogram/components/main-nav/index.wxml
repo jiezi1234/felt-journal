@@ -1,6 +1,6 @@
 <view class="main-nav">
   <view class="main-nav__items">
-    <button wx:for="{{items}}" wx:key="id" id="nav-{{item.id}}" class="main-nav__item {{item.id === 'today' ? 'main-nav__primary' : ''}} {{active === item.id ? 'is-active' : ''}}" data-id="{{item.id}}" disabled="{{navigating}}" bindtap="open" aria-label="{{item.label + (active === item.id ? '，当前页面' : '')}}">
+    <button wx:for="{{items}}" wx:key="id" id="nav-{{item.id}}" class="main-nav__item {{active === item.id ? 'is-active' : ''}}" hover-class="nav-pressed" data-id="{{item.id}}" disabled="{{navigating}}" bindtap="open" aria-label="{{item.label + (active === item.id ? '，当前页面' : '')}}">
       <view class="main-nav__icon-wrap"><image class="main-nav__icon" src="{{'/images/navigation/' + item.id + (active === item.id ? '-active' : '') + '.png'}}" mode="aspectFit" /></view>
       <text class="main-nav__label">{{item.label}}</text>
     </button>

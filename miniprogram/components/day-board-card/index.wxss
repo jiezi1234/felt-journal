@@ -1,9 +1,10 @@
 @import "../../styles/board-editor.wxss";
+@import "../../styles/modal.wxss";
 .day-board-overlay { position:fixed; inset:0; z-index:90; padding:18px 16px calc(18px + env(safe-area-inset-bottom)); display:flex; align-items:center; justify-content:center; }
 .day-board-scrim { position:absolute; inset:0; background:rgba(43,35,28,.28); }
 .day-board-dialog { position:relative; width:100%; max-width:520px; height:82vh; max-height:720px; padding:12px; display:flex; flex-direction:column; gap:10px; border:1px solid #FFFFFF; border-radius:30px; background:linear-gradient(145deg,#FFFFFF,#FFFCF6); box-shadow:0 16px 48px rgba(45,35,25,.12); }
 .day-board-heading { flex-shrink:0; gap:4px; padding:0 2px; }
-.day-board-title { flex:1; min-width:0; font-size:14px; color:#715F50; line-height:1.5; }.day-board-title .muted { font-size:11px; }
+.day-board-title { flex:1; min-width:0; font-size:14px; color:#715F50; line-height:1.5; }.day-board-title .muted { font-size:12px; }
 .day-board-actions { display:flex; flex-shrink:0; align-items:center; gap:2px; }.day-board-actions button { min-height:40px; padding:8px 4px; font-size:12px; }
 .day-board-actions button.day-board-close { min-width:40px; font-size:25px; line-height:24px; padding:4px; }
 .day-board-stage { flex:1; min-height:0; }
@@ -11,3 +12,6 @@
 .day-board-tools { flex-shrink:0; gap:8px; }.day-board-tools button { min-height:40px; padding:8px 12px; font-size:13px; }
 .day-board-dialog .error { margin:0; padding:8px 12px; font-size:12px; }.day-board-save-error { flex-shrink:0; max-height:100px; overflow-y:auto; }
 @media (max-height:570px) { .day-board-dialog { height:86vh; padding:8px; gap:6px; }.day-board-overlay { padding-top:10px; padding-bottom:calc(10px + env(safe-area-inset-bottom)); } }
+.day-board-dialog { max-height:min(720px,100%); }
+.has-keyboard .day-board-dialog { padding:8px; gap:6px; }
+.has-keyboard .day-board-stage { min-height:0; }

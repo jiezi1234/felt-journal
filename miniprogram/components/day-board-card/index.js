@@ -1,5 +1,6 @@
 const { createBoardEditor } = require('../../services/board-editor');
 const platform = require('../../services/platform');
+const modal = require('../../services/modal-presentation');
 const controller = createBoardEditor({ inline: true, modal: true });
 const methods = {};
 Object.keys(controller).forEach(key => { if (typeof controller[key] === 'function' && !key.startsWith('on')) methods[key] = controller[key]; });
@@ -9,9 +10,9 @@ Component({
   properties: { boardDate: String },
   data: controller.data,
   lifetimes: {
-    attached() { controller.onLoad.call(this, { date: this.data.boardDate }); },
+    attached() { modal.mount(this); controller.onLoad.call(this, { date: this.data.boardDate }); },
     ready() { this.refresh(); },
-    detached() { controller.onUnload.call(this); }
+    detached() { modal.dispose(this); controller.onUnload.call(this); }
   },
   pageLifetimes: {
     hide() { controller.onHide.call(this); },
@@ -19,6 +20,7 @@ Component({
     resize() { controller.onResize.call(this); }
   },
   methods: { ...methods,
+    closeCard() { modal.close(this, () => controller.closeCard.call(this)); },
     refresh() {
       if (this.disposed) return;
       try { this.store.load(); controller.refresh.call(this); }

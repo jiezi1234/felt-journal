@@ -12,3 +12,35 @@ test('newly edited results leave original comparison and display the saved crop,
   component.observers.task.call(p, { ...original, subject: '/cropped-background.png', kind: 'original' });
   assert.equal(p.data.displayImage, '/cropped-background.png'); assert.equal(p.data.canCompare, false);
 });
+
+test('continuing from original comparison measures the saved subject after reflow and ignores stale results', t => {
+  const originalWx = global.wx; t.after(() => { global.wx = originalWx; });
+  let afterLayout, measured, callback; const events = [];
+  global.wx = { nextTick(fn) { afterLayout = fn; } };
+  const task = { state: 'done', original: '/original', subject: '/subject' };
+  const p = { ...component.methods, data: { task, done: true, showOriginal: true, displayImage: task.original },
+    setData(data, done) { Object.assign(this.data, data); if (done) done(); },
+    createSelectorQuery() { measured = this.data.displayImage; return { select() { return this; }, boundingClientRect(fn) { callback = fn; return this; }, exec() {} }; },
+    triggerEvent(name, detail) { events.push({ name, detail }); }
+  };
+  p.cancel(); assert.equal(p.data.displayImage, '/subject'); assert.equal(measured, undefined);
+  afterLayout(); assert.equal(measured, '/subject'); callback({ width: 200, height: 100 });
+  assert.equal(events.length, 1); assert.equal(events[0].detail.rect.width, 200);
+  p.cancel(); p.dead = true; callback({ width: 99 }); assert.equal(events.length, 1);
+});
+
+test('continue with the inline keyboard waits for restored image bounds and ignores a detached result', t => {
+  const originalWx = global.wx; t.after(() => { global.wx = originalWx; });
+  let hidden = 0, measured = 0, afterLayout;
+  global.wx = { hideKeyboard() { hidden++; }, nextTick(fn) { afterLayout = fn; } };
+  const task = { state:'done', subject:'/subject' };
+  const p = { ...component.methods, data:{ task, done:true, inline:true, keyboard:true },
+    createSelectorQuery() { measured++; return { select() { return this; }, boundingClientRect() { return this; }, exec() {} }; }
+  };
+  p.cancel(); p.cancel(); assert.equal(hidden, 1); assert.equal(measured, 0);
+  p.data.keyboard = false; component.observers.keyboard.call(p, false);
+  assert.equal(measured, 0); afterLayout(); assert.equal(measured, 1);
+  p.data.keyboard = true; p.cancel(); p.data.keyboard = false;
+  component.observers.keyboard.call(p, false); component.lifetimes.detached.call(p); afterLayout();
+  assert.equal(measured, 1);
+});

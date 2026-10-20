@@ -9,6 +9,7 @@
       <view class="theme-stage"><felt-board id="board" layout="tall" style="height:100%;" model="{{model}}" editable="{{editable}}" selected="{{selected}}" can-edit="{{canEdit}}" covered="{{formOpen || !!drawer || !!task || !!placing || !!memoryCardId || !!shareBoardId}}" landing-id="{{placing.id || ''}}" bind:landingready="stickerTarget" bind:select="select" bind:edititem="editItem" bind:change="placementChanged" bind:transform="transform" bind:remove="remove" bind:memory="memory" bind:boardtap="edit" /></view>
     </view>
     <view wx:if="{{saveError}}" class="error">{{saveError}}<button class="ghost" bindtap="retrySave">重试保存</button></view>
+    <include src="../../templates/board-feedback.wxml" />
     <view class="theme-toolbar"><button id="add-theme-memory" class="primary" disabled="{{working || recovering || !!task || !!placing || count >= maxItems}}" bindtap="sourceSheet">＋ 添加</button></view>
     <view class="screen-pagination"><button id="previous-theme" class="ghost" disabled="{{page <= 1 || working || recovering}}" bindtap="previous" aria-label="上一块主题板">‹</button><text>{{page}} / {{pageCount}}</text><button id="next-theme" class="ghost" disabled="{{page >= pageCount || working || recovering}}" bindtap="next" aria-label="下一块主题板">›</button></view>
   </block>

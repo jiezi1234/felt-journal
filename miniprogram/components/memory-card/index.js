@@ -3,14 +3,15 @@ const dates = require('../../core/date');
 const config = require('../../core/config');
 const platform = require('../../services/platform');
 const { newId } = require('../../services/photo-task');
+const modal = require('../../services/modal-presentation');
 Component({
   options: { styleIsolation: 'apply-shared' },
   properties: { memoryId: String },
   data: { memory: null, dateLabel: '', flipped: false, editing: false, text: '', error: '', hint: '', missing: false, maxText: config.maxText,
     themeOpen: false, themeCreating: false, themeWorking: false, themeTitle: '', themeError: '', themes: [], visibleThemes: [], themePage: 1, themePageCount: 1, maxThemeTitle: config.maxBoardTitle },
   lifetimes: {
-    attached() { this.store = getStore(); this.refresh(); },
-    detached() { if (this.dirty) this.keepDraft(); this.dead = true; platform.unloadGuard(false); }
+    attached() { modal.mount(this); this.store = getStore(); this.refresh(); },
+    detached() { modal.dispose(this); if (this.dirty) this.keepDraft(); this.dead = true; platform.unloadGuard(false); }
   },
   pageLifetimes: { show() { if (this.store) this.refresh(); }, hide() { if (this.dirty) this.keepDraft(); } },
   methods: {
@@ -98,7 +99,11 @@ Component({
       this.setData({ themeOpen: false, themeCreating: false, themeError: '' });
       this.triggerEvent('change', { id: this.data.memoryId }); platform.toast('已放入主题板');
     },
-    close() { if (this.data.memory && this.dirty && !this.save()) return; this.triggerEvent('close'); },
+    close() {
+      if (this.data.themeOpen) { this.closeThemes(); return; }
+      if (this.data.memory && this.dirty && !this.save()) return;
+      modal.close(this, () => this.triggerEvent('close'));
+    },
     imageError() { this.setData({ missing: true }); }, stop() {}
   }
 });

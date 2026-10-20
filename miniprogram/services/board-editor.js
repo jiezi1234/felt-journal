@@ -7,17 +7,18 @@ const geometry = require('../core/geometry');
 const platform = require('./platform');
 const photo = require('./page-photo');
 const stickerMotion = require('../core/sticker-motion');
+const feedback = require('./board-feedback');
 function createBoardEditor(options = {}) { return {
   // Placement feedback never changes the saved model or creates another memory.
-  data: { shareBoardId: '', memoryCardId: '', photoNoteOpen: false, photoNoteText: '', photoNoteError: '', embedded: !!options.embedded, sourceStage: false, drawer: '', libraryItems: [], visibleLibraryItems: [], libraryPage: 1, libraryPageCount: 1, noteText: '', noteCategory: 0, noteError: '', noteHint: '', categories: config.categories, maxText: config.maxText, loading: true, error: '', date: '', dateLabel: '', isTheme: false, editable: false, canEdit: false, selected: '', model: null, count: 0, saveState: '已保存', saveError: '', task: null, placing: null, colors: config.colors, textures: config.textures, appearanceLabel: '', canUndo: false, canRedo: false, canBringToFront: false, canSendToBack: false, recovering: false, openingLibrary: false },
+  data: { showBoardGuide: false, layoutSaved: false, shareBoardId: '', memoryCardId: '', photoNoteOpen: false, photoNoteText: '', photoNoteError: '', embedded: !!options.embedded, sourceStage: false, drawer: '', libraryItems: [], visibleLibraryItems: [], libraryPage: 1, libraryPageCount: 1, noteText: '', noteCategory: 0, noteError: '', noteHint: '', categories: config.categories, maxText: config.maxText, loading: true, error: '', date: '', dateLabel: '', isTheme: false, editable: false, canEdit: false, selected: '', model: null, count: 0, saveState: '已保存', saveError: '', task: null, placing: null, colors: config.colors, textures: config.textures, appearanceLabel: '', canUndo: false, canRedo: false, canBringToFront: false, canSendToBack: false, recovering: false, openingLibrary: false },
   onLoad(query) {
     this.store = getStore(); this.date = query.board || query.date || dates.key(); this.wantEdit = query.mode === 'edit'; this.wantAdd = query.add === '1';
   },
   onShow() { if (!this.data.shareBoardId) this.refresh(); },
   onResize() { this.stickerLanded(); },
   onReady() { if (this.wantAdd && !this.data.error) { this.wantAdd = false; this.sourceSheet(); } },
-  onHide() { this.stickerLanded(); this.cancelGesture(); if (this.dirty) this.persist(); if (this.noteDirty) this.keepNoteDraft(); },
-  onUnload() { clearTimeout(this.placementTimer); if (this.dirty) { this.store.keepDraft(this.draft); this.persist(); } if (this.noteDirty) this.keepNoteDraft(); photo.dispose(this); platform.unloadGuard(false); },
+  onHide() { this.stickerLanded(); this.cancelGesture(); if (this.dirty) this.persist(); if (this.noteDirty) this.keepNoteDraft(); feedback.reset(this); },
+  onUnload() { clearTimeout(this.placementTimer); if (this.dirty) { this.store.keepDraft(this.draft); this.persist(); } if (this.noteDirty) this.keepNoteDraft(); feedback.reset(this); photo.dispose(this); platform.unloadGuard(false); },
   refresh() {
     try {
       photo.refreshResult(this);
@@ -32,11 +33,14 @@ function createBoardEditor(options = {}) { return {
     } catch (e) { this.setData({ loading: false, error: platform.message(e, '板面读取失败，请重试') }); }
   },
   display() {
-    const memories = this.store.get().memories;
+    const state = this.store.get(), memories = state.memories;
     const items = layers.ordered(this.draft.placements).map(p => Object.assign({}, p, { memory: memories[p.memoryId] })).filter(p => p.memory);
     const selected = items.some(p => p.memoryId === this.data.selected) ? this.data.selected : '';
     const color = config.colors.find(c => c.value === this.draft.color), texture = config.textures.find(t => t.value === this.draft.texture);
-    this.setData(Object.assign({ model: Object.assign({}, this.draft, { items }), count: items.length, selected, appearanceLabel: `${color ? color.name : ''} · ${texture ? texture.name : ''}` }, this.history.status(), layers.availability(this.draft, selected)));
+    this.setData(Object.assign({ model: Object.assign({}, this.draft, { items }), count: items.length, selected,
+      showBoardGuide: !!items.length && this.data.canEdit && !state.boardGuideSeen && !this.guideLearned,
+      layoutSaved: !!this.data.layoutSaved && this.feedbackBoard === this.date,
+      appearanceLabel: `${color ? color.name : ''} · ${texture ? texture.name : ''}` }, this.history.status(), layers.availability(this.draft, selected)));
   },
   async recoverDraft() {
     const draft = this.store.getDraft(this.date); if (!draft || !this.data.canEdit) return;
@@ -73,12 +77,13 @@ function createBoardEditor(options = {}) { return {
   },
   persist() {
     if (!this.draft) return false;
+    const changed = !!this.dirty;
     this.setData({ saveState: '保存中…' });
     try {
-      this.store.saveBoard(this.draft); this.dirty = false; platform.unloadGuard(!!this.photoTask || !!this.noteDirty);
-      this.setData({ saveState: '已保存', saveError: '' }); return true;
+      this.store.saveBoard(this.draft, { boardGuideSeen: this.guideLearned }); this.dirty = false; platform.unloadGuard(!!this.photoTask || !!this.noteDirty);
+      this.setData({ saveState: '已保存', saveError: '' }); if (changed) feedback.saved(this); return true;
     } catch (e) {
-      this.dirty = true; const durable = this.store.keepDraft(this.draft);
+      this.dirty = true; const durable = this.store.keepDraft(this.draft); feedback.reset(this);
       this.setData({ saveState: '保存失败，请重试', saveError: platform.message(e, '保存未完成') + (durable ? '' : '。请保持当前页面，稍后重试') }); return false;
     }
   },
@@ -89,7 +94,7 @@ function createBoardEditor(options = {}) { return {
     if (!this.data.canEdit || !this.store.canEdit(this.date) || this.data.loading || this.data.error || this.data.drawer || this.data.formOpen || this.data.editorOpen ||
       this.data.shareBoardId || this.data.memoryCardId || this.data.task || this.photoTask || this.data.placing || this.data.recovering || this.data.openingLibrary || this.data.working || this.mutating ||
       !this.draft.placements.some(p => p.memoryId === id) || !this.store.get().memories[id]) return;
-    this.edit(); this.select(e);
+    this.edit(); this.select(e); feedback.learn(this);
   },
   done() {
     if (!this.canAdjust() || this.noteDirty && !this.saveNote()) return;

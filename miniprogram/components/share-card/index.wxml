@@ -1,27 +1,27 @@
-<view class="share-card-overlay" catchtouchmove="stop">
-  <view class="share-card-backdrop" bindtap="back" />
-  <view class="share-card-dialog" role="dialog" aria-modal="true" aria-label="分享毛毡板">
-    <view class="row share-card-heading"><view><view class="section-title">分享</view><text class="muted share-card-date">{{dateLabel}}</text></view><button id="close-share-card" class="ghost share-card-close" aria-label="关闭分享卡片" disabled="{{saving || sharing}}" bindtap="close">×</button></view>
+<view class="share-card-overlay modal-overlay {{modalClosing ? 'is-closing' : ''}} {{modalKeyboard ? 'has-keyboard' : ''}}" style="{{modalHeight ? 'height:' + modalHeight + 'px;padding-bottom:' + modalBottom + 'px;' : ''}}" catchtouchmove="stop" catchtap="stop">
+  <view class="share-card-backdrop modal-scrim" bindtap="back" />
+  <view class="share-card-dialog modal-surface" role="dialog" aria-modal="true" aria-label="分享毛毡板">
+    <view class="row share-card-heading"><view><view class="section-title">分享</view><text class="muted share-card-date">{{dateLabel}}</text></view><button hover-class="ui-pressed" id="close-share-card" class="ghost share-card-close ui-close" aria-label="关闭分享卡片" disabled="{{saving || sharing}}" bindtap="close">×</button></view>
     <view class="export-paper share-card-preview">
       <image wx:if="{{imagePath && !imageExpired}}" class="share-card-image" src="{{imagePath}}" mode="aspectFit" bindtap="preview" />
       <view wx:elif="{{generating}}" class="share-card-placeholder muted">正在生成图片…</view>
       <view wx:else class="share-card-placeholder muted">{{imageExpired ? '图片已失效' : '暂时无法生成图片'}}</view>
     </view>
-    <view wx:if="{{error}}" class="share-card-error">{{error}}<button wx:if="{{!imagePath || imageExpired}}" id="regenerate-image" class="ghost" disabled="{{generating || saving || sharing}}" bindtap="generate">重新生成</button></view>
-    <button wx:if="{{previewColor}}" id="share-appearance" class="ghost share-card-style" disabled="{{generating || saving || sharing}}" bindtap="openAppearance"><view class="row"><text>板面与纹理</text><text class="muted">⌄</text></view></button>
+    <view wx:if="{{error}}" class="share-card-error">{{error}}<button hover-class="ui-pressed" wx:if="{{!imagePath || imageExpired}}" id="regenerate-image" class="ghost" disabled="{{generating || saving || sharing}}" bindtap="generate">重新生成</button></view>
+    <button hover-class="ui-pressed" wx:if="{{previewColor}}" id="share-appearance" class="ghost share-card-style" disabled="{{generating || saving || sharing}}" bindtap="openAppearance"><view class="row"><text>板面与纹理</text><text class="muted">⌄</text></view></button>
     <view wx:if="{{imagePath}}" class="share-card-actions">
-      <button id="share-image" class="primary full" loading="{{sharing}}" disabled="{{generating || saving || sharing || imageExpired || !shareSupported}}" bindtap="shareImage">分享到微信</button>
+      <button hover-class="ui-pressed" id="share-image" class="primary full" loading="{{sharing}}" disabled="{{generating || saving || sharing || imageExpired || !shareSupported}}" bindtap="shareImage">分享到微信</button>
       <view wx:if="{{shareError}}" id="share-error" class="share-card-error">{{shareError}}</view>
       <view wx:if="{{!shareSupported}}" id="share-unavailable" class="muted share-card-hint">当前微信暂不支持直接分享，可保存图片后发送。</view>
-      <button id="save-album" class="secondary full" loading="{{saving}}" disabled="{{generating || saving || sharing || imageExpired}}" bindtap="saveAlbum">{{albumSaved ? '已保存 · 再存一份' : '保存到相册'}}</button>
-      <button wx:if="{{albumDenied}}" id="album-settings" class="ghost full" bindtap="settings">打开相册权限设置</button>
+      <button hover-class="ui-pressed" id="save-album" class="secondary full" loading="{{saving}}" disabled="{{generating || saving || sharing || imageExpired}}" bindtap="saveAlbum">{{albumSaved ? '已保存 · 再存一份' : '保存到相册'}}</button>
+      <button hover-class="ui-pressed" wx:if="{{albumDenied}}" id="album-settings" class="ghost full" bindtap="settings">打开相册权限设置</button>
     </view>
     <view wx:if="{{styleOpen}}" class="share-style-veil">
       <view class="share-style-scrim" bindtap="closeAppearance" />
       <view id="share-style-sheet" class="share-style-sheet" role="dialog" aria-label="分享板面与纹理">
-        <view class="row share-style-heading"><view><text>板面与纹理</text><view class="muted">仅用于这次分享</view></view><button id="close-share-style" class="ghost" aria-label="收起分享样式" bindtap="closeAppearance">收起 ⌄</button></view>
-        <view class="share-colors"><button wx:for="{{colors}}" wx:key="value" id="share-color-{{index}}" class="share-color {{previewColor === item.value ? 'active' : ''}}" style="background:{{item.value}};" data-value="{{item.value}}" disabled="{{generating || saving || sharing}}" aria-label="{{item.name + (previewColor === item.value ? '，已选' : '')}}" bindtap="chooseColor">{{previewColor === item.value ? '✓' : ''}}</button></view>
-        <view class="share-textures"><button wx:for="{{textures}}" wx:key="value" id="share-texture-{{item.value}}" class="{{previewTexture === item.value ? 'active' : ''}}" data-value="{{item.value}}" disabled="{{generating || saving || sharing}}" bindtap="chooseTexture">{{item.name}}</button></view>
+        <view class="row share-style-heading"><view><text>板面与纹理</text><view class="muted">仅用于这次分享</view></view><button hover-class="ui-pressed" id="close-share-style" class="ghost" aria-label="收起分享样式" bindtap="closeAppearance">收起 ⌄</button></view>
+        <view class="share-colors"><button hover-class="ui-pressed" wx:for="{{colors}}" wx:key="value" id="share-color-{{index}}" class="share-color {{previewColor === item.value ? 'active' : ''}}" style="background:{{item.value}};" data-value="{{item.value}}" disabled="{{generating || saving || sharing}}" aria-label="{{item.name + (previewColor === item.value ? '，已选' : '')}}" bindtap="chooseColor">{{previewColor === item.value ? '✓' : ''}}</button></view>
+        <view class="share-textures"><button hover-class="ui-pressed" wx:for="{{textures}}" wx:key="value" id="share-texture-{{item.value}}" class="{{previewTexture === item.value ? 'active' : ''}}" data-value="{{item.value}}" disabled="{{generating || saving || sharing}}" bindtap="chooseTexture">{{item.name}}</button></view>
       </view>
     </view>
   </view>

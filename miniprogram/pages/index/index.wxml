@@ -11,7 +11,7 @@
       <view class="today-stage"><felt-board id="today-board" layout="tall" style="height:100%;" can-edit="{{canEdit}}" covered="{{editorOpen || !!placing || !!drawer || !!memoryCardId || !!shareBoardId}}" landing-id="{{placing.id || ''}}" model="{{model}}" editable="{{editable}}" selected="{{selected}}" bind:landingready="stickerTarget" bind:select="select" bind:edititem="editItem" bind:change="placementChanged" bind:transform="transform" bind:remove="remove" bind:memory="openMemory" bind:boardtap="openBoard" /></view>
     </view>
     <view wx:if="{{saveError}}" class="error">{{saveError}}<button bindtap="retrySave">重试保存</button></view>
-    <view class="record-dock"><button id="record-today" class="primary record-fab" disabled="{{editorOpen || !!placing}}" aria-label="{{count ? '再记一件' : '记录今天'}}" bindtap="primary">＋</button></view>
+    <view class="record-dock"><include src="../../templates/board-feedback.wxml" /><button id="record-today" class="primary record-fab" hover-class="ui-pressed" disabled="{{editorOpen || !!placing}}" aria-label="{{count ? '再记一件' : '记录今天'}}" bindtap="primary"><text class="record-plus">＋</text><text>{{count ? '再记一件' : '记录今天'}}</text></button></view>
   </block>
 </view>
 <include src="../../templates/board-drawers.wxml" />

@@ -23,7 +23,9 @@
     "dev:server": "node scripts/server-extraction.js",
     "dev:phone": "node scripts/server-extraction.js --phone",
     "test:server": "node scripts/verify-server-extraction.js",
-    "test:layout": "node tests/screen-layout-e2e.js"
+    "test:layout": "node tests/screen-layout-e2e.js",
+    "test:round1": "node tests/round1-ui-e2e.js",
+    "test:round2": "node tests/round2-ui-e2e.js"
   },
   "devDependencies": {
     "@napi-rs/canvas": "0.1.80",

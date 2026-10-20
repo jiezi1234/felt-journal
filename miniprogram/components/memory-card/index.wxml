@@ -1,38 +1,38 @@
-<view class="memory-card-overlay" catchtouchmove="stop">
-  <view class="memory-card-scrim" bindtap="close" />
-  <view class="memory-card-dialog" role="dialog" aria-modal="true" aria-label="记忆卡片">
-    <view class="row card-heading"><text class="muted">{{dateLabel}}</text><button id="close-memory-card" class="ghost" aria-label="关闭记忆卡片" bindtap="close">×</button></view>
+<view class="memory-card-overlay modal-overlay {{modalClosing ? 'is-closing' : ''}} {{modalKeyboard ? 'has-keyboard' : ''}}" style="{{modalHeight ? 'height:' + modalHeight + 'px;padding-bottom:' + modalBottom + 'px;' : ''}}" catchtouchmove="stop" catchtap="stop">
+  <view class="memory-card-scrim modal-scrim" bindtap="close" />
+  <view class="memory-card-dialog modal-surface" role="dialog" aria-modal="true" aria-label="记忆卡片">
+    <view class="row card-heading"><text class="muted">{{dateLabel}}</text><button hover-class="ui-pressed" id="close-memory-card" class="ghost ui-close" aria-label="关闭记忆卡片" bindtap="close">×</button></view>
     <view wx:if="{{!memory}}" class="error">{{error}}</view>
     <view wx:else class="flip-scene">
       <view id="flip-card" class="flip-card {{flipped ? 'is-flipped' : ''}}" bindtap="flip" role="button" aria-label="{{flipped ? '翻回图片' : '翻到文字说明'}}">
         <view class="card-face card-front" aria-hidden="{{flipped}}"><image wx:if="{{!missing}}" id="card-photo" class="card-photo" src="{{memory.subjectPath}}" mode="aspectFit" binderror="imageError" /><view wx:else class="muted">图片暂时无法读取</view><text class="card-cue">轻触翻面</text></view>
         <view class="card-face card-back" aria-hidden="{{!flipped}}">
           <block wx:if="{{flipped && editing}}">
-            <textarea id="card-note-input" class="card-note-input" value="{{text}}" maxlength="{{maxText}}" placeholder="写点什么（选填）" bindinput="input" catchtap="stop" adjust-position="{{true}}" cursor-spacing="28" />
+            <textarea id="card-note-input" class="card-note-input" value="{{text}}" maxlength="{{maxText}}" placeholder="写点什么（选填）" bindinput="input" catchtap="stop" adjust-position="{{false}}" cursor-spacing="12" />
             <text class="note-count">{{text.length}} / {{maxText}}</text>
             <view wx:if="{{hint}}" class="muted">{{hint}}</view><view wx:if="{{error}}" class="error">{{error}}</view>
-            <view class="row card-note-actions" catchtap="stop"><button id="cancel-card-note" class="ghost grow" bindtap="cancelEdit">取消</button><button id="save-card-note" class="primary grow" bindtap="save">保存</button></view>
+            <view class="row card-note-actions" catchtap="stop"><button hover-class="ui-pressed" id="cancel-card-note" class="ghost grow" bindtap="cancelEdit">取消</button><button hover-class="ui-pressed" id="save-card-note" class="primary grow" bindtap="save">保存</button></view>
           </block>
           <block wx:else>
             <scroll-view wx:if="{{flipped && memory.text}}" class="card-note-reading" scroll-y><view class="card-note">{{memory.text}}</view></scroll-view>
             <view wx:elif="{{!memory.text}}" class="card-empty muted">还没写说明</view>
-            <view class="row card-back-actions" catchtap="stop"><button id="edit-card-note" class="secondary grow" bindtap="edit">{{memory.text ? '编辑说明' : '添加说明'}}</button><button wx:if="{{flipped}}" id="add-to-theme" class="secondary grow" bindtap="openThemes">放入主题板</button></view><text class="card-cue">轻触翻回图片</text>
+            <view class="row card-back-actions" catchtap="stop"><button hover-class="ui-pressed" id="edit-card-note" class="secondary grow" bindtap="edit">{{memory.text ? '编辑说明' : '添加说明'}}</button><button hover-class="ui-pressed" wx:if="{{flipped}}" id="add-to-theme" class="secondary grow" bindtap="openThemes">放入主题板</button></view><text class="card-cue">轻触翻回图片</text>
           </block>
           <block wx:if="{{flipped && themeOpen}}">
             <view class="card-theme-scrim" catchtap="closeThemes" />
             <view id="card-theme-picker" class="card-theme-picker" catchtap="stop" role="dialog" aria-label="放入主题板">
-              <view class="row card-theme-heading"><text class="grow">{{themeCreating ? '新建主题板' : '放入主题板'}}</text><button id="close-card-themes" class="ghost" disabled="{{themeWorking}}" bindtap="closeThemes" aria-label="关闭主题板选择">×</button></view>
+              <view class="row card-theme-heading"><text class="grow">{{themeCreating ? '新建主题板' : '放入主题板'}}</text><button hover-class="ui-pressed" id="close-card-themes" class="ghost" disabled="{{themeWorking}}" bindtap="closeThemes" aria-label="关闭主题板选择">×</button></view>
               <block wx:if="{{themeCreating}}">
                 <input id="card-theme-title" class="card-theme-input" value="{{themeTitle}}" maxlength="{{maxThemeTitle}}" placeholder="如：旅行、美食" disabled="{{themeWorking}}" bindinput="themeInput" />
                 <view wx:if="{{themeError}}" class="error">{{themeError}}</view>
-                <view class="row"><button id="cancel-card-theme-create" class="ghost grow" disabled="{{themeWorking}}" bindtap="cancelThemeCreate">返回</button><button id="save-card-theme" class="primary grow" loading="{{themeWorking}}" disabled="{{themeWorking}}" bindtap="saveTheme">创建并放入</button></view>
+                <view class="row"><button hover-class="ui-pressed" id="cancel-card-theme-create" class="ghost grow" disabled="{{themeWorking}}" bindtap="cancelThemeCreate">返回</button><button hover-class="ui-pressed" id="save-card-theme" class="primary grow" loading="{{themeWorking}}" disabled="{{themeWorking}}" bindtap="saveTheme">创建并放入</button></view>
               </block>
               <block wx:else>
                 <view wx:if="{{!themes.length && !themeError}}" class="card-theme-empty muted">暂无主题板</view>
-                <button wx:for="{{visibleThemes}}" wx:key="id" class="card-theme-row" data-id="{{item.id}}" disabled="{{themeWorking || item.placed || item.full}}" bindtap="placeTheme"><text class="card-theme-name">{{item.title}}</text><text class="card-theme-status">{{item.placed ? '已添加' : item.full ? '已满' : '＋'}}</text></button>
-                <view wx:if="{{themePageCount > 1 && themes.length}}" class="row card-theme-pagination"><button id="previous-card-theme" class="ghost" data-offset="-1" disabled="{{themeWorking || themePage <= 1}}" bindtap="turnThemes">‹</button><text class="grow">{{themePage}} / {{themePageCount}}</text><button id="next-card-theme" class="ghost" data-offset="1" disabled="{{themeWorking || themePage >= themePageCount}}" bindtap="turnThemes">›</button></view>
+                <button hover-class="ui-pressed" wx:for="{{visibleThemes}}" wx:key="id" class="card-theme-row" data-id="{{item.id}}" disabled="{{themeWorking || item.placed || item.full}}" bindtap="placeTheme"><text class="card-theme-name">{{item.title}}</text><text class="card-theme-status">{{item.placed ? '已添加' : item.full ? '已满' : '＋'}}</text></button>
+                <view wx:if="{{themePageCount > 1 && themes.length}}" class="row card-theme-pagination"><button hover-class="ui-pressed" id="previous-card-theme" class="ghost" data-offset="-1" disabled="{{themeWorking || themePage <= 1}}" bindtap="turnThemes">‹</button><text class="grow">{{themePage}} / {{themePageCount}}</text><button hover-class="ui-pressed" id="next-card-theme" class="ghost" data-offset="1" disabled="{{themeWorking || themePage >= themePageCount}}" bindtap="turnThemes">›</button></view>
                 <view wx:if="{{themeError}}" class="error">{{themeError}}</view>
-                <button id="new-card-theme" class="ghost full" disabled="{{themeWorking}}" bindtap="createTheme">＋ 新建主题板</button>
+                <button hover-class="ui-pressed" id="new-card-theme" class="ghost full" disabled="{{themeWorking}}" bindtap="createTheme">＋ 新建主题板</button>
               </block>
             </view>
           </block>

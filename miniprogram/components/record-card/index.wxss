@@ -1,43 +1,30 @@
 @import "../../styles/board-editor.wxss";
-.record-overlay { position:fixed; inset:0; z-index:130; display:flex; align-items:flex-end; justify-content:center; padding:16px 12px calc(12px + env(safe-area-inset-bottom)); }
+@import "../../styles/modal.wxss";
+.record-overlay { position:fixed; inset:0; z-index:130; display:flex; align-items:flex-end; justify-content:center; padding:10px 12px calc(10px + env(safe-area-inset-bottom)); }
 .record-scrim { position:absolute; inset:0; background:rgba(43,35,28,.32); }
-.record-card { position:relative; width:100%; max-width:520px; background:#FFFDFA; border:1px solid #FFFFFF; border-radius:32px; overflow:hidden; box-shadow:0 16px 60px rgba(50,38,24,.18); }
-.record-handle { width:34px; height:4px; border-radius:3px; margin:10px auto 0; background:#DED7CC; }
-.record-header { padding:12px 20px 14px; border-bottom:1px solid #F0EAE1; }.record-header .section-title { font-size:19px; }.record-date { font-size:11px; }
-button.record-close { width:44px; height:44px; min-height:44px; border:0; border-radius:50%; padding:0; background:#F2EEE7; color:#82715F; font-size:27px; line-height:42px; }
-.record-scroll { height:55vh; }.is-source .record-scroll { height:28vh; min-height:224px; }.is-processing .record-scroll { height:50vh; }.record-body { padding:18px 16px 24px; }.record-source { padding:0 4px; }.source-actions { display:flex; flex-direction:column; gap:12px; }.record-footer { padding:12px 20px 16px; border-top:1px solid #F0EAE1; background:#FFFDFA; }.record-body .board-heading { margin:0 0 14px; }.record-body .board-heading .section-title { font-size:14px; }.record-body .caption { margin:12px 0 16px; }.record-body .paper { margin-top:16px; padding:16px; }
-.record-card .drawer-veil { position:absolute; padding:0; }.record-card .drawer-sheet { border-radius:28px 28px 0 0; max-width:none; max-height:100%; }.record-card .drawer-scroll { max-height:50vh; }
-.record-card.is-processing { background:#F5F4F0; }
-.record-card { animation:record-enter 320ms cubic-bezier(.4,0,.2,1) both; }
-@keyframes record-enter { from { opacity:0; } to { opacity:1; } }
-.is-processing .record-scroll { height:62vh; max-height:calc(100vh - 220px); }
-.is-processing .record-body { padding:4px 18px 16px; }
-.record-header.task-header { padding-top:8px; padding-bottom:8px; border-bottom:0; }
-.task-header .record-date { font-size:12px; color:#9A8A7C; }
-.record-source .source-actions { flex-direction:row; justify-content:center; align-items:flex-start; gap:34px; margin:18px 0 14px; }
-button.source-button { display:flex; flex-direction:column; align-items:center; gap:14px; width:112px; min-height:132px; padding:8px 4px; margin:0; border:0; border-radius:24px; background:transparent; color:#6F5540; font-size:14px; box-shadow:none; }
+.record-card { position:relative; width:100%; max-width:520px; height:620px; max-height:100%; display:flex; flex-direction:column; background:#F5F4F0; border:1px solid #FFFFFF; border-radius:32px; overflow:hidden; box-shadow:0 16px 60px rgba(50,38,24,.18); }
+.record-handle { flex-shrink:0; width:34px; height:4px; border-radius:3px; margin:10px auto 0; background:#DED7CC; }
+.record-header { flex-shrink:0; padding:6px 16px; gap:8px; }
+.record-header .section-title { font-size:19px; }.record-date { font-size:13px; color:#837263; }
+button.record-close { flex-shrink:0; width:44px; height:44px; min-height:44px; border:0; border-radius:50%; padding:0; background:#F2EEE7; color:#82715F; font-size:27px; line-height:42px; }
+.record-scroll { flex:1; min-height:0; height:0; display:flex; flex-direction:column; }
+.record-body { flex:1; min-height:0; display:flex; flex-direction:column; padding:8px 16px 16px; }
+.record-card.is-source { height:350px; }
+.record-source { flex:1; min-height:0; display:flex; flex-direction:column; justify-content:center; align-items:center; }
+.source-intro { color:#6F5540; font-size:18px; margin-bottom:12px; }
+.record-source .source-actions { flex-direction:row; justify-content:center; align-items:flex-start; gap:34px; margin:8px 0; }
+button.source-button { display:flex; flex-direction:column; align-items:center; gap:12px; width:112px; min-height:112px; padding:8px 4px; margin:0; border:0; border-radius:24px; background:transparent; color:#6F5540; font-size:14px; box-shadow:none; }
 button.source-button[disabled] { background:transparent; opacity:.45; }
-.source-circle { width:82px; height:82px; display:flex; align-items:center; justify-content:center; background:#FFFFFF; border-radius:50%; box-shadow:0 4px 18px rgba(65,48,36,.035); }
+.source-circle { width:72px; height:72px; display:flex; align-items:center; justify-content:center; background:#FFFFFF; border-radius:50%; box-shadow:0 4px 18px rgba(65,48,36,.035); }
 .source-camera-icon { position:relative; width:31px; height:24px; border:2px solid #302A25; border-radius:7px; }
 .source-camera-icon::before { content:""; position:absolute; top:-7px; left:8px; width:12px; height:6px; border:2px solid #302A25; border-bottom:0; border-radius:4px 4px 0 0; }
 .source-camera-icon view { width:10px; height:10px; border:2px solid #302A25; border-radius:50%; margin:5px auto; }
 .source-album-icon { position:relative; width:28px; height:28px; border:2px solid #302A25; border-radius:6px; overflow:hidden; }
 .source-album-icon::before { content:""; position:absolute; top:5px; right:5px; width:5px; height:5px; border-radius:50%; background:#302A25; }
 .source-album-icon view { position:absolute; width:20px; height:20px; bottom:-11px; left:0; border:2px solid #302A25; transform:rotate(45deg); border-radius:3px; }
-button.source-existing { margin:4px auto 0; font-size:12px; color:#9A8A7C; }
-@media (max-width:350px) { .record-source .source-actions { gap:18px; }.source-circle { width:72px; height:72px; }.is-processing .record-body { padding-left:14px; padding-right:14px; } }
-@media (max-height:650px) { .is-processing .record-scroll { height:59vh; max-height:calc(100vh - 180px); }.record-source .source-actions { margin-top:4px; } }
-
-.record-overlay { padding-top:10px; padding-bottom:calc(10px + env(safe-area-inset-bottom)); }
-.record-card { height:calc(100vh - 20px - env(safe-area-inset-bottom)); display:flex; flex-direction:column; }
-.record-handle,.record-header,.record-footer { flex-shrink:0; }
-.record-header { padding:6px 16px; }.record-footer { padding:8px 16px 12px; }
-.record-scroll,.is-processing .record-scroll { flex:1; min-height:0; max-height:none; height:0; }
-.record-body { height:100%; display:flex; flex-direction:column; gap:6px; padding:10px 12px; }
-.record-card.is-source { height:auto; }.is-source .record-scroll { flex:none; height:230px; min-height:0; }
-.record-card .drawer-sheet { max-height:100%; }.record-card .drawer-scroll { max-height:none; }
-.is-processing .record-body { padding:8px 16px; }
-.record-card { height:min(620px,calc(100vh - 40px - env(safe-area-inset-bottom))); background:#F5F4F0; }
-.record-source { flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; }
-.source-intro { color:#6F5540; font-size:18px; margin-bottom:18px; }
-.source-hint { color:#9A8A7C; font-size:12px; margin-top:18px; }
+.source-hint { color:#9A8A7C; font-size:13px; margin-top:12px; }
+.record-card .drawer-veil { position:absolute; padding:0; }.record-card .drawer-sheet { border-radius:28px 28px 0 0; max-width:none; max-height:100%; }
+.record-card .error { max-height:76px; overflow-y:auto; }
+@media (max-width:350px) { .record-source .source-actions { gap:18px; }.record-body { padding-left:12px; padding-right:12px; } }
+@media (max-height:570px) { .record-card.is-source { height:310px; }.source-circle { width:62px; height:62px; }.source-intro,.source-hint { margin:6px 0; } }
+.has-keyboard .record-body { padding-top:0; padding-bottom:6px; }

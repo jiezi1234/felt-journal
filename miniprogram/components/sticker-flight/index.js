@@ -1,4 +1,6 @@
 const peel = require('../../core/sticker-peel');
+// Keep the physical peel, but make repeated recording a short, continuous action.
+const timing = { peel: 420, hold: 80, flight: 620, settle: 80 };
 Component({
   properties: { flight: Object },
   data: { painted: false, phase: 'preparing' },
@@ -21,9 +23,9 @@ Component({
             try { this.shadowLayer = wx.createOffscreenCanvas({ type: '2d', width: this.canvas.width, height: this.canvas.height }); } catch (_) {}
           }
           this.setData({ phase: 'peeling' });
-          this.runFrames(1000, progress => this.draw(this.data.flight.source, peel.ease(progress), false), () => {
+          this.runFrames(timing.peel, progress => this.draw(this.data.flight.source, peel.ease(progress), false), () => {
             this.setData({ phase: 'lifted' });
-            this.timer = setTimeout(() => { if (!this.dead) { this.prepared = true; this.triggerEvent('peeled', { token: this.data.flight.token }); this.startLanding(); } }, 500);
+            this.timer = setTimeout(() => { if (!this.dead) { this.prepared = true; this.triggerEvent('peeled', { token: this.data.flight.token }); this.startLanding(); } }, timing.hold);
           });
         };
         image.onerror = () => this.failed(); image.src = this.data.flight.path;
@@ -69,12 +71,12 @@ Component({
       const flight = this.data.flight;
       if (!this.prepared || !flight || !flight.target || this.landing || this.dead) return;
       this.landing = true; this.setData({ phase: 'flying' });
-      this.runFrames(1000, progress => {
+      this.runFrames(timing.flight, progress => {
         const p = peel.ease(progress), rect = {};
         ['left', 'top', 'width', 'height'].forEach(key => { rect[key] = flight.source[key] + (flight.target[key] - flight.source[key]) * p; });
         rect.angle = (flight.target.angle || 0) * p;
         this.draw(rect, p, true);
-      }, () => { this.setData({ phase: 'landed' }); this.timer = setTimeout(() => this.failed(), 120); });
+      }, () => { this.setData({ phase: 'landed' }); this.timer = setTimeout(() => this.failed(), timing.settle); });
     },
     failed() { if (!this.dead && !this.finished && this.data.flight) { this.finished = true; this.triggerEvent('landed', { token: this.data.flight.token }); } }
   }
