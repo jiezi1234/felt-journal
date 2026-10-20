@@ -20,6 +20,7 @@
     "test:recognition": "node tests/recognition-e2e.js",
     "dev:extraction": "node scripts/local-extraction.js",
     "dev:server": "node scripts/server-extraction.js",
+    "dev:phone": "node scripts/server-extraction.js --phone",
     "test:server": "node scripts/verify-server-extraction.js",
     "test:layout": "node tests/screen-layout-e2e.js"
   },
