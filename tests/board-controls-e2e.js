@@ -1,5 +1,6 @@
 // Exercises Canvas touch bindings, not just DOM button taps. All journal writes
 // go to a temporary in-memory adapter; actual device storage is never replaced.
+// Compile in DevTools before running; reLaunch alone does not reload imports.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -99,7 +100,13 @@ const difference = (op, actual, expected) => op === 'rotate' ? Math.abs(((actual
     assert.ok(Math.abs(saved.boards[current.date].placements.find(p => p.memoryId === id).angle - 37.5) < .01);
     assert.deepEqual(current.model.items.find(p => p.memoryId === other.memoryId), other);
     assert.equal(current.memoryCardId, ''); assert.equal(current.selected, id);
-    await mini.screenshot({ path: path.join(output, name + '.png') });
+    // Capture the actual native canvas, including its controls. The DevTools
+    // full-window screenshot RPC can time out after a remote-debug session.
+    const pixels = await mini.evaluate(selector => {
+      const b = getCurrentPages().slice(-1)[0].selectComponent(selector);
+      return b.canvas.toDataURL('image/png').split(',')[1];
+    }, selector);
+    fs.writeFileSync(path.join(output, name + '-board.png'), Buffer.from(pixels, 'base64'));
 
     const prompts = await mini.evaluate(() => getApp().__boardControls.prompts);
     await mini.mockWxMethod('showModal', { confirm: false, cancel: true }); modalMocked = true;

@@ -48,26 +48,36 @@ function paintControls(ctx, handles, screenWidth) {
   // Export calls paint() alone and never includes this UI-only pass.
   const scale = screenWidth / B.width;
   handles.forEach(handle => {
-    const x = handle.x / scale, y = handle.y / scale;
-    ctx.save(); ctx.shadowColor = 'rgba(48,47,43,0.15)'; ctx.shadowBlur = 4 / scale; ctx.shadowOffsetY = 2 / scale;
+    // Draw the entire control in screen pixels, independently of the sticker's
+    // rotation, board size and the previous canvas path/stroke settings.
+    ctx.save(); ctx.translate(handle.x / scale, handle.y / scale); ctx.scale(1 / scale, 1 / scale);
+    ctx.setLineDash([]); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.shadowColor = 'rgba(48,47,43,0.15)'; ctx.shadowBlur = 4; ctx.shadowOffsetY = 2;
     const removing = handle.op === 'remove';
-    ctx.beginPath(); ctx.arc(x, y, 21 / scale, 0, Math.PI * 2); ctx.fillStyle = removing ? '#FFF1ED' : '#F7F2E9'; ctx.fill();
-    ctx.shadowColor = 'transparent'; ctx.lineWidth = 1 / scale; ctx.strokeStyle = removing ? '#E8C1B7' : '#D9CBAF'; ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, 21, 0, Math.PI * 2); ctx.fillStyle = removing ? '#FFF1ED' : '#F7F2E9'; ctx.fill();
+    ctx.shadowColor = 'transparent'; ctx.lineWidth = 1; ctx.strokeStyle = removing ? '#E8C1B7' : '#D9CBAF'; ctx.stroke();
+    ctx.lineWidth = 1.8;
     if (removing) {
-      ctx.translate(x, y); ctx.scale(1 / scale, 1 / scale); ctx.strokeStyle = '#A44737'; ctx.lineWidth = 1.8; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#A44737';
       rounded(ctx, -6, -5, 12, 14, 2); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(-8, -7); ctx.lineTo(8, -7); ctx.moveTo(-3, -7); ctx.lineTo(-3, -10); ctx.lineTo(3, -10); ctx.lineTo(3, -7);
       ctx.moveTo(-2, -2); ctx.lineTo(-2, 5); ctx.moveTo(2, -2); ctx.lineTo(2, 5); ctx.stroke();
     } else {
       // Draw vectors so Android fonts cannot substitute missing handle glyphs.
-      ctx.translate(x, y); ctx.scale(1 / scale, 1 / scale); ctx.strokeStyle = '#4A3C2F'; ctx.lineWidth = 1.8; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#4A3C2F';
       ctx.beginPath();
       if (handle.op === 'resize') {
-        ctx.moveTo(-7, 7); ctx.lineTo(7, -7); ctx.moveTo(1, -7); ctx.lineTo(7, -7); ctx.lineTo(7, -1);
-        ctx.moveTo(-1, 7); ctx.lineTo(-7, 7); ctx.lineTo(-7, 1);
+        // NW / SE arrows match pulling the bottom-right resize handle.
+        ctx.moveTo(-7, -7); ctx.lineTo(7, 7);
+        ctx.moveTo(-7, -1); ctx.lineTo(-7, -7); ctx.lineTo(-1, -7);
+        ctx.moveTo(1, 7); ctx.lineTo(7, 7); ctx.lineTo(7, 1);
       } else {
-        ctx.arc(0, 0, 8, -Math.PI * .35, Math.PI * 1.25);
-        ctx.moveTo(4, -10); ctx.lineTo(6, -5); ctx.lineTo(11, -7);
+        // A clockwise 270-degree arc; its arrowhead meets the exact end point
+        // and follows the tangent, rather than intersecting the arc midway.
+        const end = 8 * Math.SQRT1_2;
+        ctx.translate(1, 1);
+        ctx.arc(0, 0, 8, Math.PI / 4, 7 * Math.PI / 4);
+        ctx.moveTo(end - 5, -end); ctx.lineTo(end, -end); ctx.lineTo(end, -end - 5);
       }
       ctx.stroke();
     }

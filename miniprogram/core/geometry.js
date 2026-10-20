@@ -106,7 +106,7 @@ function handles(p, screenWidth, screenHeight = screenWidth * B.height / B.width
     const center = Math.max(48, Math.min(height - 48, (top + bottom) / 2));
     top = center - 26; bottom = center + 26;
   }
-  return [ ['remove', '×', '删除物件', left, top], ['rotate', '↻', '按住拖动旋转', right, top], ['resize', '⤢', '按住拖动缩放', right, bottom] ].map(a => ({ op: a[0], icon: a[1], label: a[2], x: a[3], y: a[4], memoryId: p.memoryId, style: `left:${a[3] - 22}px;top:${a[4] - 22}px;` }));
+  return [ ['remove', '删除物件', left, top], ['rotate', '按住拖动旋转', right, top], ['resize', '按住拖动缩放', right, bottom] ].map(a => ({ op: a[0], label: a[1], x: a[2], y: a[3], memoryId: p.memoryId, style: `left:${a[2] - 22}px;top:${a[3] - 22}px;` }));
 }
 function hitControl(handles, x, y) {
   return (handles || []).find(handle => Math.abs(x - handle.x) <= 22 && Math.abs(y - handle.y) <= 22);
