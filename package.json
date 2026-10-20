@@ -14,6 +14,7 @@
     "test:theme-board": "node tests/theme-board-e2e.js",
     "test:navigation": "node tests/navigation-e2e.js",
     "test:record": "node tests/record-card-e2e.js",
+    "test:creation-quality": "node tests/creation-quality-e2e.js",
     "test:gestures": "node tests/board-gestures-e2e.js",
     "test:calendar-card": "node tests/calendar-card-e2e.js",
     "test:recognition": "node tests/recognition-e2e.js",

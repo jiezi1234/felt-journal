@@ -20,6 +20,7 @@ function createBoardEditor(options = {}) { return {
   onUnload() { clearTimeout(this.placementTimer); if (this.dirty) { this.store.keepDraft(this.draft); this.persist(); } if (this.noteDirty) this.keepNoteDraft(); photo.dispose(this); platform.unloadGuard(false); },
   refresh() {
     try {
+      photo.refreshResult(this);
       if (!isThemeId(this.date) && (!dates.valid(this.date) || this.date > dates.key())) throw new Error('不能进入未来或无效日期');
       const saved = this.store.board(this.date); if (!this.dirty) this.draft = saved;
       if (!this.history) this.history = createBoardHistory(this.draft, config.historyLimit);
@@ -142,9 +143,10 @@ function createBoardEditor(options = {}) { return {
   },
   photoDone(id) { this.draft = this.store.board(this.date); this.history.reset(this.draft); this.setData({ selected: id, editable: true, canEdit: true, sourceStage: false }); this.display(); this.notifyChange(); },
   retryPhoto() { return photo.retry(this); }, originalPhoto() { return photo.original(this); },
+  adjustPhoto() { return photo.adjustResult(this); },
   openPhotoNote() { photo.openNote(this); }, photoNoteInput(e) { photo.inputNote(this, e); },
   cancelPhoto(e) {
-    if (this.data.placing) return;
+    if (this.data.placing || this.data.photoAdjusting) return;
     if (!photo.saveNote(this)) return;
     const task = this.photoTask, id = this.data.selected;
     const memory = task && task.committed && this.store.get().memories[id];
@@ -246,7 +248,7 @@ function createBoardEditor(options = {}) { return {
   },
   discardNote() { this.store.clearMemoryDraft(this.noteId); this.noteDirty = false; this.setData({ noteError: '', drawer: '' }); platform.unloadGuard(!!this.dirty || !!this.photoTask); },
   async back() {
-    if (this.closing || this.data.recovering || this.mutating) return;
+    if (this.closing || this.data.recovering || this.mutating || this.data.photoAdjusting) return;
     if (this.data.shareBoardId) { const share = this.selectComponent && this.selectComponent('#share-card'); if (share) share.back(); return; }
     if (this.data.drawer) { this.closeDrawer(); return; }
     if (this.noteDirty && !this.saveNote()) return;

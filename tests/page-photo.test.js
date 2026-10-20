@@ -30,6 +30,80 @@ function fixture(t) {
   return { page, store, removed, states, guards, completed, date: dates.key(), failSave(value) { failSave = value; }, get requests() { return requests; }, get notices() { return notices; } };
 }
 
+function adjustmentCalls(choices, calls = []) {
+  platform.call = async (method, options) => {
+    calls.push({ method, options });
+    if (method === 'showActionSheet') return { tapIndex: choices.shift() };
+    return { width: 600, height: 300 };
+  };
+  return calls;
+}
+test('result crop entry saves the caption and returning refreshes the result without another memory', async t => {
+  const f = fixture(t), p = f.page; await photo.begin(p, 'album', { date: f.date });
+  const id = p.photoNoteId, old = f.store.get().memories[id], board = f.store.board(f.date);
+  photo.inputNote(p, { detail: { value: '保留说明' } });
+  const calls = adjustmentCalls([0]); await photo.adjustResult(p);
+  assert.ok(calls.some(c => c.method === 'navigateTo' && c.options.url.includes('from=result')));
+  assert.equal(f.store.get().memories[id].text, '保留说明');
+  f.store.editSubject('crop', id, old, { subjectPath: '/cropped.png', width: 300, height: 300, kind: 'extracted' });
+  photo.refreshResult(p); assert.equal(p.data.task.subject, '/cropped.png');
+  assert.deepEqual(f.store.board(f.date), board); assert.equal(Object.keys(f.store.get().memories).length, 1);
+});
+test('keeping original updates only the subject and preserves caption and board placement', async t => {
+  const f = fixture(t), p = f.page; await photo.begin(p, 'album', { date: f.date });
+  const id = p.photoNoteId, old = f.store.get().memories[id], boards = clone(f.store.get().boards);
+  f.store.edit(id, '说明', '心情'); adjustmentCalls([1]); await photo.adjustResult(p);
+  const next = f.store.get().memories[id];
+  assert.equal(next.originalPath, old.originalPath); assert.notEqual(next.subjectPath, old.subjectPath);
+  assert.equal(next.text, '说明'); assert.equal(next.category, '心情'); assert.equal(next.kind, 'original');
+  assert.equal(p.data.task.subject, next.subjectPath); assert.equal(p.data.photoAdjusting, false);
+  assert.deepEqual(f.store.get().boards, boards); assert.equal(Object.keys(f.store.get().memories).length, 1);
+});
+test('failed original save keeps the accepted image and allows retry', async t => {
+  const f = fixture(t), p = f.page; await photo.begin(p, 'album', { date: f.date });
+  const before = f.store.get(), subject = p.data.task.subject;
+  f.failSave(true); adjustmentCalls([1]); await photo.adjustResult(p);
+  assert.deepEqual(f.store.get(), before); assert.equal(p.data.task.subject, subject);
+  assert.equal(p.data.task.state, 'done'); assert.ok(p.data.photoAdjustmentError); assert.equal(p.data.photoAdjusting, false);
+  f.failSave(false); adjustmentCalls([1]); await photo.adjustResult(p); assert.equal(p.data.task.kind, 'original');
+});
+test('cancelled reselection restores the same result and saved caption', async t => {
+  const f = fixture(t), p = f.page; await photo.begin(p, 'album', { date: f.date });
+  photo.inputNote(p, { detail: { value: '不要丢掉' } }); const id = p.photoNoteId, original = p.photoTask;
+  platform.choose = async () => { throw { errMsg: 'chooseMedia:fail cancel' }; };
+  adjustmentCalls([2, 0]); await photo.adjustResult(p);
+  assert.equal(p.photoTask, original); assert.equal(p.data.task.state, 'done'); assert.equal(p.photoNoteId, id);
+  assert.equal(p.data.photoNoteText, '不要丢掉'); assert.equal(Object.keys(f.store.get().memories).length, 1);
+});
+test('replacement extraction failure can cancel back; successful replacement retains the memory id and layouts', async t => {
+  const f = fixture(t), p = f.page; await photo.begin(p, 'album', { date: f.date });
+  const id = p.photoNoteId, old = f.store.get().memories[id], boards = clone(f.store.get().boards);
+  f.store.edit(id, '原说明', '出行'); extraction.extract = async () => { throw Error('offline'); };
+  adjustmentCalls([2, 0]); await photo.adjustResult(p); assert.equal(p.data.task.state, 'extractError');
+  assert.equal(f.store.get().memories[id].subjectPath, old.subjectPath);
+  await photo.cancel(p); assert.equal(p.data.task.state, 'done'); assert.equal(p.data.task.subject, old.subjectPath);
+  extraction.extract = async () => '/new-result.png'; adjustmentCalls([2, 1]); await photo.adjustResult(p);
+  assert.equal(p.photoNoteId, id); assert.equal(Object.keys(f.store.get().memories).length, 1);
+  assert.notEqual(f.store.get().memories[id].subjectPath, old.subjectPath);
+  assert.equal(f.store.get().memories[id].text, '原说明'); assert.equal(f.store.get().memories[id].category, '出行');
+  assert.deepEqual(f.store.get().boards, boards);
+});
+test('reselection source errors can retry without losing the fallback result', async t => {
+  const f = fixture(t), p = f.page; await photo.begin(p, 'album', { date: f.date }); const old = p.photoTask;
+  platform.choose = async () => { throw Error('permission denied'); };
+  adjustmentCalls([2, 0]); await photo.adjustResult(p); assert.equal(p.data.task.state, 'sourceError');
+  await photo.retry(p); assert.equal(p.data.task.state, 'sourceError');
+  await photo.cancel(p); assert.equal(p.photoTask, old); assert.equal(p.data.task.state, 'done');
+});
+test('busy adjustments block completion and duplicate actions; unload prevents a late image update', async t => {
+  const f = fixture(t), p = f.page; await photo.begin(p, 'album', { date: f.date }); const before = f.store.get();
+  let complete; platform.persist = () => new Promise(resolve => { complete = resolve; }); adjustmentCalls([1]);
+  const operation = photo.adjustResult(p); await tick(); assert.equal(p.data.photoAdjusting, true);
+  assert.equal(photo.finish(p), false); await photo.adjustResult(p); await photo.cancel(p); assert.ok(p.photoTask);
+  await photo.dispose(p); complete('/saved/late-adjustment.png'); await operation; await tick();
+  assert.deepEqual(f.store.get(), before); assert.ok(f.removed.includes('/saved/late-adjustment.png'));
+});
+
 test('selected photo starts automatically; committed result stays visible until Continue', async t => {
   const f = fixture(t), p = f.page;
   await photo.begin(p, 'album', { date: f.date });

@@ -15,7 +15,7 @@ Component({
   pageLifetimes: { hide() { controller.onHide.call(this); }, show() { if (this.store) controller.onShow.call(this); }, resize() { controller.onResize.call(this); } },
   methods: { ...methods,
     cancelPhoto(e) {
-      if (this.data.lifting || this.handingOff) return;
+      if (this.data.lifting || this.handingOff || this.data.photoAdjusting) return;
       if (!this.photoTask || !this.photoTask.committed) return controller.cancelPhoto.call(this, e);
       if (!photo.saveNote(this)) return;
       this.handingOff = true;

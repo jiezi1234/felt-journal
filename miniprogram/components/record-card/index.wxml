@@ -14,7 +14,7 @@
           <view class="source-hint">选好照片，自动提取成贴纸</view>
           <view wx:if="{{error}}" class="error">{{error}}</view>
         </view>
-        <photo-panel note-open="{{photoNoteOpen}}" note-text="{{photoNoteText}}" note-error="{{photoNoteError}}" bind:noteopen="openPhotoNote" bind:noteinput="photoNoteInput" wx:if="{{task}}" id="record-photo" style="height:100%; min-height:0;" inline="{{true}}" lifting="{{lifting}}" continue-label="开始布置" task="{{task}}" bind:retry="retryPhoto" bind:original="originalPhoto" bind:cancel="cancelPhoto" />
+        <photo-panel adjusting="{{photoAdjusting}}" adjustment-error="{{photoAdjustmentError}}" bind:adjust="adjustPhoto" note-open="{{photoNoteOpen}}" note-text="{{photoNoteText}}" note-error="{{photoNoteError}}" bind:noteopen="openPhotoNote" bind:noteinput="photoNoteInput" wx:if="{{task}}" id="record-photo" style="height:100%; min-height:0;" inline="{{true}}" lifting="{{lifting}}" continue-label="开始布置" task="{{task}}" bind:retry="retryPhoto" bind:original="originalPhoto" bind:cancel="cancelPhoto" />
       </view>
     </view>
   </view>

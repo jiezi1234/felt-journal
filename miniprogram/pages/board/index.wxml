@@ -4,7 +4,7 @@
 </view>
 <include src="../../templates/board-drawers.wxml" />
 <main-nav wx:if="{{!editable && !task && !recovering && !drawer && !memoryCardId && !shareBoardId}}" id="main-nav" active="{{isTheme ? 'board' : 'today'}}" />
-<photo-panel note-open="{{photoNoteOpen}}" note-text="{{photoNoteText}}" note-error="{{photoNoteError}}" bind:noteopen="openPhotoNote" bind:noteinput="photoNoteInput" task="{{task}}" lifting="{{!!placing}}" continue-label="继续布置" bind:retry="retryPhoto" bind:original="originalPhoto" bind:cancel="cancelPhoto" />
+<photo-panel adjusting="{{photoAdjusting}}" adjustment-error="{{photoAdjustmentError}}" bind:adjust="adjustPhoto" note-open="{{photoNoteOpen}}" note-text="{{photoNoteText}}" note-error="{{photoNoteError}}" bind:noteopen="openPhotoNote" bind:noteinput="photoNoteInput" task="{{task}}" lifting="{{!!placing}}" continue-label="继续布置" bind:retry="retryPhoto" bind:original="originalPhoto" bind:cancel="cancelPhoto" />
 <sticker-flight id="placement-flight" wx:if="{{placing}}" flight="{{placing}}" bind:peeled="stickerLifted" bind:landed="stickerLanded" />
 
 <memory-card wx:if="{{memoryCardId}}" id="memory-card" memory-id="{{memoryCardId}}" bind:close="closeMemoryCard" bind:change="memoryCardChanged" />

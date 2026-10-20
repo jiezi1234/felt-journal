@@ -10,6 +10,7 @@ Page({
   onUnload() { if (this.dirty) this.store.keepMemoryDraft(this.id, { text: this.data.text, category: this.data.category }); photo.dispose(this); platform.unloadGuard(false); },
   refresh() {
     try {
+      photo.refreshResult(this);
       const m = this.store.get().memories[this.id]; if (!m) throw new Error('这条记忆已被删除或无法读取');
       const used = this.store.boardsForMemory(this.id);
       const data = { memory: m, dateLabel: dates.label(m.date), loading: false, error: '', usageCount: used.length,
@@ -55,6 +56,7 @@ Page({
   },
   photoDone() { this.setData({ originalMissing: false, subjectMissing: false }); this.refresh(); },
   retryPhoto() { photo.retry(this); }, originalPhoto() { photo.original(this); }, cancelPhoto() { photo.cancel(this); },
+  adjustPhoto() { return photo.adjustResult(this); },
   openPhotoNote() { photo.openNote(this); }, photoNoteInput(e) { photo.inputNote(this, e); },
   async remove() {
     if (this.photoTask || this.removing) return; this.removing = true;
@@ -66,7 +68,7 @@ Page({
     finally { this.removing = false; }
   },
   async back() {
-    if (this.closing) return;
+    if (this.closing || this.data.photoAdjusting) return;
     this.closing = true;
     try {
       const task = this.photoTask;

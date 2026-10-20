@@ -6,7 +6,7 @@ Page({
   data: { loading: true, saving: false, ready: false, error: '', saveError: '', source: 'subject', ratio: 0, dirty: false, handles: [], dimensions: '',
     ratios: [{ name: '自由', value: 0 }, { name: '1:1', value: 1 }, { name: '4:3', value: 4 / 3 }, { name: '3:4', value: 3 / 4 }] },
   onLoad(query) {
-    this.store = getStore(); this.id = query.id;
+    this.store = getStore(); this.id = query.id; this.setData({ fromResult: query.from === 'result' });
     try { this.memory = this.store.get().memories[this.id]; if (!this.memory) throw new Error('这条记忆已被删除或无法读取'); }
     catch (error) { this.setData({ loading: false, error: platform.message(error) }); }
   },
