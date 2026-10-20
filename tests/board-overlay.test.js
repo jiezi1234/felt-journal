@@ -191,3 +191,47 @@ test('native canvas x/y also supports long press, drag and movement cancellation
   f.board.touchStart({ touches: [touch] }); f.board.touchMove({ touches: [{ x: touch.x + 20, y: touch.y }] });
   t.mock.timers.tick(1000); f.board.touchEnd(); assert.deepEqual(f.events, []);
 });
+
+test('overlay button touches work without a synthetic tap and do not double-fire when tap follows', t => {
+  const f = controlFixture(t), touch = { clientX: 150, clientY: 200 };
+  for (const op of ['up', 'down', 'cw', 'ccw', 'remove']) {
+    const e = { currentTarget: { dataset: { op } }, touches: [touch], changedTouches: [touch] };
+    f.events.length = 0;
+    f.board.controlStart(e); f.board.touchEnd(e);
+    assert.deepEqual(f.events, [op === 'remove' ? { name: 'remove', detail: { id: 'memory' } } : { name: 'transform', detail: { op } }]);
+    f.board.controlTap(e); f.board.controlTap(e); assert.equal(f.events.length, 1);
+    f.board.controlStart(e); f.board.touchEnd(e); f.board.controlTap(e);
+    assert.equal(f.events.length, 2, 'A second physical press is never swallowed by tap deduplication');
+  }
+});
+
+test('overlay tolerates small finger drift but cancels sliding, touchcancel, multitouch and changed selection', t => {
+  const f = controlFixture(t), touch = { clientX: 150, clientY: 200 };
+  const e = { currentTarget: { dataset: { op: 'remove' } }, touches: [touch], changedTouches: [touch] };
+  f.board.controlStart(e);
+  const drift = { clientX: 158, clientY: 202 };
+  f.board.touchMove({ touches: [drift] }); f.board.touchEnd({ changedTouches: [drift] });
+  assert.deepEqual(f.events.map(e => e.name), ['remove']); f.events.length = 0;
+  for (const cancel of [
+    () => f.board.touchMove({ touches: [{ clientX: 175, clientY: 200 }] }),
+    () => f.board.touchCancel(),
+    () => f.board.touchMove({ touches: [touch, touch] }),
+    () => { f.board.data.selected = 'another'; },
+    () => { f.board.data.covered = true; }
+  ]) {
+    Object.assign(f.board.data, { selected: 'memory', covered: false });
+    f.board.controlStart(e); cancel(); f.board.touchEnd(e); f.board.controlTap(e);
+    assert.deepEqual(f.events, []);
+  }
+});
+
+test('tap-only accessibility actions still work and disabled overlay controls do not act', t => {
+  const f = controlFixture(t), e = { currentTarget: { dataset: { op: 'cw' } }, touches: [{ clientX: 150, clientY: 200 }] };
+  f.board.controlTap(e); assert.deepEqual(f.events, [{ name: 'transform', detail: { op: 'cw' } }]); f.events.length = 0;
+  for (const [key, value] of Object.entries({ covered: true, interactive: false, canEdit: false, editable: false, selected: '', landingId: 'in-flight' })) {
+    const old = f.board.data[key]; f.board.data[key] = value;
+    f.board.controlStart(e); f.board.touchEnd(); f.board.controlTap(e);
+    f.board.data[key] = old;
+  }
+  assert.deepEqual(f.events, []);
+});

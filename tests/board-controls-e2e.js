@@ -43,6 +43,22 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     }
     await canvas.touchend({ touches: [], changedTouches: [touch] });
   }
+  async function pressOverlay(board, selector, id, op) {
+    const button = (await board.$$('.grip'))[['ccw', 'cw', 'down', 'up', 'remove'].indexOf(op)];
+    const touch = await touchAt(selector, id, op);
+    await button.touchstart({ touches: [touch], changedTouches: [touch] }); await pause(60);
+    const g = await mini.evaluate(selector => {
+      const g = getCurrentPages().slice(-1)[0].selectComponent(selector).gesture;
+      return g && { op: g.control, button: g.button };
+    }, selector);
+    assert.deepEqual(g, { op, button: true }, 'The overlay must handle its own physical touch sequence');
+    await button.touchend({ touches: [], changedTouches: [touch] });
+    // Some runtimes emit a later tap, others don't. Neither may double-apply.
+    if (op !== 'remove') {
+      const beforeTap = JSON.stringify(await state());
+      await button.tap(); assert.equal(JSON.stringify(await state()), beforeTap, 'Synthetic tap must not duplicate touchend');
+    }
+  }
   async function exercise(selector, name) {
     const page = await mini.currentPage(); await wait(page, d => !d.loading && d.count === 2, name + ' board');
     const board = await page.$(selector); await wait(board, d => d.width > 0 && !d.covered && !d.imageError, 'canvas');
@@ -55,6 +71,10 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     await press(board, selector, id, 'down'); await wait(page, d => Math.abs(placement(d).width - initial.width) < .001, 'shrink');
     await press(board, selector, id, 'cw'); await wait(page, d => placement(d).angle === 15, 'clockwise');
     await press(board, selector, id, 'ccw'); await wait(page, d => placement(d).angle === 0, 'counterclockwise');
+    await pressOverlay(board, selector, id, 'up'); await wait(page, d => placement(d).width > initial.width, 'overlay grow');
+    await pressOverlay(board, selector, id, 'down'); await wait(page, d => Math.abs(placement(d).width - initial.width) < .001, 'overlay shrink');
+    await pressOverlay(board, selector, id, 'cw'); await wait(page, d => placement(d).angle === 15, 'overlay clockwise');
+    await pressOverlay(board, selector, id, 'ccw'); await wait(page, d => placement(d).angle === 0, 'overlay counterclockwise');
     // The accessibility/DOM path must continue to work without duplicate actions.
     await (await board.$$('.grip'))[1].tap(); await wait(page, d => placement(d).angle === 15, 'DOM control');
     const current = await page.data(), saved = await state();
@@ -65,7 +85,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 
     const prompts = await mini.evaluate(() => getApp().__boardControls.prompts);
     await mini.mockWxMethod('showModal', { confirm: false, cancel: true }); modalMocked = true;
-    await press(board, selector, id, 'remove');
+    await pressOverlay(board, selector, id, 'remove');
     for (let n = 0; n < 100; n++) {
       const done = await mini.evaluate(() => getApp().__boardControls.prompts > 0 && !getCurrentPages().slice(-1)[0].mutating);
       if (done) break; await pause(50);
@@ -73,14 +93,14 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     assert.equal(await mini.evaluate(() => getApp().__boardControls.prompts), prompts + 1);
     assert.deepEqual(await state(), saved, 'Cancel keeps every memory and placement');
     await mini.mockWxMethod('showModal', { confirm: true, cancel: false });
-    await press(board, selector, id, 'remove'); await wait(page, d => d.count === 1 && !d.selected, 'confirmed removal');
+    await pressOverlay(board, selector, id, 'remove'); await wait(page, d => d.count === 1 && !d.selected, 'confirmed removal');
     assert.equal(await mini.evaluate(() => getApp().__boardControls.prompts), prompts + 2);
     const removed = await state();
     assert.deepEqual(removed.memories, saved.memories, 'Removing a placement preserves original memories');
     for (const [boardId, value] of Object.entries(saved.boards)) if (boardId !== current.date) assert.deepEqual(removed.boards[boardId], value);
     await mini.restoreWxMethod('showModal'); modalMocked = false;
     await page.callMethod('done');
-    checks.push(name + ': native Canvas touch bindings select, scale, rotate and request confirmed removal; cancel/persistence/scope checked');
+    checks.push(name + ': Canvas and overlay touch sequences scale/rotate once; overlay removal confirms/cancels; persistence/scope checked');
     console.log('PASS:', name);
   }
   try {

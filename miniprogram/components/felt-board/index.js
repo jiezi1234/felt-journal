@@ -75,6 +75,22 @@ Component({
       const p = this.localPoint(touch), handle = p && geometry.hitControl(this.data.handles, p.x, p.y);
       return handle && handle.memoryId === this.data.selected ? handle : null;
     },
+    controlStart(e) {
+      this.clearGesture(); this.controlTapBlock = null;
+      if (this.dead || this.data.covered || !this.data.interactive || !this.data.canEdit || !this.data.editable || !this.data.selected || this.data.landingId || e.touches.length !== 1) return;
+      const op = e.currentTarget.dataset.op;
+      if (!['ccw', 'cw', 'down', 'up', 'remove'].includes(op) || !this.localPoint(e.touches[0])) return;
+      // On Android the overlay itself can receive the touch sequence without
+      // a later tap. Handle that sequence directly, before any canvas hit test.
+      this.gesture = { touch: e.touches[0], moved: false, control: op, selection: this.data.selected, button: true };
+    },
+    controlTap(e) {
+      const block = this.controlTapBlock;
+      // A normal tap can follow touchend. A new physical press clears this
+      // latch, so fast repeated presses still apply exactly once each.
+      if (block && block.op === e.currentTarget.dataset.op && Date.now() < block.until) return;
+      this.transform(e);
+    },
     touchStart(e) {
       this.clearGesture();
       if (this.dead || this.data.covered || !this.data.interactive || !this.data.model || e.touches.length !== 1) return;
@@ -111,7 +127,7 @@ Component({
       const g = this.gesture; if (!g) return;
       const start = this.localPoint(g.touch), current = this.localPoint(e.touches[0]);
       if (!start || !current) { this.touchCancel(); return; }
-      if (Math.hypot(current.x - start.x, current.y - start.y) > 6) { g.moved = true; clearTimeout(this.longTimer); }
+      if (Math.hypot(current.x - start.x, current.y - start.y) > (g.button ? 12 : 6)) { g.moved = true; clearTimeout(this.longTimer); }
       if (g.control) return;
       if (!g.point) return;
       const point = this.point(e.touches[0]), dx = point.x - g.point.x, dy = point.y - g.point.y;
@@ -123,12 +139,14 @@ Component({
     touchEnd(e) {
       const g = this.gesture;
       if (g && g.pending) { g.ended = true; g.endEvent = e; return; }
+      if (g && g.button) this.controlTapBlock = { op: g.control, until: Date.now() + 700 };
       this.clearGesture();
       if (!g || this.dead || this.data.covered || !this.data.interactive) return;
       if (g.control) {
         const end = e && e.changedTouches && e.changedTouches[0] || g.touch;
-        const start = this.localPoint(g.touch), finish = this.localPoint(end), control = this.controlAt(end);
-        if (!g.moved && start && finish && Math.hypot(finish.x - start.x, finish.y - start.y) <= 6 && control && control.op === g.control && this.data.selected === g.selection) {
+        const start = this.localPoint(g.touch), finish = this.localPoint(end);
+        const control = g.button ? { op: g.control } : this.controlAt(end);
+        if (!g.moved && start && finish && Math.hypot(finish.x - start.x, finish.y - start.y) <= (g.button ? 12 : 6) && control && control.op === g.control && this.data.selected === g.selection) {
           this.transform({ currentTarget: { dataset: { op: g.control } } });
         }
       } else if (g.next) this.triggerEvent('change', { placement: g.next });
@@ -139,7 +157,10 @@ Component({
       this.refresh();
     },
     clearGesture() { this.gestureToken = (this.gestureToken || 0) + 1; clearTimeout(this.longTimer); this.gesture = null; this.dragModel = null; },
-    touchCancel() { this.clearGesture(); this.refresh(); },
+    touchCancel() {
+      if (this.gesture && this.gesture.button) this.controlTapBlock = { op: this.gesture.control, until: Date.now() + 700 };
+      this.clearGesture(); this.refresh();
+    },
     transform(e) {
       if (this.dead || this.data.covered || !this.data.interactive || !this.data.canEdit || !this.data.editable || !this.data.selected || this.data.landingId) return;
       const op = e.currentTarget.dataset.op;
