@@ -40,7 +40,8 @@ Component({
         const selected = (display.items || []).find(p => p.memoryId === this.data.selected);
         const handles = this.data.editable && selected && !this.data.landingId ? geometry.handles(selected, this.screenWidth, this.data.height) : [];
         const visible = this.data.landingId ? Object.assign({}, display, { items: display.items.filter(p => p.memoryId !== this.data.landingId) }) : display;
-        renderer.paint(ctx, visible, this.images, this.data.editable && !this.data.landingId ? this.data.selected : '', dimensions);
+        this.surface = renderer.createSurface(this.canvas, model, dimensions, this.surface);
+        renderer.paint(ctx, visible, this.images, this.data.editable && !this.data.landingId ? this.data.selected : '', dimensions, this.surface && this.surface.canvas, this.canvas.width / dimensions.width);
         renderer.paintControls(ctx, handles, this.screenWidth);
         this.setData({ handles, imageError: (model.items || []).some(p => this.images[p.memory.subjectPath].missing) });
         // Native canvas layers can pierce an overlay. Keep the same board visible

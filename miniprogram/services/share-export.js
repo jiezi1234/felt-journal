@@ -37,7 +37,7 @@ function createShareExport() { return {
       canvas.width = Math.round(dimensions.width * scale); canvas.height = Math.round(dimensions.height * scale);
       const images = await renderer.loadImages(canvas, display.model.items, {}, true); if (this.disposed) return;
       const ctx = canvas.getContext('2d'); ctx.setTransform(canvas.width / dimensions.width, 0, 0, canvas.height / dimensions.height, 0, 0);
-      renderer.paint(ctx, display.model, images, '', dimensions);
+      renderer.paint(ctx, display.model, images, '', dimensions, null, canvas.width / dimensions.width);
       const result = await platform.call('canvasToTempFilePath', { canvas, x: 0, y: 0, width: canvas.width, height: canvas.height, destWidth: canvas.width, destHeight: canvas.height, fileType: 'png' });
       if (!this.disposed) this.setData({ generating: false, imagePath: result.tempFilePath, dateLabel: boardLabel(model), isTheme: model.type === 'theme', count: model.items.length });
     } catch (e) { if (!this.disposed) this.setData({ generating: false, error: platform.message(e, '作品生成失败，请重试') }); }

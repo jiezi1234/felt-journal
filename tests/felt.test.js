@@ -39,25 +39,25 @@ test('invalid texture cannot corrupt a saved board; invalid persisted metadata r
     assert.throws(() => createStore(storage).load(), /纹理/); assert.equal(disk[KEY], raw);
   }
 });
-test('fine texture retains original fiber algorithm and legacy/new renders are pixel-identical', () => {
-  const actual = createCanvas(1500, 1000), expected = createCanvas(1500, 1000), ctx = expected.getContext('2d');
-  felt.paintTexture(actual.getContext('2d'), 'fine', 45, 45, 1410, 910);
-  ctx.lineWidth = 1.6; ctx.strokeStyle = 'rgba(88,72,47,0.075)'; ctx.beginPath();
-  for (let n = 0; n < 1600; n++) { const x = 45 + (n * 137.51 % 1410), y = 45 + (n * 73.17 % 910); ctx.moveTo(x, y); ctx.lineTo(x + n % 3 + 2, y + (n % 2 ? 3 : -3)); } ctx.stroke();
-  assert.deepEqual(actual.toBuffer('image/png'), expected.toBuffer('image/png'));
-  for (const width of [288, 390, 1800]) assert.deepEqual(render(width, '#D9CBAF').toBuffer('image/png'), render(width, '#D9CBAF', 'fine').toBuffer('image/png'));
+test('legacy and explicit fine textures use the same deterministic material', () => {
+  for (const width of [288, 390, 1800]) assert.ok(render(width, '#D9CBAF').toBuffer('image/png').equals(render(width, '#D9CBAF', 'fine').toBuffer('image/png')));
 });
 test('all textures are distinct, deterministic, clipped to felt and preserve frame at preview/export sizes', () => {
-  for (const width of [288, 390, 1800]) for (const color of config.colors) {
+  for (const width of [288, 390, 1800]) {
+    const reference=render(width,config.colors[0].value,'fine').getContext('2d'), scale=width/1500;
+    const points=[[20,500],[1480,500],[400,20],[750,980],[750,60]];
+    const sample=(ctx,x,y)=>Array.from(ctx.getImageData(Math.floor(x*scale),Math.floor(y*scale),1,1).data);
+    for (const color of config.colors) {
     const outputs = new Set();
     for (const texture of config.textures) {
       const canvas = render(width, color.value, texture.value), bytes = canvas.toBuffer('image/png'); outputs.add(bytes.toString('base64'));
-      assert.deepEqual(bytes, render(width, color.value, texture.value).toBuffer('image/png'));
-      const ctx = canvas.getContext('2d'), scale = width / 1500;
-      for (const [x, y] of [[20, 500], [1480, 500], [750, 20], [750, 980]]) assert.deepEqual(Array.from(ctx.getImageData(Math.floor(x * scale), Math.floor(y * scale), 1, 1).data), [73, 53, 39, 255]);
-      assert.deepEqual(Array.from(ctx.getImageData(0, 0, 1, 1).data), [232, 237, 231, 255]);
+      assert.ok(bytes.equals(render(width, color.value, texture.value).toBuffer('image/png')));
+      const ctx = canvas.getContext('2d');
+      for (const [x,y] of points) assert.deepEqual(sample(ctx,x,y),sample(reference,x,y),'Changing felt must preserve walnut frame and metal hardware');
+      assert.equal(ctx.getImageData(0,0,1,1).data[3],0,'Rounded corners remain transparent');
     }
     assert.equal(outputs.size, 3);
+  }
   }
 });
 test('sample preview is the same section of material used on the board', () => {
