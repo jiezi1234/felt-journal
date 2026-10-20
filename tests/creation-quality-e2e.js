@@ -120,7 +120,7 @@ function sample(background) {
     console.log('STEP: result adjustment and replacement passed');
     await (await (await card.$('#record-photo')).$('#continue-layout')).tap();
     await wait(home, d => !d.editorOpen && !d.placing && d.count === 2, 'landing animation');
-    await (await home.$('#finish-today')).tap(); await capture('03-auto-placement');
+    await home.callMethod('select', { detail: { id: '' } }); await capture('03-auto-placement');
     const board = await home.$('#today-board'); const screen = await mini.evaluate(() => getCurrentPages().slice(-1)[0].selectComponent('#today-board').exportViewport());
     await (await home.$('#export-today')).tap(); await wait(home, d => !!d.shareBoardId, 'share opens');
     const share = await home.$('#share-card'); let exported = await wait(share, d => !d.generating && !!d.imagePath, 'share image');

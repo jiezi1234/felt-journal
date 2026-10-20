@@ -6,7 +6,6 @@
 .sheet-date { color:#766457; font-size:12px; white-space:nowrap; }
 .memory-count { margin-left:10px; color:#A5998D; font-size:11px; }
 .home-actions { display:flex; align-items:center; gap:4px; }
-.home-actions button.ghost { min-height:40px; height:40px; font-size:12px; padding:8px 4px; }
 .today-stage { flex:1; min-height:0; }
 .record-dock { height:48px; flex-shrink:0; display:flex; justify-content:flex-end; padding:0 8px; }
 button.record-fab { width:48px; min-width:48px; height:48px; min-height:48px; padding:0; border-radius:50%; font-size:30px; font-weight:400; line-height:44px; box-shadow:0 5px 15px rgba(38,35,33,.16); }
