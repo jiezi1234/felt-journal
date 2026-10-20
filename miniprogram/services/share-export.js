@@ -2,6 +2,7 @@ const { getStore, isThemeId, boardLabel } = require('../core/store');
 const dates = require('../core/date');
 const config = require('../core/config');
 const renderer = require('../core/renderer');
+const viewport = require('../core/board-viewport');
 const platform = require('./platform');
 function createShareExport() { return {
   data: { dateLabel: '', generating: true, error: '', imagePath: '', imageExpired: false, saving: false, albumDenied: false, albumSaved: false, count: 0,
@@ -27,10 +28,16 @@ function createShareExport() { return {
       const query = this.createSelectorQuery ? this.createSelectorQuery() : wx.createSelectorQuery();
       const canvas = await new Promise((resolve, reject) => query.select('#exportCanvas').fields({ node: true, size: true }).exec(r => r[0] && r[0].node ? resolve(r[0].node) : reject(new Error('画布暂时不可用，请重试'))));
       if (this.disposed) return;
-      canvas.width = config.exportWidth; canvas.height = config.exportWidth * config.board.height / config.board.width;
-      const images = await renderer.loadImages(canvas, model.items, {}, true); if (this.disposed) return;
-      const ctx = canvas.getContext('2d'); ctx.setTransform(canvas.width / config.board.width, 0, 0, canvas.height / config.board.height, 0, 0);
-      renderer.paint(ctx, model, images, '');
+      // Freeze the originating board's viewport for this share. Tall boards use
+      // the same position mapping as the on-screen canvas, without rewriting data.
+      const frame = this.exportViewport || config.board;
+      if (!Number.isFinite(frame.width) || !Number.isFinite(frame.height) || frame.width <= 0 || frame.height <= 0) throw new Error('板面尺寸无效，请关闭分享后重试');
+      const display = viewport.present(model, frame.width, frame.height), dimensions = display.dimensions;
+      const scale = config.exportWidth / Math.max(dimensions.width, dimensions.height);
+      canvas.width = Math.round(dimensions.width * scale); canvas.height = Math.round(dimensions.height * scale);
+      const images = await renderer.loadImages(canvas, display.model.items, {}, true); if (this.disposed) return;
+      const ctx = canvas.getContext('2d'); ctx.setTransform(canvas.width / dimensions.width, 0, 0, canvas.height / dimensions.height, 0, 0);
+      renderer.paint(ctx, display.model, images, '', dimensions);
       const result = await platform.call('canvasToTempFilePath', { canvas, x: 0, y: 0, width: canvas.width, height: canvas.height, destWidth: canvas.width, destHeight: canvas.height, fileType: 'png' });
       if (!this.disposed) this.setData({ generating: false, imagePath: result.tempFilePath, dateLabel: boardLabel(model), isTheme: model.type === 'theme', count: model.items.length });
     } catch (e) { if (!this.disposed) this.setData({ generating: false, error: platform.message(e, '作品生成失败，请重试') }); }

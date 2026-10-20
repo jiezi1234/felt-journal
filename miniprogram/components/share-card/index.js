@@ -5,10 +5,10 @@ Object.keys(controller).forEach(key => { if (typeof controller[key] === 'functio
 
 Component({
   options: { styleIsolation: 'apply-shared' },
-  properties: { boardId: String },
+  properties: { boardId: String, viewport: Object },
   data: { ...controller.data, styleOpen: false },
   lifetimes: {
-    attached() { controller.onLoad.call(this, { board: this.data.boardId }); },
+    attached() { controller.onLoad.call(this, { board: this.data.boardId }); this.exportViewport = this.data.viewport; },
     ready() { this.generate(); },
     detached() { controller.onUnload.call(this); }
   },

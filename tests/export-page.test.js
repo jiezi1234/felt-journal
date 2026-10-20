@@ -25,6 +25,28 @@ function fixture(t) {
   page.refreshShareSupport();
   return { page, store, disk, date, calls, toasts, canvas, missing(value) { missing = value; } };
 }
+
+test('portrait sharing preserves screen spacing, sticker sizes and saved layout across appearance changes', async t => {
+  const f = fixture(t), before = f.disk[KEY], calls = [];
+  f.page.exportViewport = { width: 1500, height: 2500 };
+  renderer.paint = (_, model, images, selection, dimensions) => calls.push({ model, selection, dimensions });
+  await f.page.generate();
+  assert.equal(f.page.data.error, ''); assert.equal(f.canvas.width, 1080); assert.equal(f.canvas.height, 1800);
+  const saved = f.store.view(f.date), drawn = calls[0].model.items[0], item = saved.items[0];
+  assert.equal(drawn.x, item.x); assert.equal(drawn.y, item.y * (2500 - 90) / (1000 - 90));
+  for (const key of ['width', 'height', 'angle', 'z']) assert.equal(drawn[key], item[key]);
+  assert.equal(calls[0].dimensions.height, 2500); assert.equal(calls[0].selection, '');
+  await f.page.chooseAppearance('previewTexture', f.page.data.textures, 'cross');
+  assert.deepEqual(calls[1].model.items, calls[0].model.items);
+  assert.equal(f.disk[KEY], before); assert.equal(f.canvas.height, 1800);
+});
+
+test('legacy horizontal export retains its aspect ratio and invalid viewports never export', async t => {
+  const f = fixture(t); await f.page.generate();
+  assert.deepEqual([f.canvas.width, f.canvas.height], [1800, 1200]);
+  const exports = f.calls.length; f.page.exportViewport = { width: 0, height: 2500 }; await f.page.generate();
+  assert.match(f.page.data.error, /尺寸/); assert.equal(f.page.data.imagePath, ''); assert.equal(f.calls.length, exports);
+});
 test('sharing uses the exact exported preview without app entry, storage mutation or delivery claims', async t => {
   const f = fixture(t), before = f.disk[KEY]; await f.page.shareImage();
   assert.deepEqual(f.calls, [{ name: 'showShareImageMenu', options: { path: '/preview.png', needShowEntrance: false } }]);

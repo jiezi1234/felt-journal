@@ -11,6 +11,7 @@ Component({
   lifetimes: { ready() { this.measure(); }, detached() { this.dead = true; this.clearGesture(); } },
   pageLifetimes: { resize() { this.touchCancel(); this.measure(); }, hide() { this.touchCancel(); }, show() { if (this.canvas) this.refresh(); } },
   methods: {
+    exportViewport() { return this.dimensions ? { width: this.dimensions.width, height: this.dimensions.height } : null; },
     stop() {},
     measure() {
       this.createSelectorQuery().select('#feltCanvas').fields({ node: true }).select('.board-viewport').boundingClientRect().exec(result => {

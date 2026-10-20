@@ -34,9 +34,19 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     }), chain);
     for (const r of bounds.rects) assert.ok(r && r.width > 0 && r.height > 0 && r.top >= 0 && r.bottom <= bounds.height, name + ' fits the screen');
     await pause(300); await mini.screenshot({ path: path.join(output, name + '.png') });
+    if (!data.error) {
+      const info = await mini.callWxMethod('getImageInfo', { src: data.imagePath }), frame = (await owner.data()).shareViewport;
+      assert.ok(frame && frame.width > 0 && frame.height > 0);
+      assert.equal(Math.max(info.width, info.height), 1800);
+      assert.ok(Math.abs(info.width / info.height - frame.width / frame.height) < 0.001, name + ' preserves source aspect ratio');
+    }
     if (withActions) {
       assert.equal(data.error, ''); assert.ok(data.imagePath);
-      const info = await mini.callWxMethod('getImageInfo', { src: data.imagePath }); assert.deepEqual([info.width, info.height], [1800, 1200]);
+      const info = await mini.callWxMethod('getImageInfo', { src: data.imagePath });
+      const frame = (await owner.data()).shareViewport;
+      assert.ok(frame && frame.width > 0 && frame.height > 0);
+      assert.equal(Math.max(info.width, info.height), 1800);
+      assert.ok(Math.abs(info.width / info.height - frame.width / frame.height) < 0.001, 'Share keeps the originating canvas aspect ratio');
       await (await card.$('#share-appearance')).tap(); await wait(card, d => d.styleOpen);
       const value = data.colors.find(c => c.value !== data.previewColor).value;
       await card.callMethod('chooseColor', { currentTarget: { dataset: { value } } });
@@ -51,7 +61,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
       assert.equal((await card.data()).albumSaved, false);
       await (await card.$('#save-album')).tap(); await wait(card, d => d.albumSaved);
       assert.equal(await mini.evaluate(() => getApp().__shareCardAcceptance.album), data.imagePath);
-      checks.push('Real 1800x1200 export, appearance drawer and mocked share/album callbacks preserve saved records');
+      checks.push('Real export preserves originating board aspect ratio; appearance and mocked share/album callbacks preserve saved records');
     } else if (data.error) {
       assert.ok(await card.$('#regenerate-image')); assert.equal(data.imagePath, '');
       checks.push(name + ': unavailable existing photo is shown as a retryable error inside the card');
@@ -79,13 +89,17 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     await mini.mockWxMethod('showShareImageMenu', options => { getApp().__shareCardAcceptance.share = { path: options.path, needShowEntrance: options.needShowEntrance }; return { errMsg: 'showShareImageMenu:ok' }; }); mocked.push('showShareImageMenu');
     await mini.mockWxMethod('saveImageToPhotosAlbum', options => { getApp().__shareCardAcceptance.album = options.filePath; return { errMsg: 'saveImageToPhotosAlbum:ok' }; }); mocked.push('saveImageToPhotosAlbum');
     const home = await route('/pages/index/index');
-    const date = (await home.data()).date;
-    if ((await home.data()).count) {
+    const date = await mini.evaluate(() => {
+      const store = require('core/store.js').getStore();
+      return Object.values(store.get().boards).filter(b => b.type !== 'theme' && b.placements.length).map(b => b.date).sort().pop() || getCurrentPages().slice(-1)[0].data.date;
+    });
+    const homeHasItems = !!(await home.data()).count;
+    if (homeHasItems) {
       await home.callMethod('editItem', { detail: { id: (await home.data()).model.items[0].memoryId } });
       await exercise('today', home, '#export-today', '#today-board', [], true);
     } else skipped.push('Today has no existing objects for successful export');
     const theme = await route('/pages/board-tab/index');
-    await exercise('theme', theme, '#share-theme', '#board');
+    await exercise('theme', theme, '#share-theme', '#board', [], !homeHasItems);
     const calendar = await route('/pages/calendar/index');
     calendarMonth = { year: (await calendar.data()).year, month: (await calendar.data()).month };
     await calendar.callMethod('open', { currentTarget: { dataset: { date } } });

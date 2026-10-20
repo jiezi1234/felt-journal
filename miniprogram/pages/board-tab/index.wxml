@@ -19,4 +19,4 @@
 <sticker-flight id="placement-flight" wx:if="{{placing}}" flight="{{placing}}" bind:peeled="stickerLifted" bind:landed="stickerLanded" />
 
 <memory-card wx:if="{{memoryCardId}}" id="memory-card" memory-id="{{memoryCardId}}" bind:close="closeMemoryCard" bind:change="memoryCardChanged" />
-<share-card wx:if="{{shareBoardId}}" id="share-card" board-id="{{shareBoardId}}" bind:close="closeShareCard" />
+<share-card wx:if="{{shareBoardId}}" id="share-card" board-id="{{shareBoardId}}" viewport="{{shareViewport}}" bind:close="closeShareCard" />

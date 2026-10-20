@@ -204,7 +204,10 @@ function createBoardEditor(options = {}) { return {
       this.data.recovering || this.data.openingLibrary || this.data.working || this.mutating) return;
     this.cancelGesture();
     if (this.dirty && !this.persist()) return;
-    this.setData({ shareBoardId: this.date }); if (this.syncNavigation) this.syncNavigation();
+    const board = this.selectComponent && (this.selectComponent('#today-board') || this.selectComponent('#board'));
+    const shareViewport = board && board.exportViewport ? board.exportViewport() : null;
+    if (board && board.exportViewport && !shareViewport) { platform.toast('板面准备中，请稍后重试'); return; }
+    this.setData({ shareBoardId: this.date, shareViewport }); if (this.syncNavigation) this.syncNavigation();
   },
   closeShareCard() { this.setData({ shareBoardId: '' }); if (this.syncNavigation) this.syncNavigation(); },
   stop() {},
