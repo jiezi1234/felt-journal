@@ -3,16 +3,16 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const automator = require('miniprogram-automator');
-const { createCanvas } = require('@napi-rs/canvas');
+const { createCanvas, loadImage } = require('@napi-rs/canvas');
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 const output = path.resolve('artifacts/memory-materials');
 const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-drafts:v1', 'felt-journal:dev-extraction:v1', 'felt-journal:server-extraction:v1'];
 (async () => {
   let mini, before, file, installed = false, completed = false;
-  const checks = [], errors = [], layouts = [];
+  const checks = [], errors = [], layouts = [], frames = [];
   const snapshot = () => mini.evaluate(names => names.map(key => ({ key, exists:wx.getStorageInfoSync().keys.includes(key), value:wx.getStorageSync(key) })), keys);
   const act = (method, arg) => mini.evaluate((method, arg) => getCurrentPages().slice(-1)[0].selectComponent('#memory-card')[method](arg), method, arg);
-  const data = () => mini.evaluate(() => { const c = getCurrentPages().slice(-1)[0].selectComponent('#memory-card'); return c && { style:c.data.cardStyle, phase:c.data.pickupPhase, busy:c.data.pickupBusy, editing:c.data.editing, flipped:c.data.flipped, caption:c.data.frontCaption }; });
+  const data = () => mini.evaluate(() => { const c = getCurrentPages().slice(-1)[0].selectComponent('#memory-card'); return c && { style:c.data.cardStyle, phase:c.data.pickupPhase, busy:c.data.pickupBusy, flipBusy:c.data.flipBusy, editing:c.data.editing, flipped:c.data.flipped, focused:c.data.noteFocus, text:c.data.text, caption:c.data.frontCaption }; });
   async function until(fn, label) { for (let n=0; n<100; n++) { const result=await fn(); if(result)return result; await pause(80); } throw Error('Timed out: '+label); }
   async function layout(label, selectors) {
     await pause(480);
@@ -29,7 +29,35 @@ const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-
     if(label.endsWith(' back')) assert.ok(measured.rects[1].bottom<=measured.rects[2].top+1,'note and footer do not overlap');
     layouts.push({label,selectors,...measured}); checks.push(label);
   }
-  async function capture(label) { console.log('CHECK:',label); if(process.env.MATERIAL_SCREENSHOTS === '1') await mini.screenshot({path:path.join(output,label+'.png')}); }
+  async function capture(label) {
+    console.log('CHECK:',label);
+    if (process.env.MATERIAL_SCREENSHOTS !== '1') return;
+    const file=path.join(output,label+'.png');await mini.screenshot({path:file});
+    if(label.endsWith('-editor'))return; // The caret is expected to blink.
+    const pixels=async file=>{
+      const img=await loadImage(file),canvas=createCanvas(img.width,img.height),ctx=canvas.getContext('2d');ctx.drawImage(img,0,0);
+      // Exclude the clock/status bar and simulator frame; retain the entire board.
+      return ctx.getImageData(0,Math.round(img.height*.14),img.width,Math.round(img.height*.8)).data;
+    };
+    const baseline=await pixels(file);
+    for(let i=1;i<=3;i++) {
+      await pause(300);const sample=path.join(output,label+'-stable-'+i+'.png');await mini.screenshot({path:sample});
+      const current=await pixels(sample);assert.equal(current.length,baseline.length);
+      let changed=0;for(let p=0;p<current.length;p+=4)if(Math.abs(current[p]-baseline[p])+Math.abs(current[p+1]-baseline[p+1])+Math.abs(current[p+2]-baseline[p+2])>30)changed++;
+      const ratio=changed/(current.length/4);frames.push({label,sample:i,changedPixelRatio:ratio});
+      assert.ok(ratio<.002,label+' resting frame stays stable, changed pixels: '+ratio);
+    }
+  }
+  async function stableBoard(label) {
+    const samples=await mini.evaluate(()=>new Promise(resolve=>{
+      const b=getCurrentPages().slice(-1)[0].selectComponent('#today-board'),samples=[];
+      const sample=()=>{samples.push({snapshot:b.data.snapshot,version:b.version,covered:b.data.covered,width:b.data.width,height:b.data.height});
+        if(samples.length===12)resolve(samples);else setTimeout(sample,100);};sample();
+    }));
+    assert.ok(samples[0].covered&&samples[0].snapshot&&samples[0].width>0);
+    samples.forEach(s=>assert.deepEqual(s,samples[0],label+' does not redraw or replace its board snapshot'));
+    checks.push(label+' background stable');
+  }
   try {
     mini=await automator.connect({wsEndpoint:process.env.WECHAT_AUTOMATION_URL||'ws://127.0.0.1:9420'});
     await until(()=>mini.evaluate(()=>!!getApp()&&getCurrentPages().length>0),'app startup');
@@ -63,27 +91,50 @@ const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-
       await mini.evaluate(()=>{Math.random=getApp().__materials.random;});
       assert.equal(opened.style,style);assert.equal(opened.phase,'open');
       const nativeCard=await (await mini.currentPage()).$('#memory-card'),paper=await nativeCard.$('#pickup-paper');
-      await until(async()=>await paper.style('opacity')==='1'&&await paper.style('transform')==='matrix(1, 0, 0, 1, 0, 0)',style+' native paper settled');
-      const face=await nativeCard.$('.card-front');
+      await until(async()=>await paper.style('opacity')==='1'&&await paper.style('transform')==='none',style+' native paper settled without a transform');
+      const face=await nativeCard.$(style==='ticket'?'.card-front .card-ticket-paper':'.card-front');
       assert.equal(await face.style('background-color'),{cotton:'rgb(248, 244, 233)',polaroid:'rgb(250, 249, 244)',ticket:'rgb(237, 227, 201)'}[style],'native material palette applied');
       assert.equal(await mini.evaluate(()=>JSON.stringify(require('core/store.js').getStore().get())),raw,'opening is read-only');
       await layout(style+' front',['#pickup-paper','.card-front','.card-photo-well','#card-photo','.card-caption','.card-front-footer']);
+      await stableBoard(style+' front');
       await capture(style+'-front');
-      await act('flip');
+      await (await nativeCard.$('#flip-card')).tap();
       const turn=await nativeCard.$('#flip-card');
-      await until(async()=>(await turn.style('transform')).startsWith('matrix3d(-1,'),style+' native back settled');
+      await until(async()=>{const d=await data();return d.flipped&&!d.flipBusy;},style+' native back settled');
+      await until(async()=>await turn.style('transform')==='none',style+' resting card has no transform');
+      const back=await nativeCard.$('.card-back');
+      assert.equal(await back.style('transform'),'none','back has no nested rotation');
+      assert.equal(await back.style('mask-image'),'none','native input ancestor is not masked');
+      assert.equal(await back.style('display'),'flex');
+      assert.equal(await (await nativeCard.$('.card-front')).style('display'),'none');
       await layout(style+' back',['.card-back','.card-note-zone','.card-note-meta','#edit-card-note','#add-to-theme']);await capture(style+'-back');
-      await act('edit');await layout(style+' editor',['#card-note-input','#cancel-card-note','#save-card-note']);await capture(style+'-editor');
-      await act('input',{detail:{value:'长文字也能完整保存。\n'.repeat(60)}});
+      await stableBoard(style+' back');
+      const edit=async()=>{
+        await (await nativeCard.$('#edit-card-note')).tap();
+        const input=await until(()=>nativeCard.$('#card-note-input'),style+' textarea mounted');
+        await until(async()=>(await data()).focused&&!!await input.property('focus'),style+' textarea focused');
+        return input;
+      };
+      const input=await edit();
+      await layout(style+' editor',['#card-note-input','#cancel-card-note','#save-card-note']);await capture(style+'-editor');
+      const note='长文字也能完整保存。\n'.repeat(60);
+      await input.input('点击编辑后，可以输入中文。');
+      await until(async()=>(await data()).text==='点击编辑后，可以输入中文。',style+' first input event');
+      await input.input(note);
+      await until(async()=>(await data()).text===note,style+' multiline input event');
+      assert.equal(await input.value(),note);
+      assert.equal((await data()).flipped,true,'input taps never flip the card');
+      checks.push(style+' focused textarea accepts Chinese and multiline input');
       await mini.evaluate(()=>getCurrentPages().slice(-1)[0].selectComponent('#memory-card').modalPresentation.keyboardChanged({height:470}));
       await layout(style+' keyboard',['.memory-card-dialog','#close-memory-card','#card-note-input','#save-card-note']);
       await mini.evaluate(()=>getCurrentPages().slice(-1)[0].selectComponent('#memory-card').modalPresentation.keyboardChanged({height:0}));
-      await act('save');assert.equal((await data()).style,style);assert.equal((await data()).caption,'长文字也能完整保存。');
+      await (await nativeCard.$('#save-card-note')).tap();await until(async()=>!(await data()).editing,style+' save');assert.equal((await data()).style,style);assert.equal((await data()).caption,'长文字也能完整保存。');
+      assert.equal(await mini.evaluate(()=>require('core/store.js').getStore().get().memories[getApp().__materials.id].text),note);
       await layout(style+' long reading',['.card-note-reading','.card-note-meta','#edit-card-note']);
-      await act('edit');await act('input',{detail:{value:'取消这段文字'}});await act('cancelEdit');assert.equal((await data()).caption,'长文字也能完整保存。');
+      await (await edit()).input('取消这段文字');await until(async()=>(await data()).text==='取消这段文字',style+' replacement input');await (await nativeCard.$('#cancel-card-note')).tap();await until(async()=>!(await data()).editing,style+' cancel');assert.equal((await data()).caption,'长文字也能完整保存。');
       await act('openThemes');await layout(style+' themes',['#card-theme-picker','#close-card-themes','#new-card-theme']);
       await act('close');assert.ok(await data(),'first close only dismisses themes');
-      await act('edit');await act('input',{detail:{value:''}});await act('save');
+      await (await edit()).input('');await until(async()=>(await data()).text==='',style+' clear input');await (await nativeCard.$('#save-card-note')).tap();await until(async()=>!(await data()).editing,style+' save empty note');
       assert.equal((await data()).caption,'把平凡的一刻，轻轻收好');
       await layout(style+' empty note',['.card-empty','#edit-card-note']);
       await act('close');await until(async()=>!await data(),style+' return');
@@ -101,7 +152,7 @@ const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-
       if(file)await mini.evaluate(file=>{for(const p of [file,file+'.original.png'])try{wx.getFileSystemManager().unlinkSync(p);}catch(_){}},file);
       if(before)assert.deepEqual(await snapshot(),before,'user storage unchanged');
       const info=await mini.systemInfo();mini.disconnect();
-      fs.writeFileSync(path.join(output,'acceptance.json'),JSON.stringify({passed:completed,checks,layouts,errors,info,userStorageUnchanged:true,keyboard:'Simulated keyboard-height events'},null,2));
+      fs.writeFileSync(path.join(output,'acceptance.json'),JSON.stringify({passed:completed,checks,layouts,frames,errors,info,userStorageUnchanged:true,keyboard:'Simulated keyboard-height events'},null,2));
     }
   }
   console.log('PASS:',checks.length,'material layout checks; user storage unchanged');

@@ -6,6 +6,7 @@ const dates = require('../miniprogram/core/date');
 let definition;
 global.Component = value => { definition = value; }; require('../miniprogram/components/memory-card/index'); delete global.Component;
 function fixture(t) {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
   const original = platform.unloadGuard, originalToast = platform.toast; t.after(() => { platform.unloadGuard = original; platform.toast = originalToast; });
   const disk = {}, guards = [], events = []; let fail = false;
   platform.unloadGuard = value => guards.push(value);
@@ -15,12 +16,23 @@ function fixture(t) {
   store.createTheme('card_theme', '春天', id);
   function mount() {
     const card = { ...definition.methods, store, data: { ...clone(definition.data), memoryId: id },
-      setData(value) { Object.assign(this.data, value); }, triggerEvent(name, detail) { events.push({ name, detail }); } };
+      setData(value, done) { Object.assign(this.data, value); if (done) done(); }, triggerEvent(name, detail) { events.push({ name, detail }); } };
     card.refresh(); return card;
   }
-  return { store, id, disk, guards, events, mount, fail(value) { fail = value; } };
+  return { store, id, disk, guards, events, mount, settle() { t.mock.timers.tick(230); t.mock.timers.tick(230); }, fail(value) { fail = value; } };
 }
 const input = value => ({ detail: { value } });
+
+test('rapid taps cannot edit mid-turn; the editor can regain focus after blur, cancel and save', t => {
+  const f = fixture(t), c = f.mount();
+  c.flip(); c.flip(); c.edit(); assert.equal(c.data.editing, false);
+  f.settle(); assert.equal(c.data.flipped, true); c.edit(); assert.equal(c.data.noteFocus, true);
+  c.noteBlurred(); assert.equal(c.data.noteFocus, false);
+  c.noteFocused(); assert.equal(c.data.noteFocus, true);
+  c.cancelEdit(); assert.equal(c.data.noteFocus, false);
+  c.edit(); assert.equal(c.data.noteFocus, true); c.input(input('重新编辑仍然可以输入')); c.save();
+  assert.equal(c.data.noteFocus, false); assert.equal(f.store.get().memories[f.id].text, '重新编辑仍然可以输入');
+});
 
 test('each opening randomly selects one material without journal writes, and keeps it while editing or refreshing', t => {
   const f = fixture(t), raw = f.disk[KEY], random = Math.random;
@@ -31,7 +43,7 @@ test('each opening randomly selects one material without journal writes, and kee
     assert.equal(c.data.cardStyle, expected);
     assert.equal(f.disk[KEY], raw, 'presentation does not modify the memory or board');
     Math.random = () => { throw new Error('must not reroll an open card'); };
-    c.flip(); c.edit(); c.refresh(); c.cancelEdit(); c.openThemes(); c.closeThemes(); c.save();
+    c.flip(); f.settle(); c.edit(); c.refresh(); c.cancelEdit(); c.openThemes(); c.closeThemes(); c.save();
     assert.equal(c.data.cardStyle, expected);
   }
 });
@@ -51,8 +63,8 @@ test('front caption reflects the first saved nonblank line and preserves complet
 
 test('opening and flipping an uncaptioned image writes nothing; text can be added, edited and cleared', t => {
   const f = fixture(t), raw = f.disk[KEY], c = f.mount();
-  assert.equal(c.data.flipped, false); c.flip(); assert.equal(c.data.flipped, true);
-  assert.equal(c.data.memory.text, ''); c.flip(); assert.equal(f.disk[KEY], raw);
+  assert.equal(c.data.flipped, false); c.flip(); f.settle(); assert.equal(c.data.flipped, true);
+  assert.equal(c.data.memory.text, ''); c.flip(); f.settle(); assert.equal(f.disk[KEY], raw);
   const boards = clone(f.store.get().boards);
   c.edit(); c.flip(); assert.equal(c.data.flipped, true, 'typing must not flip the card');
   c.input(input('窗边的绿意\n今天也很美好')); assert.equal(c.save(), true);
@@ -86,7 +98,7 @@ test('back-of-card theme picker adds a shared memory in place and marks duplicat
   const f = fixture(t), c = f.mount(), daily = clone(f.store.board(dates.key()));
   const target = f.store.createTheme('target', '另一块板'), originalMemory = clone(f.store.get().memories[f.id]);
   c.openThemes(); assert.equal(c.data.themeOpen, false);
-  c.flip(); c.openThemes(); assert.equal(c.data.themeOpen, true);
+  c.flip(); f.settle(); c.openThemes(); assert.equal(c.data.themeOpen, true);
   assert.equal(c.data.themes.find(board => board.id === 'theme_card_theme').placed, true);
   c.flip(); assert.equal(c.data.flipped, true, 'theme selection must not flip or dismiss the card');
   c.placeTheme(themeEvent(target)); c.placeTheme(themeEvent(target));
@@ -98,7 +110,7 @@ test('back-of-card theme picker adds a shared memory in place and marks duplicat
 
 test('theme placement failure preserves card and selection; retry commits once and unsaved target layouts are protected', t => {
   const f = fixture(t), c = f.mount(), target = f.store.createTheme('target', '另一块板');
-  c.flip(); c.openThemes(); const raw = f.disk[KEY];
+  c.flip(); f.settle(); c.openThemes(); const raw = f.disk[KEY];
   f.fail(true); c.placeTheme(themeEvent(target)); assert.equal(f.disk[KEY], raw); assert.equal(c.data.themeOpen, true); assert.ok(c.data.themeError); assert.equal(f.events.length, 0);
   f.fail(false); f.store.keepDraft(f.store.board(target)); c.placeTheme(themeEvent(target)); assert.match(c.data.themeError, /未保存/); assert.equal(f.store.board(target).placements.length, 0);
   f.store.clearDraft(target); c.placeTheme(themeEvent(target)); assert.equal(f.store.board(target).placements.length, 1); assert.equal(c.data.themeOpen, false);
@@ -106,7 +118,7 @@ test('theme placement failure preserves card and selection; retry commits once a
 
 test('card can create a theme and place atomically, preserving its name on failure and avoiding duplicate retries', t => {
   const f = fixture(t), c = f.mount(); f.store.deleteTheme('theme_card_theme');
-  c.flip(); c.openThemes(); assert.equal(c.data.themes.length, 0); c.createTheme();
+  c.flip(); f.settle(); c.openThemes(); assert.equal(c.data.themes.length, 0); c.createTheme();
   c.saveTheme(); assert.ok(c.data.themeError); assert.equal(c.data.themeCreating, true);
   c.themeInput(input('  旅行收藏  ')); const raw = f.disk[KEY]; f.fail(true); c.saveTheme();
   assert.equal(f.disk[KEY], raw); assert.equal(c.data.themeTitle, '  旅行收藏  '); assert.equal(c.data.themeCreating, true);
@@ -119,7 +131,7 @@ test('card can create a theme and place atomically, preserving its name on failu
 test('theme picker paginates and cancels without writes; deleted/full targets cannot lose or duplicate a photo', t => {
   const f = fixture(t), c = f.mount();
   for (let i = 0; i < 4; i++) f.store.createTheme('page_' + i, '主题 ' + i);
-  c.flip(); const raw = f.disk[KEY]; c.openThemes(); assert.equal(c.data.themePageCount, 3); const seen = new Set();
+  c.flip(); f.settle(); const raw = f.disk[KEY]; c.openThemes(); assert.equal(c.data.themePageCount, 3); const seen = new Set();
   for (let i = 0; i < 3; i++) { c.data.visibleThemes.forEach(board => seen.add(board.id)); c.turnThemes({ currentTarget: { dataset: { offset: 1 } } }); }
   assert.equal(seen.size, 5); c.closeThemes(); assert.equal(f.disk[KEY], raw); assert.equal(c.data.flipped, true);
   c.openThemes(); f.store.deleteTheme('theme_page_0'); c.placeTheme(themeEvent('theme_page_0')); assert.match(c.data.themeError, /已被删除/); assert.equal(c.data.themeOpen, true);
@@ -132,7 +144,7 @@ test('theme picker paginates and cancels without writes; deleted/full targets ca
 
 test('theme picker cannot interrupt note editing and saved captions remain shared after placement', t => {
   const f = fixture(t), c = f.mount(), target = f.store.createTheme('caption', '文字');
-  c.flip(); c.edit(); c.input(input('记下这一刻')); c.openThemes(); assert.equal(c.data.themeOpen, false);
+  c.flip(); f.settle(); c.edit(); c.input(input('记下这一刻')); c.openThemes(); assert.equal(c.data.themeOpen, false);
   c.save(); c.openThemes(); c.placeTheme(themeEvent(target));
   assert.equal(f.store.view(target).items[0].memory.text, '记下这一刻'); assert.equal(f.store.getMemoryDraft(f.id), undefined);
 });

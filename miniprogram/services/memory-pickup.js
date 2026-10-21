@@ -101,7 +101,8 @@ function close(host, done) {
     later(host, () => { fallback(host); modal.close(host, done); }, 1200, 'guard');
     host.triggerEvent('pickupreturn', { id:host.data.memoryId });
   };
-  if (host.data.flipped) { host.setData({ flipped:false }); later(host, request, FLIP_MS+30); }
+  if (host.turnTo && (host.data.flipped || host.data.flipBusy)) host.turnTo(false, request);
+  else if (host.data.flipped) { host.setData({ flipped:false }); later(host, request, FLIP_MS+30); }
   else {
     // A rapid second flip updates data before its CSS rotation has finished.
     // Measuring that half-turned image would produce a narrow return target.

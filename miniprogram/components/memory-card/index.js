@@ -5,6 +5,7 @@ const platform = require('../../services/platform');
 const { newId } = require('../../services/photo-task');
 const modal = require('../../services/modal-presentation');
 const pickup = require('../../services/memory-pickup');
+const cardTurn = require('../../services/card-turn');
 const CARD_STYLES = ['cotton', 'polaroid', 'ticket'];
 function cardDetails(memory) {
   const [year, month, day] = memory.date.split('-');
@@ -15,12 +16,12 @@ function cardDetails(memory) {
 Component({
   options: { styleIsolation: 'apply-shared' },
   properties: { memoryId: String, source:Object },
-  data: { memory: null, dateLabel: '', cardStyle: 'cotton', cardDate: '', cardYear: '', cardMonth: '', cardDay: '', frontCaption: '', flipped: false, editing: false, text: '', error: '', hint: '', missing: false, maxText: config.maxText,
+  data: { memory: null, dateLabel: '', cardStyle: 'cotton', cardDate: '', cardYear: '', cardMonth: '', cardDay: '', frontCaption: '', flipped: false, flipBusy: false, turning: false, noteFocus: false, editing: false, text: '', error: '', hint: '', missing: false, maxText: config.maxText,
     themeOpen: false, themeCreating: false, themeWorking: false, themeTitle: '', themeError: '', themes: [], visibleThemes: [], themePage: 1, themePageCount: 1, maxThemeTitle: config.maxBoardTitle },
   lifetimes: {
     attached() { pickup.mount(this); modal.mount(this); this.store = getStore(); this.refresh(); },
     ready() { pickup.ready(this); },
-    detached() { pickup.dispose(this); modal.dispose(this); if (this.dirty) this.keepDraft(); this.dead = true; platform.unloadGuard(false); }
+    detached() { cardTurn.cancel(this); pickup.dispose(this); modal.dispose(this); if (this.dirty) this.keepDraft(); this.dead = true; platform.unloadGuard(false); }
   },
   pageLifetimes: { show() { if (this.store) this.refresh(); }, hide() { pickup.interrupted(this); if (this.dirty) this.keepDraft(); }, resize() { pickup.interrupted(this); } },
   methods: {
@@ -48,8 +49,14 @@ Component({
         if (this.data.themeOpen) this.refreshThemes();
       } catch (error) { this.setData({ error: platform.message(error, '记忆读取失败'), memory: null }); }
     },
-    flip() { if (!this.data.pickupBusy && !this.data.editing && !this.data.themeOpen && this.data.memory) { this.lastFlipAt = Date.now(); this.setData({ flipped: !this.data.flipped }); } },
-    edit() { if (!this.data.pickupBusy && this.data.memory && !this.data.themeOpen) this.setData({ flipped: true, editing: true, error: '', hint: '' }); },
+    turnTo(back, done) { cardTurn.turn(this, back, done); },
+    flip() { if (!this.data.pickupBusy && !this.data.flipBusy && !this.data.editing && !this.data.themeOpen && this.data.memory) this.turnTo(!this.data.flipped); },
+    edit() {
+      if (this.data.pickupBusy || this.data.flipBusy || !this.data.memory || this.data.themeOpen) return;
+      this.setData({ flipped:true, editing:true, noteFocus:true, error:'', hint:'' });
+    },
+    noteFocused() { if (!this.data.noteFocus) this.setData({ noteFocus:true }); },
+    noteBlurred() { if (this.data.noteFocus) this.setData({ noteFocus:false }); },
     input(e) { this.dirty = true; this.setData({ text: e.detail.value, error: '', hint: '' }); this.keepDraft(); },
     keepDraft() {
       const memory = this.store.get().memories[this.data.memoryId];
@@ -63,17 +70,17 @@ Component({
         if (this.dirty) this.store.edit(memory.id, this.data.text, memory.category);
         this.store.clearMemoryDraft(memory.id); this.dirty = false;
         const saved = this.store.get().memories[memory.id];
-        this.setData({ memory: saved, ...cardDetails(saved), editing: false, error: '', hint: '' });
+        this.setData({ memory: saved, ...cardDetails(saved), editing: false, noteFocus: false, error: '', hint: '' });
         platform.unloadGuard(false); this.triggerEvent('change', { id: memory.id }); return true;
       } catch (error) { this.setData({ error: platform.message(error, '文字未保存，请重试') }); this.keepDraft(); return false; }
     },
     cancelEdit() {
       const memory = this.store.get().memories[this.data.memoryId];
       this.store.clearMemoryDraft(this.data.memoryId); this.dirty = false;
-      this.setData({ text: memory ? memory.text : '', editing: false, error: '', hint: '' }); platform.unloadGuard(false);
+      this.setData({ text: memory ? memory.text : '', editing: false, noteFocus: false, error: '', hint: '' }); platform.unloadGuard(false);
     },
     openThemes() {
-      if (this.data.pickupBusy || !this.data.memory || !this.data.flipped || this.data.editing || this.data.themeWorking) return;
+      if (this.data.pickupBusy || this.data.flipBusy || !this.data.memory || !this.data.flipped || this.data.editing || this.data.themeWorking) return;
       this.setData({ themeOpen: true, themeCreating: false, themePage: 1, themeError: '' }); this.refreshThemes();
     },
     refreshThemes() {

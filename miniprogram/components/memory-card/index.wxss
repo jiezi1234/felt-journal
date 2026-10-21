@@ -6,15 +6,18 @@
 .card-heading { padding:0 6px; flex-shrink:0; }
 .card-heading .muted { color:#FFFFFF; }
 .card-heading .ghost { min-width:44px; min-height:44px; font-size:26px; padding:4px; background:#FFFDFA; border-radius:50%; }
-.flip-scene { flex:1; min-height:0; perspective:1200px; }
-.flip-card { position:relative; width:100%; height:100%; transform-style:preserve-3d; transition:transform 420ms cubic-bezier(.2,.7,.2,1); }
-.flip-card.is-flipped { transform:rotateY(180deg); }
-.card-face { position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; border-radius:8px; padding:24px; background:var(--card-paper); border:1px solid var(--card-edge); color:var(--card-ink); box-shadow:0 2px 0 #E8E1D1,0 3px 0 #CFC6B5,0 5px 0 #EEE7D8,0 12px 28px rgba(45,35,25,.18),inset 0 0 0 1px rgba(255,255,255,.7); display:flex; flex-direction:column; gap:12px; }
+.flip-scene { flex:1; min-height:0; }
+.flip-card { position:relative; width:100%; height:100%; transform:none; transition:transform 200ms ease-in-out; }
+.flip-card.is-turning { transform:scaleX(.02); }
+.flip-card.is-flipping { pointer-events:none; }
+.card-face { position:absolute; inset:0; border-radius:8px; padding:24px; background:var(--card-paper); border:1px solid var(--card-edge); color:var(--card-ink); box-shadow:0 2px 0 #E8E1D1,0 3px 0 #CFC6B5,0 5px 0 #EEE7D8,0 12px 28px rgba(45,35,25,.18),inset 0 0 0 1px rgba(255,255,255,.7); display:flex; flex-direction:column; gap:12px; }
+.flip-card.is-flipped .card-front { display:none; }
+.flip-card.is-flipped .card-back { display:flex; }
 .card-face>view,.card-face>text { position:relative; z-index:1; }
 .card-face .card-paper-grain { position:absolute; inset:0; z-index:0; border-radius:inherit; pointer-events:none; opacity:.16; }
 .card-front-header { display:flex; justify-content:space-between; gap:8px; flex-shrink:0; color:var(--card-muted); font-size:11px; letter-spacing:1px; }
 .card-photo-well { flex:1; min-height:60px; width:100%; margin:6px 0 2px; padding:12px; display:flex; align-items:center; justify-content:center; border:1px solid var(--card-rule); border-radius:4px; background:radial-gradient(ellipse at 50% 40%,rgba(255,255,255,.28),rgba(210,197,169,.12)); box-shadow:inset 1px 2px 3px rgba(93,79,57,.09),0 1px 0 rgba(255,255,255,.8); }
-.card-photo { width:100%; height:100%; min-height:0; position:relative; z-index:1; filter:drop-shadow(0 5px 4px rgba(66,53,35,.12)); }
+.card-photo { width:100%; height:100%; min-height:0; position:relative; z-index:1; }
 .card-image-missing { font-size:13px; color:var(--card-muted); text-align:center; }
 .card-caption { display:flex; flex-direction:column; align-items:center; gap:4px; flex-shrink:0; min-width:0; padding:3px 0; }
 .card-caption-line { display:block; max-width:100%; font-family:"Songti SC","STSong","SimSun",serif; font-size:18px; line-height:1.65; letter-spacing:.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -22,7 +25,7 @@
 .card-front-footer { display:flex; justify-content:space-between; align-items:center; gap:8px; flex-shrink:0; padding-top:2px; }
 .card-emboss { font-size:11px; color:var(--card-muted); text-shadow:0 1px 0 #FFFFFF; }
 .card-cue { font-size:11px; color:var(--card-muted); text-align:right; flex-shrink:0; }
-.card-back { transform:rotateY(180deg); overflow:hidden; }
+.card-back { display:none; overflow:hidden; }
 .card-note-heading { flex-shrink:0; display:flex; flex-direction:column; gap:9px; padding-bottom:5px; }
 .card-note-date { font-size:11px; letter-spacing:1px; color:var(--card-muted); }
 .card-note-title { font-family:"Songti SC","STSong","SimSun",serif; font-weight:400; font-size:22px; line-height:1.4; letter-spacing:2px; }
@@ -64,7 +67,9 @@
 
 /* The same dated stub and punched edges belong to both sides of the ticket. */
 .material-ticket { --card-paper:#EDE3C9; --card-edge:#C6B58D; --card-ink:#4C4D3D; --card-muted:#77775F; --card-accent:#526049; --card-rule:rgba(135,145,110,.23); }
-.material-ticket .card-face { padding:0 24px 22px; border-radius:3px; border:0; box-shadow:inset 0 0 0 1px var(--card-edge),inset 0 0 0 5px var(--card-paper),inset 0 0 0 6px var(--card-rule); -webkit-mask-image:radial-gradient(circle at 0 82px,transparent 6px,#000000 6.5px),radial-gradient(circle at 100% 82px,transparent 6px,#000000 6.5px); -webkit-mask-composite:source-in; mask-image:radial-gradient(circle at 0 82px,transparent 6px,#000000 6.5px),radial-gradient(circle at 100% 82px,transparent 6px,#000000 6.5px); mask-composite:intersect; }
+.material-ticket .card-face { padding:0 24px 22px; border-radius:3px; border:0; background:transparent; box-shadow:none; }
+/* Punched paper is decorative; never mask a native textarea or its ancestors. */
+.card-face .card-ticket-paper { position:absolute; inset:0; z-index:0; pointer-events:none; border-radius:inherit; background:var(--card-paper); box-shadow:inset 0 0 0 1px var(--card-edge),inset 0 0 0 5px var(--card-paper),inset 0 0 0 6px var(--card-rule); -webkit-mask-image:radial-gradient(circle at 0 82px,transparent 6px,#000000 6.5px),radial-gradient(circle at 100% 82px,transparent 6px,#000000 6.5px); -webkit-mask-composite:source-in; mask-image:radial-gradient(circle at 0 82px,transparent 6px,#000000 6.5px),radial-gradient(circle at 100% 82px,transparent 6px,#000000 6.5px); mask-composite:intersect; }
 .card-ticket-stub { height:83px; margin:0 -24px; padding:14px 24px 12px; display:flex; align-items:center; gap:16px; flex-shrink:0; border-bottom:1px dashed var(--card-edge); }
 .card-ticket-date { display:flex; align-items:baseline; gap:5px; }
 .card-ticket-day { font-family:Georgia,serif; font-size:38px; line-height:1; color:var(--card-accent); }
@@ -102,7 +107,7 @@
 .has-keyboard .card-note-zone { margin-top:0; min-height:44px; }
 .has-keyboard .card-note-actions button { min-height:44px; padding:8px; }
 .has-keyboard .card-face .error { max-height:48px; overflow-y:auto; }
-.has-keyboard.material-ticket .card-back { -webkit-mask-image:none; mask-image:none; }
+.has-keyboard.material-ticket .card-back .card-ticket-paper { -webkit-mask-image:none; mask-image:none; }
 /* Paper and the contained subject keep independent measured pickup paths. */
 .memory-card-overlay.has-pickup .memory-card-dialog { animation:none; }
 .memory-card-overlay.has-pickup .memory-card-scrim { animation:none; opacity:0; transition:opacity 300ms ease-out; }
@@ -110,6 +115,10 @@
 .pickup-opening .card-heading,.pickup-open .card-heading { opacity:1; }
 .memory-card-overlay.pickup-opening .memory-card-scrim,.memory-card-overlay.pickup-open .memory-card-scrim { opacity:1; }
 .pickup-preparing .flip-scene,.pickup-waiting .flip-scene { opacity:0; }
+/* Retire the pickup transform once it has landed, rather than keeping a
+   composited ancestor over the native input and the covered board. */
+.pickup-open .flip-scene,.memory-card-overlay:not(.has-pickup) .flip-scene { transform:none!important; }
+.pickup-open .flip-scene { opacity:1!important; }
 .pickup-photo-hidden { opacity:0; }
-.memory-pickup-photo { position:absolute; z-index:2; width:1px; height:1px; visibility:hidden; pointer-events:none; transform-origin:50% 50%; filter:drop-shadow(0 8px 6px rgba(48,40,29,.15)); }
-.pickup-opening .memory-pickup-photo,.pickup-returning .memory-pickup-photo,.pickup-landed .memory-pickup-photo { visibility:visible; }
+.memory-pickup-photo { position:absolute; z-index:2; width:1px; height:1px; visibility:hidden; pointer-events:none; transform-origin:50% 50%; }
+.pickup-opening .memory-pickup-photo,.pickup-returning .memory-pickup-photo,.pickup-landed .memory-pickup-photo { visibility:visible; filter:drop-shadow(0 8px 6px rgba(48,40,29,.15)); }

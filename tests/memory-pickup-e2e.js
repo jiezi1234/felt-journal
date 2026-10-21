@@ -20,7 +20,7 @@ const output = path.resolve('artifacts/memory-pickup');
     const host = chain.reduce((p, s) => p.selectComponent(s), getCurrentPages().slice(-1)[0]);
     const c = host && host.selectComponent('#memory-card'), b = host && (host.selectComponent('#today-board') || host.selectComponent('#board'));
     return { card:!!c, id:host && host.data.memoryCardId, phase:c && c.data.pickupPhase, enabled:c && c.data.pickupEnabled,
-      busy:c && c.data.pickupBusy, flipped:c && c.data.flipped, editing:c && c.data.editing,
+      busy:c && c.data.pickupBusy, flipBusy:c && c.data.flipBusy, flipped:c && c.data.flipped, editing:c && c.data.editing,
       source:c && c.data.source, from:c && c.pickup.from, bounds:c && c.pickup.bounds, hidden:b && b.pickupId,
       covered:b && b.data.covered, paper:c && c.data.pickupPaperAnimation };
   }, chain);
@@ -65,7 +65,7 @@ const output = path.resolve('artifacts/memory-pickup');
     assert.ok(Math.abs(opened.from.angle) <= 180, 'short rotation');
     assert.equal(await mini.evaluate(() => JSON.stringify(require('core/store.js').getStore().get())), stored, label + ' opening is read-only');
     const card = await owner.$('#memory-card'), paper = await card.$('#pickup-paper');
-    await until(async()=>await paper.style('opacity')==='1'&&await paper.style('transform')==='matrix(1, 0, 0, 1, 0, 0)',label+' native paper settled');
+    await until(async()=>await paper.style('opacity')==='1'&&await paper.style('transform')==='none',label+' native paper settled');
     await pause(80);
     const frames = await mini.evaluate(() => { const q=getApp().__pickupAcceptance; clearInterval(q.sample); return q.frames; });
     assert.ok(frames.some(f => f.rects[0] && f.rects[0].width > 0), label + ' native photo renders');
@@ -83,12 +83,12 @@ const output = path.resolve('artifacts/memory-pickup');
   }
   async function close(chain, back, label) {
     const opened=await state(chain);
-    if (back) { await act([...chain,'#memory-card'], 'flip'); await pause(460); }
+    if (back) { await act([...chain,'#memory-card'], 'flip'); await until(async()=>!(await state(chain)).flipBusy,label+' back settled'); }
     await act([...chain,'#memory-card'], 'close');
     const closing = await state(chain); assert.equal(closing.busy, true);
-    if (back) assert.equal(closing.flipped, false, 'back turns to photo before return');
     await act([...chain,'#memory-card'], 'close'); // A second tap must not duplicate cleanup.
     const returning=await until(async()=>{const s=await state(chain);return s.phase==='returning'&&s;},label+' return animation');
+    assert.equal(returning.flipped,false,'back turns to photo before return');
     assert.ok(Math.abs(returning.bounds.target.width-opened.bounds.target.width)<1,label+' measures the fully front-facing image');
     await until(async () => !(await state(chain)).card, label + ' return');
     const restored = await state(chain); assert.ok(!restored.hidden); assert.equal(restored.covered, false);
@@ -139,12 +139,12 @@ const output = path.resolve('artifacts/memory-pickup');
     await until(async()=>{const s=await state([]);return s.card&&!s.enabled&&!s.busy&&!s.hidden;},'failure restores original');
     await pause(300);
     const fallbackPaper=await (await (await mini.currentPage()).$('#memory-card')).$('#pickup-paper');
-    await until(async()=>await fallbackPaper.style('opacity')==='1'&&await fallbackPaper.style('transform')==='matrix(1, 0, 0, 1, 0, 0)',
+    await until(async()=>await fallbackPaper.style('opacity')==='1'&&await fallbackPaper.style('transform')==='none',
       'interrupted paper becomes fully visible at its original size');
     await act(['#memory-card'],'close'); await until(async()=>!(await state([])).card,'fallback closes');
     checks.push('interrupted native entrance restores full-size usable card and source');
     await open([],fixture.tall,'today tall tilted');
-    await act(['#memory-card'],'flip'); await act(['#memory-card'],'edit');
+    await act(['#memory-card'],'flip'); await until(async()=>!(await state([])).flipBusy,'back ready for editing'); await act(['#memory-card'],'edit');
     await act(['#memory-card'],'input',{detail:{value:'拾起展开后编辑文字。'}});
     await act(['#memory-card'],'save');
     assert.equal(await mini.evaluate(id=>require('core/store.js').getStore().get().memories[id].text,fixture.tall),'拾起展开后编辑文字。');
