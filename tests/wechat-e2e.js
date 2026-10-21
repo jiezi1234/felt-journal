@@ -180,20 +180,22 @@ const realService = process.env.WECHAT_EXTRACTION_ENDPOINT || '';
     await (await exported.$('#share-texture-cross')).tap(); const generated = await wait(exported, d => !d.generating && d.previewTexture === 'cross');
     assert.equal(await mini.callWxMethod('getStorageSync', keys[0]), beforeShare);
     assert.equal(generated.error, ''); assert.ok(generated.imagePath);
-    const info = await mini.callWxMethod('getImageInfo', { src: generated.imagePath }); assert.equal(info.width, 1800); assert.equal(info.height, 1469); assert.equal(generated.albumSaved, false);
+    const info = await mini.callWxMethod('getImageInfo', { src: generated.imagePath }); assert.equal(info.width, 1800); assert.equal(info.height, 1546); assert.equal(generated.albumSaved, false);
     const exportedBytes = Buffer.from(await mini.evaluate(file => wx.getFileSystemManager().readFileSync(file, 'base64'), generated.imagePath), 'base64');
     fs.writeFileSync(path.join(output, 'wechat-textured-export.png'), exportedBytes);
-    const nativeOutput = createCanvas(1800, 1469), nativeCtx = nativeOutput.getContext('2d'); nativeCtx.drawImage(await loadImage(exportedBytes), 0, 0);
-    const actualPatch = nativeCtx.getImageData(200, 150, 300, 250).data;
+    const nativeOutput = createCanvas(1800, 1546), nativeCtx = nativeOutput.getContext('2d'); nativeCtx.drawImage(await loadImage(exportedBytes), 0, 0);
+    // Keep the texture sample on felt as the transparent top margin grows.
+    const patchY = Math.round(288*1546/1288) + 150;
+    const actualPatch = nativeCtx.getImageData(200, patchY, 300, 250).data;
     function materialError(texture) {
-      const expected = createCanvas(1800, 1469), ctx = expected.getContext('2d'); ctx.setTransform(1.2,0,0,1469/1224,0,224*1469/1224); paint(ctx, { color: '#C4D2D6', texture, items: [] }, {}, '');
-      const expectedPatch = ctx.getImageData(200, 150, 300, 250).data; let total = 0;
+      const expected = createCanvas(1800, 1546), ctx = expected.getContext('2d'); ctx.setTransform(1.2,0,0,1546/1288,0,288*1546/1288); paint(ctx, { color: '#C4D2D6', texture, items: [] }, {}, '');
+      const expectedPatch = ctx.getImageData(200, patchY, 300, 250).data; let total = 0;
       actualPatch.forEach((value, index) => { total += Math.abs(value - expectedPatch[index]); }); return total / actualPatch.length;
     }
     const selectedError = materialError('cross'), defaultError = materialError('fine');
     assert.ok(selectedError < defaultError && selectedError < 2, `Export must contain selected texture: selected=${selectedError}, default=${defaultError}`);
     checks.push('share-only color/texture leaves stored boards unchanged; real exported pixels match selected material');
-    await capture('wechat-export.png'); checks.push('real WeChat Canvas 1800x1469 export including clamp with generated/album states separated');
+    await capture('wechat-export.png'); checks.push('real WeChat Canvas 1800x1546 export including clamp with generated/album states separated');
     console.log('STEP: export generated, checking calendar');
     await mini.callWxMethod('reLaunch', { url: '/pages/calendar/index' }); let calendar = await route('pages/calendar/index'); await wait(calendar, d => !d.loading && !!d.cells);
     let cal = await calendar.data(); assert.equal(cal.cells.find(c => c.date === date).images.length, 2); assert.equal(cal.cells.length % 7, 0);

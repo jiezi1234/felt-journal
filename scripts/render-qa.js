@@ -38,7 +38,7 @@ assert.deepEqual(render(1800, '').toBuffer('image/png'), render(1800, '').toBuff
 console.log('PASS: shared board rendering at 288/320/390/430/1800 widths, clamp headroom, four frame sides and felt color');
 
 // Material contact sheet uses the production renderer with synthetic subjects.
-const tileWidth = 440, tileHeight = 348, gap = 24;
+const tileWidth = 440, boardTileHeight = Math.round(tileWidth * frame().height / frame().width), tileHeight = boardTileHeight + 42, gap = 24;
 const sheet = createCanvas(3 * tileWidth + 4 * gap, 6 * tileHeight + 2 * gap), sheetCtx = sheet.getContext('2d');
 sheetCtx.fillStyle = '#E8EDE7'; sheetCtx.fillRect(0, 0, sheet.width, sheet.height);
 config.colors.forEach((color, row) => config.textures.forEach((texture, col) => {
@@ -46,7 +46,7 @@ config.colors.forEach((color, row) => config.textures.forEach((texture, col) => 
   ctx.setTransform(tileWidth/bounds.width,0,0,sy,0,bounds.top*sy);
   paint(ctx, { ...model, color: color.value, texture: texture.value }, images, '');
   const x = gap + col * (tileWidth + gap), y = gap + row * tileHeight;
-  sheetCtx.drawImage(tile, x, y); sheetCtx.fillStyle = '#302F2B'; sheetCtx.font = '22px "Microsoft YaHei"'; sheetCtx.fillText(`${color.name} · ${texture.name}`, x + 8, y + 322);
+  sheetCtx.drawImage(tile, x, y); sheetCtx.fillStyle = '#302F2B'; sheetCtx.font = '22px "Microsoft YaHei"'; sheetCtx.fillText(`${color.name} · ${texture.name}`, x + 8, y + boardTileHeight + 28);
 }));
 fs.writeFileSync(path.join(output, 'felt-appearance-sheet.png'), sheet.toBuffer('image/png'));
 const samples = createCanvas(948, 212), sx = samples.getContext('2d'); sx.fillStyle = '#F7F2E9'; sx.fillRect(0, 0, 948, 212);
