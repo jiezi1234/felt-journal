@@ -29,3 +29,15 @@ test('exit keeps the surface mounted, completes once, and cannot close a replace
   const other = { ...host, data: {} }; modal.mount(other); modal.close(other, () => exits++); modal.dispose(other);
   t.mock.timers.tick(1000); assert.equal(exits, 1);
 });
+
+test('shared-photo exit keeps its measured layout when the native keyboard disappears', t => {
+  const oldWx=global.wx;t.after(()=>{global.wx=oldWx;});
+  global.wx={getWindowInfo:()=>({windowWidth:390,windowHeight:800})};
+  const host={data:{},setData(d){Object.assign(this.data,d);}};
+  modal.mount(host);host.modalPresentation.keyboardChanged({height:300});
+  assert.equal(host.data.modalHeight,500);modal.freeze(host);
+  host.modalPresentation.keyboardChanged({height:0});host.modalPresentation.resized({size:{windowWidth:390,windowHeight:800}});
+  assert.equal(host.data.modalHeight,500,'A closing paper and its flight image must not jump to the expanded viewport');
+  modal.thaw(host);assert.equal(host.data.modalHeight,800,'A fallback card recovers its live viewport');
+  modal.dispose(host);
+});

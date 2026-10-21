@@ -17,7 +17,7 @@
           <text wx:if="{{cardStyle === 'ticket'}}" class="card-ticket-overline">此刻留存</text>
           <view class="card-photo-well">
             <view wx:if="{{cardStyle === 'polaroid'}}" class="card-window-light" aria-hidden="true" />
-            <image wx:if="{{!missing}}" id="card-photo" class="card-photo {{pickupEnabled && pickupPhase !== 'open' ? 'pickup-photo-hidden' : ''}}" src="{{memory.subjectPath}}" mode="aspectFit" bindload="pickupPhotoLoaded" binderror="imageError" />
+            <image wx:if="{{!missing}}" id="card-photo" class="card-photo {{pickupEnabled && pickupPhase !== 'open' && pickupPhase !== 'closing' ? 'pickup-photo-hidden' : ''}}" src="{{memory.subjectPath}}" mode="aspectFit" bindload="pickupPhotoLoaded" binderror="imageError" />
             <view wx:else class="card-image-missing">图片暂时无法读取</view>
           </view>
           <view class="card-caption"><text class="card-caption-line">{{frontCaption}}</text><text class="card-caption-sub">{{cardStyle === 'polaroid' ? cardDate : cardStyle === 'ticket' ? '留给日后的自己' : '把这一刻，轻轻收好'}}</text></view>

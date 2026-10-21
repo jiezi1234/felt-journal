@@ -25,9 +25,17 @@ async function returnSource(host, event) {
   const id = event.detail.id, card = cardOf(host), board = boardOf(host);
   if (!card || host.data.memoryCardId !== id) return;
   const rect = board && await board.pickupRect(id);
-  if (!host.disposed && card === cardOf(host) && host.data.memoryCardId === id) card.pickupReturn(rect || null);
+  if (!host.disposed && card === cardOf(host) && host.data.memoryCardId === id) card.pickupReturn(rect || null, () => {
+    // Submit the native motion before painting/exporting the full board. The
+    // capture then overlaps travel without blocking its first visible frame.
+    if (!host.disposed && card === cardOf(host) && host.data.memoryCardId === id && board && board.preparePickupReturn) board.preparePickupReturn();
+  });
 }
-function restore(host) { const board = boardOf(host); return board && board.pickupId ? board.setPickupHidden('') : null; }
+function restore(host) {
+  const board = boardOf(host);
+  if (board && board.pickupReturn) return board.commitPickupReturn();
+  return board && board.pickupId ? board.setPickupHidden('') : null;
+}
 function close(host) {
   const id = host.data.memoryCardId;
   const finish = () => {

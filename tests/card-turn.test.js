@@ -20,10 +20,12 @@ test('return requested mid-turn cancels stale callbacks and settles on the front
   assert.equal(h.data.flipped,false);assert.equal(h.data.flipBusy,false);assert.deepEqual(done,['front']);
   turn.turn(h,true,()=>done.push('detached'));turn.cancel(h);half();half();assert.deepEqual(done,['front']);
 });
-test('pickup close waits for an in-progress flat turn even before its back face is visible',t=>{
+test('pickup close cancels an in-progress turn before its back face becomes visible',t=>{
   const {host:h,half}=fixture(t),events=[];
   h.data.memory={id:'one'};h.data.memoryId='one';h.pickup={enabled:true,phase:'open',sequence:0};
   h.turnTo=(back,done)=>turn.turn(h,back,done);h.triggerEvent=name=>events.push(name);
-  h.turnTo(true);pickup.close(h,()=>{});assert.deepEqual(events,[]);
+  h.createSelectorQuery=()=>({select(){return this;},boundingClientRect(){return this;},exec(){}});
+  h.turnTo(true);pickup.close(h,()=>{});assert.deepEqual(events,['pickupreturn']);
+  assert.equal(h.data.flipBusy,false);assert.equal(h.data.turning,false);
   half();half();assert.equal(h.data.flipped,false);assert.deepEqual(events,['pickupreturn']);pickup.dispose(h);
 });

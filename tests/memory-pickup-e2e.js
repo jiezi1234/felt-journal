@@ -22,7 +22,7 @@ const output = path.resolve('artifacts/memory-pickup');
     return { card:!!c, id:host && host.data.memoryCardId, phase:c && c.data.pickupPhase, enabled:c && c.data.pickupEnabled,
       busy:c && c.data.pickupBusy, flipBusy:c && c.data.flipBusy, flipped:c && c.data.flipped, editing:c && c.data.editing,
       source:c && c.data.source, from:c && c.pickup.from, bounds:c && c.pickup.bounds, hidden:b && b.pickupId,
-      covered:b && b.data.covered, paper:c && c.data.pickupPaperAnimation };
+      covered:b && b.data.covered, paper:c && c.data.pickupPaperAnimation, modalHeight:c&&c.data.modalHeight };
   }, chain);
   async function until(fn, label) { for (let i = 0; i < 100; i++) { const value = await fn(); if (value) return value; await pause(70); } throw Error('Timed out: ' + label); }
   async function startHandoff(chain) {
@@ -31,7 +31,8 @@ const output = path.resolve('artifacts/memory-pickup');
       q.handoffTimer=setInterval(()=>{
         const h=chain.reduce((p,s)=>p.selectComponent(s),getCurrentPages().slice(-1)[0]),b=h&&(h.selectComponent('#today-board')||h.selectComponent('#board'));
         if(!b||b.dead)return;
-        const d=b.data,phase={covered:d.covered,hidden:d.canvasHidden,raster:d.snapshotVisible,path:d.snapshot,slot:d.snapshotSlot};
+        const c=h.selectComponent('#memory-card'),d=b.data,phase={covered:d.covered,hidden:d.canvasHidden,raster:d.snapshotVisible,path:d.snapshot,slot:d.snapshotSlot,
+          cardPhase:c&&c.data.pickupPhase,preloaded:b.pickupReturn&&b.pickupReturn.snapshot&&b.pickupReturn.snapshot.path};
         b.createSelectorQuery().select('#feltCanvas').boundingClientRect()
           .selectAll('.board-snapshot').boundingClientRect().exec(([canvas,images])=>{
             q.handoffFrames.push({ms:Date.now()-q.handoffStart,...phase,canvas,images});
@@ -47,6 +48,7 @@ const output = path.resolve('artifacts/memory-pickup');
       const canvas=f.canvas&&f.canvas.width>0&&f.canvas.height>0;
       const raster=f.raster&&(f.images||[]).some(image=>image.dataset.path===f.path&&image.dataset.slot===f.slot&&image.width>0&&image.height>0);
       assert.ok(canvas||raster,label+' must always retain a visible board layer: '+JSON.stringify(f));
+      if(f.preloaded&&f.cardPhase!=='landed')assert.notEqual(f.path,f.preloaded,label+' keeps the restored object hidden until landing');
     }
     handoffs.push({label,frames});checks.push(label+' retains a visible board throughout');
   }
@@ -108,16 +110,30 @@ const output = path.resolve('artifacts/memory-pickup');
     await finishHandoff(label+' opening');
     console.log('PASS:', label, 'open', opened.source.rect, 'frames', positions.size);
   }
-  async function close(chain, back, label) {
+  async function close(chain, back, label, keyboard = false) {
     const opened=await state(chain);
     if (back) { await act([...chain,'#memory-card'], 'flip'); await until(async()=>!(await state(chain)).flipBusy,label+' back settled'); }
+    if(keyboard) {
+      await act([...chain,'#memory-card'],'edit');await act([...chain,'#memory-card'],'input',{detail:{value:'键盘关闭时保留这段记录。'}});
+      await mini.evaluate(chain=>{
+        const h=chain.reduce((p,s)=>p.selectComponent(s),getCurrentPages().slice(-1)[0]),c=h.selectComponent('#memory-card');
+        c.modalPresentation.keyboardChanged({height:260});
+      },chain);await pause(100);
+    }
+    const exitHeight=(await state(chain)).modalHeight;
+    const closingFace=(await state(chain)).flipped;
     await startHandoff(chain);
     await act([...chain,'#memory-card'], 'close');
+    if(keyboard)await mini.evaluate(chain=>{
+      const h=chain.reduce((p,s)=>p.selectComponent(s),getCurrentPages().slice(-1)[0]),c=h.selectComponent('#memory-card');
+      c.modalPresentation.keyboardChanged({height:0});
+    },chain);
     const closing = await state(chain); assert.equal(closing.busy, true);
     await act([...chain,'#memory-card'], 'close'); // A second tap must not duplicate cleanup.
     const returning=await until(async()=>{const s=await state(chain);return s.phase==='returning'&&s;},label+' return animation');
-    assert.equal(returning.flipped,false,'back turns to photo before return');
-    assert.ok(Math.abs(returning.bounds.target.width-opened.bounds.target.width)<1,label+' measures the fully front-facing image');
+    assert.equal(returning.flipped,closingFace,'closing collapses the current face without waiting for another turn');
+    if(keyboard)assert.equal(returning.modalHeight,exitHeight,'keyboard dismissal does not resize the card during return');
+    else assert.ok(Math.abs(returning.bounds.target.width-opened.bounds.target.width)<1,label+' measures the fully front-facing image');
     await until(async () => !(await state(chain)).card, label + ' return');
     const restored = await state(chain); assert.ok(!restored.hidden); assert.equal(restored.covered, false);
     await until(()=>mini.evaluate(chain=>{const h=chain.reduce((p,s)=>p.selectComponent(s),getCurrentPages().slice(-1)[0]),b=h.selectComponent('#today-board')||h.selectComponent('#board');return !b.data.canvasHidden&&!b.data.snapshotVisible;},chain),label+' live canvas ready');
@@ -186,6 +202,9 @@ const output = path.resolve('artifacts/memory-pickup');
     await act(['#memory-card'],'openThemes'); await act(['#memory-card'],'close');
     assert.equal((await state([])).card,true,'first close dismisses theme picker');
     await close([],false,'today edited back');
+    await open([],fixture.tall,'today keyboard');await close([],true,'today keyboard close',true);
+    assert.equal(await mini.evaluate(id=>require('core/store.js').getStore().get().memories[id].text,fixture.tall),'键盘关闭时保留这段记录。');
+    checks.push('closing an active note saves its text and preserves exit geometry');
     await mini.callWxMethod('switchTab',{url:'/pages/board-tab/index'}); await pause(250);
     await open([],fixture.wide,'theme'); await close([],true,'theme back');
     await mini.callWxMethod('navigateTo',{url:'/pages/board/index?date='+fixture.date}); await pause(250);

@@ -119,6 +119,14 @@
    composited ancestor over the native input and the covered board. */
 .pickup-open .flip-scene,.memory-card-overlay:not(.has-pickup) .flip-scene { transform:none!important; }
 .pickup-open .flip-scene { opacity:1!important; }
+.pickup-closing .flip-scene { transform:none!important; opacity:1!important; }
+.pickup-closing .flip-card,.pickup-returning .flip-card { transform:none; transition:none; }
+/* Keep the hidden front measurable, including while closing from the notes. */
+.pickup-closing .is-flipped .card-front,.pickup-returning .is-flipped .card-front { display:flex; visibility:hidden; }
+.pickup-closing .card-back>view,.pickup-closing .card-back>text,.pickup-returning .card-back>view,.pickup-returning .card-back>text { opacity:0; transition:opacity 100ms ease-out; }
+.pickup-closing .card-back .card-paper-grain,.pickup-returning .card-back .card-paper-grain { opacity:.16; }
+.pickup-closing .card-back .card-ticket-paper,.pickup-returning .card-back .card-ticket-paper { opacity:1; }
+.pickup-closing .memory-card-scrim,.pickup-returning .memory-card-scrim { transition-duration:260ms; }
 .pickup-photo-hidden { opacity:0; }
 .memory-pickup-photo { position:absolute; z-index:2; width:1px; height:1px; visibility:hidden; pointer-events:none; transform-origin:50% 50%; }
 .pickup-opening .memory-pickup-photo,.pickup-returning .memory-pickup-photo,.pickup-landed .memory-pickup-photo { visibility:visible; }

@@ -47,8 +47,11 @@ test('pickup hides only its transient photo and waits for the decoded snapshot b
   assert.deepEqual(paints.at(-1),['two']);requests[0].success({tempFilePath:'/lift.png'});
   assert.ok(board.pickupWait);board.snapshotLoaded({currentTarget:{dataset:{path:'/old.png',slot:'a'}}});assert.ok(board.pickupWait);
   board.snapshotLoaded({currentTarget:{dataset:{path:'/lift.png',slot:'a'}}});assert.equal(await pending,true);
-  const restored=board.setPickupHidden('');await Promise.resolve();assert.deepEqual(paints.at(-1),['one','two']);
+  const restored=board.preparePickupReturn();await Promise.resolve();assert.deepEqual(paints.at(-1),['one','two']);
   requests[1].success({tempFilePath:'/whole.png'});board.snapshotLoaded({currentTarget:{dataset:{path:'/whole.png',slot:'b'}}});assert.equal(await restored,true);
+  assert.equal(board.data.snapshot,'/lift.png','The board object must not appear early during its return flight');
+  assert.equal(await board.commitPickupReturn(),true);assert.equal(board.data.snapshot,'/whole.png');
+  assert.equal(requests.length,2,'Landing reuses the preload without another capture');assert.equal(board.pickupReturn,null);
   assert.equal(JSON.stringify(model),original,'Lift/return never edits the board placements');
 });
 

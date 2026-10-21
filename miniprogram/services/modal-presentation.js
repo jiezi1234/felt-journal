@@ -7,7 +7,7 @@ function windowInfo() {
   try { return wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync(); } catch (_) { return null; }
 }
 function update(host) {
-  const state = host.modalPresentation; if (!state || !state.alive) return;
+  const state = host.modalPresentation; if (!state || !state.alive || state.frozen) return;
   const info = windowInfo(); if (!info) return;
   const reported = info.windowHeight;
   if (!state.keyboard) state.base = reported;
@@ -40,6 +40,9 @@ function close(host, done) {
   state.closing = true; host.setData({ modalClosing: true });
   state.timer = setTimeout(() => { if (state.alive) done(); }, EXIT_MS);
 }
+// Preserve the measured exit geometry while dismissing a native keyboard.
+function freeze(host) { if (host.modalPresentation) host.modalPresentation.frozen = true; }
+function thaw(host) { if (host.modalPresentation) { host.modalPresentation.frozen = false; update(host); } }
 function dispose(host) {
   const state = host.modalPresentation; if (!state) return;
   state.alive = false; clearTimeout(state.timer);
@@ -48,4 +51,4 @@ function dispose(host) {
     if (wx.offWindowResize) wx.offWindowResize(state.resized);
   }
 }
-module.exports = { mount, close, dispose, viewportHeight, EXIT_MS };
+module.exports = { mount, close, freeze, thaw, dispose, viewportHeight, EXIT_MS };

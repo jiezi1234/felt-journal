@@ -1,6 +1,7 @@
 const motion = require('../core/sticker-motion');
 const modal = require('./modal-presentation');
-const OPEN_MS = 420, CLOSE_MS = 300, FLIP_MS = 420;
+const cardTurn = require('./card-turn');
+const OPEN_MS = 420, CLOSE_MS = 260, PAPER_MS = 160;
 function live(host) { return host.pickup && !host.pickup.dead && !host.dead; }
 function clear(state) { clearTimeout(state.timer); clearTimeout(state.guard); state.sequence++; }
 function later(host, fn, ms, key = 'timer') {
@@ -82,6 +83,7 @@ function fallback(host) {
   if (state.liftRequested) host.triggerEvent('pickuprestore', { id:host.data.memoryId });
   const paper = state.paperAnimation ? pose(animation(),identity,0).export() : {};
   host.setData({ pickupEnabled:false, pickupPhase:'', pickupBusy:false, pickupPaperAnimation:paper, pickupPhotoAnimation:{} });
+  modal.thaw(host);
 }
 function finish(host) {
   if (!live(host) || host.pickup.finished) return;
@@ -94,38 +96,44 @@ function close(host, done) {
   if (state.closing) return;
   if (state.phase !== 'open' || !host.data.memory || host.data.missing) { fallback(host); modal.close(host, done); return; }
   clear(state); state.closing = true; state.done = done;
-  host.setData({ pickupBusy:true });
-  if (host.data.modalKeyboard && typeof wx.hideKeyboard === 'function') wx.hideKeyboard({});
-  const request = () => {
-    state.phase = 'return-request';
-    later(host, () => { fallback(host); modal.close(host, done); }, 1200, 'guard');
-    host.triggerEvent('pickupreturn', { id:host.data.memoryId });
-  };
-  if (host.turnTo && (host.data.flipped || host.data.flipBusy)) host.turnTo(false, request);
-  else if (host.data.flipped) { host.setData({ flipped:false }); later(host, request, FLIP_MS+30); }
-  else {
-    // A rapid second flip updates data before its CSS rotation has finished.
-    // Measuring that half-turned image would produce a narrow return target.
-    const remaining = Math.max(0, FLIP_MS+30-(Date.now()-(host.lastFlipAt || 0)));
-    if (remaining) later(host, request, remaining); else request();
-  }
-}
-function returnTo(host, source) {
-  if (!live(host) || host.pickup.phase !== 'return-request') return;
-  const state = host.pickup;
-  if (!motion.validRect(source)) { fallback(host); modal.close(host, state.done); return; }
-  measure(host, bounds => {
-    if (state.phase !== 'return-request') return;
-    if (!bounds) { fallback(host); modal.close(host, state.done); return; }
-    clear(state); const style = setup(host, bounds, source); state.phase = 'returning';
-    host.setData({ pickupPhase:'returning', pickupFlightStyle:style,
-      pickupPhotoAnimation:pose(state.photoAnimation,identity,0).export(), pickupPaperAnimation:pose(state.paperAnimation,identity,0).export()
-    }, () => {
-      if (!live(host) || state.phase !== 'returning') return;
-      pose(state.photoAnimation,state.from,CLOSE_MS); pose(state.paperAnimation,state.paperFrom,CLOSE_MS,0);
-      host.setData({ pickupPhotoAnimation:state.photoAnimation.export(), pickupPaperAnimation:state.paperAnimation.export() }, () => later(host, () => finish(host), CLOSE_MS+40));
+  cardTurn.cancel(host); modal.freeze(host);
+  state.phase = 'return-request';
+  // Closing never waits for a full flip. Measure the hidden front while the
+  // current face remains visible, and request the board destination in parallel.
+  host.setData({ pickupBusy:true, pickupPhase:'closing', flipBusy:false, turning:false, noteFocus:false }, () => {
+    if (!live(host) || state.phase !== 'return-request') return;
+    measure(host, bounds => {
+      if (state.phase !== 'return-request') return;
+      if (!bounds) { fallback(host); modal.close(host, done); return; }
+      state.closeBounds = bounds; returnTo(host, state.returnSource);
     });
   });
+  if (host.data.modalKeyboard && typeof wx.hideKeyboard === 'function') wx.hideKeyboard({});
+  later(host, () => { fallback(host); modal.close(host, done); }, 1200, 'guard');
+  host.triggerEvent('pickupreturn', { id:host.data.memoryId });
+}
+function returnTo(host, source, started) {
+  if (!live(host) || host.pickup.phase !== 'return-request') return;
+  const state = host.pickup;
+  if (source === undefined) return;
+  if (!motion.validRect(source)) { fallback(host); modal.close(host, state.done); return; }
+  state.returnSource = source;
+  if (started) state.returnStarted = started;
+  const bounds = state.closeBounds;
+  if (bounds) {
+    clear(state); const style = setup(host, bounds, source); state.phase = 'returning';
+    host.setData({ pickupPhase:'returning', pickupFlightStyle:style,
+      pickupPhotoAnimation:pose(state.photoAnimation,identity,0,host.data.flipped ? 0 : 1).export(), pickupPaperAnimation:pose(state.paperAnimation,identity,0).export()
+    }, () => {
+      if (!live(host) || state.phase !== 'returning') return;
+      pose(state.photoAnimation,state.from,CLOSE_MS); pose(state.paperAnimation,{ ...identity, scale:.88, y:8 },PAPER_MS,0);
+      host.setData({ pickupPhotoAnimation:state.photoAnimation.export(), pickupPaperAnimation:state.paperAnimation.export() }, () => {
+        if (!live(host) || state.phase !== 'returning') return;
+        later(host, () => finish(host), CLOSE_MS+20);
+        if (state.returnStarted) { const started = state.returnStarted; state.returnStarted = null; started(); }
+      });
+    });
+  }
 }
 function interrupted(host) {
   if (!live(host) || !host.pickup.enabled || host.pickup.phase === 'open') return;
@@ -133,4 +141,4 @@ function interrupted(host) {
   fallback(host); if (done) modal.close(host, done);
 }
 function dispose(host) { if (host.pickup) { clear(host.pickup); host.pickup.dead = true; } }
-module.exports = { mount, ready, imageLoaded, begin, returnTo, close, fallback, interrupted, dispose, OPEN_MS, CLOSE_MS, FLIP_MS };
+module.exports = { mount, ready, imageLoaded, begin, returnTo, close, fallback, interrupted, dispose, OPEN_MS, CLOSE_MS, PAPER_MS };

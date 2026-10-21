@@ -10,7 +10,7 @@ Component({
   observers: { 'model, editable, selected, landingId': function () { this.refresh(); if (this.data.layout) wx.nextTick(() => this.measure()); },
     'covered, interactive': function () {
       snapshots.cover(this);
-      if (!this.data.covered && this.pickupId) { this.pickupId = ''; this.finishPickupSnapshot(false); }
+      if (!this.data.covered) { this.pickupReturn = null; this.pickupId = ''; this.finishPickupSnapshot(false); }
       if (this.data.covered || !this.data.interactive) this.touchCancel(); else this.refresh();
     }, layout() { this.measure(); } },
   lifetimes: { ready() { this.measure(); }, detached() { this.dead = true; snapshots.dispose(this); this.clearGesture(); this.finishPickupSnapshot(false); } },
@@ -58,9 +58,11 @@ Component({
           success: result => {
             if (this.dead || !this.data.covered || version !== this.version) return;
             if (this.pickupWait) this.pickupWait.path = result.tempFilePath;
-            snapshots.stage(this, result.tempFilePath, () => !this.dead && this.data.covered && version === this.version).then(ok => {
+            const returning = this.pickupReturn;
+            snapshots.stage(this, result.tempFilePath, () => !this.dead && this.data.covered && version === this.version, !!returning).then(ready => {
               if (this.dead || !this.data.covered || version !== this.version) return;
-              if (this.pickupWait && this.pickupWait.path === result.tempFilePath) this.finishPickupSnapshot(ok);
+              if (returning && this.pickupReturn === returning) returning.snapshot = ready;
+              if (this.pickupWait && this.pickupWait.path === result.tempFilePath) this.finishPickupSnapshot(!!ready);
               this.landingReady();
             });
           },
@@ -93,8 +95,28 @@ Component({
       const ready = await snapshots.stage(this, path, () => !this.dead && !this.data.covered);
       return ready && !this.data.covered ? { rect, id } : null;
     },
-    setPickupHidden(id) {
+    preparePickupReturn() {
+      if (this.pickupReturn) return this.pickupReturn.ready;
+      const returning = {};
+      returning.ready = this.setPickupHidden('', returning);
+      return returning.ready;
+    },
+    async commitPickupReturn() {
+      const returning = this.pickupReturn;
+      if (!returning) return this.setPickupHidden('');
+      const ready = await returning.ready;
+      if (this.dead || this.pickupReturn !== returning || !this.data.covered) return false;
+      if (ready && await snapshots.commit(this, returning.snapshot)) {
+        if (this.pickupReturn === returning) this.pickupReturn = null;
+        return true;
+      }
+      // Failed or invalidated preloads retain the previous frame and use the
+      // normal restore handshake instead of exposing an undecoded image.
+      return this.setPickupHidden('');
+    },
+    setPickupHidden(id, returning = null) {
       this.finishPickupSnapshot(false);
+      this.pickupReturn = returning;
       this.pickupId = id || '';
       if (this.dead) return Promise.resolve(false);
       if (!this.data.covered) { this.pickupId = ''; this.refresh(); return Promise.resolve(false); }

@@ -59,3 +59,24 @@ test('detaching during presentation never schedules another frame on the destroy
   const {host:h,frame}=fixture(t);Object.assign(h.data,{covered:true,snapshot:'/ready.png'});
   snapshots.cover(h);h.dead=true;snapshots.dispose(h);frame();frame();assert.equal(h.data.canvasHidden,false);
 });
+
+test('return preload decodes without exposing a duplicate object and commits only on landing',async t=>{
+  const {host:h,load}=fixture(t);
+  Object.assign(h.data,{covered:true,snapshot:'/lift.png',snapshotA:'/lift.png',snapshotVisible:true,canvasHidden:true});
+  const preparing=snapshots.stage(h,'/whole.png',()=>true,true);
+  load('/whole.png','b');const prepared=await preparing;
+  assert.equal(h.data.snapshot,'/lift.png');assert.equal(h.data.snapshotSlot,'a');
+  assert.equal(h.data.snapshotVisible,true);assert.equal(h.data.canvasHidden,true);
+  assert.equal(await snapshots.commit(h,prepared),true);assert.equal(h.data.snapshot,'/whole.png');
+  assert.equal(await snapshots.commit(h,prepared),false,'Commit is consumed once');
+});
+
+test('invalidated or detached return preloads never replace the last decoded frame',async t=>{
+  const {host:h,load}=fixture(t);Object.assign(h.data,{covered:true,snapshot:'/lift.png',snapshotVisible:true,canvasHidden:true});
+  let valid=true;
+  const first=snapshots.stage(h,'/first.png',()=>valid,true);load('/first.png','b');const stale=await first;
+  valid=false;assert.equal(await snapshots.commit(h,stale),false);
+  const second=snapshots.stage(h,'/second.png',()=>true,true);load('/second.png','b');const replaced=await second;
+  assert.equal(await snapshots.commit(h,stale),false);h.dead=true;snapshots.dispose(h);
+  assert.equal(await snapshots.commit(h,replaced),false);assert.equal(h.data.snapshot,'/lift.png');
+});

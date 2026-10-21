@@ -38,11 +38,11 @@ test('pickup waits for both decoded photo layers and the board handoff, then rev
   t.mock.timers.tick(pickup.OPEN_MS+40); assert.equal(h.data.pickupPhase,'open'); assert.equal(h.data.pickupBusy,false);
   assert.deepEqual(h.data.memory,{ subjectPath:'/photo.png',width:600,height:400 });
 });
-test('closing flips the back first, remeasures a changed destination and keeps the photo until its board restores', t => {
+test('closing the back immediately requests return and overlaps paper collapse with photo travel', t => {
   const f = fixture(t), h = f.host; f.open(); h.data.flipped = true;
   let closes = 0; pickup.close(h,() => closes++); pickup.close(h,() => closes++);
-  assert.equal(h.data.flipped,false); assert.equal(f.events.at(-1).name,'pickuplift');
-  t.mock.timers.tick(pickup.FLIP_MS+30); assert.equal(f.events.at(-1).name,'pickupreturn');
+  assert.equal(h.data.flipped,true,'The current face collapses without another flip');
+  assert.equal(f.events.at(-1).name,'pickupreturn');
   const home = { left:90,top:620,width:105,height:70,angle:22 };
   pickup.returnTo(h,home); assert.equal(h.data.pickupPhase,'returning');
   const target = h.pickup.bounds.target, transform = h.pickup.from;
@@ -50,7 +50,10 @@ test('closing flips the back first, remeasures a changed destination and keeps t
   assert.equal(target.top+target.height/2+transform.y,home.top+home.height/2);
   assert.ok(Math.abs(target.width*transform.scale-home.width)<1e-8);
   assert.equal(transform.angle,22);
-  t.mock.timers.tick(pickup.CLOSE_MS+39); assert.equal(closes,0);
+  assert.equal(h.data.pickupPaperAnimation.steps[0].duration,pickup.PAPER_MS);
+  assert.equal(h.data.pickupPhotoAnimation.steps[0].duration,pickup.CLOSE_MS);
+  assert.ok(pickup.PAPER_MS < pickup.CLOSE_MS,'Paper disappears while the photo is still moving');
+  t.mock.timers.tick(pickup.CLOSE_MS+19); assert.equal(closes,0);
   t.mock.timers.tick(1); assert.equal(closes,1); assert.equal(h.data.pickupPhase,'landed');
   t.mock.timers.tick(5000); assert.equal(closes,1);
 });
@@ -76,12 +79,22 @@ test('detaching cancels pending measurements, entrance timers and close callback
   pickup.begin(h,true); assert.equal(h.data.pickupPhase,'opening');
 });
 
-test('closing after a rapid flip back waits for the photo plane before measuring', t => {
+test('closing during a turn cancels its callbacks and requests return without a flip delay', t => {
   const f=fixture(t), h=f.host; f.open(); h.data.flipped=false; h.lastFlipAt=Date.now();
+  require('../miniprogram/services/card-turn').turn(h,true);
   pickup.close(h,()=>{});
-  assert.equal(f.events.at(-1).name,'pickuplift'); assert.equal(h.data.pickupBusy,true);
-  t.mock.timers.tick(pickup.FLIP_MS+30);
+  assert.equal(h.data.flipBusy,false); assert.equal(h.data.turning,false); assert.equal(h.data.pickupBusy,true);
   assert.equal(f.events.at(-1).name,'pickupreturn');
+  t.mock.timers.tick(500); assert.equal(h.data.flipped,false,'Canceled flip cannot change the closing face');
+});
+
+test('parallel destination and card measurement can finish in either order, and stale results cannot restart closing', t => {
+  const f=fixture(t),h=f.host;f.open();let measured;
+  h.createSelectorQuery=()=>({select(){return this;},boundingClientRect(){return this;},exec(fn){measured=fn;}});
+  pickup.close(h,()=>{});
+  pickup.returnTo(h,h.data.source.rect); assert.equal(h.data.pickupPhase,'closing');
+  measured(f.bounds); assert.equal(h.data.pickupPhase,'returning');
+  pickup.interrupted(h);measured(f.bounds);assert.equal(h.data.pickupEnabled,false);
 });
 test('pickup endpoints fit wide and tall photos at rotated placements without changing aspect ratio', () => {
   for (const image of [{ width:800,height:200 },{ width:180,height:700 }]) for (const angle of [0,37,180,348]) {
@@ -101,4 +114,18 @@ test('owner ignores late opening after navigation and does not dismiss before re
   prepared({ rect:{ left:10,top:10,width:20,height:20 } }); await pending; assert.equal(host.data.memoryCardId,'');
   host.data.memoryCardId = 'photo'; const closing = owner.close(host);
   assert.equal(host.data.memoryCardId,'photo'); restored(true); await closing; assert.equal(host.data.memoryCardId,'');
+});
+
+test('owner overlaps board restoration with native travel and commits it only at landing', async () => {
+  let destination,preloaded=0,committed=0,returned,started;
+  const board={pickupId:'photo',preparePickupReturn(){preloaded++;this.pickupReturn={};},pickupRect:()=>new Promise(resolve=>{destination=resolve;}),
+    commitPickupReturn(){committed++;return Promise.resolve(true);}};
+  const card={pickupReturn:(rect,callback)=>{returned=rect;started=callback;}};
+  const host={data:{memoryCardId:'photo'},selectComponent:s=>s==='#today-board'?board:s==='#memory-card'?card:null,
+    setData(d){Object.assign(this.data,d);},refresh(){}};
+  const pending=owner.returnSource(host,{detail:{id:'photo'}});
+  assert.equal(preloaded,0);assert.equal(committed,0);
+  const rect={left:1,top:2,width:30,height:40};destination(rect);await pending;
+  assert.equal(returned,rect);assert.equal(committed,0);started();assert.equal(preloaded,1);
+  await owner.close(host);assert.equal(committed,1);assert.equal(host.data.memoryCardId,'');
 });

@@ -28,7 +28,7 @@ Component({
     pickupPhotoLoaded(e) { pickup.imageLoaded(this, e, false); },
     pickupFlightLoaded(e) { pickup.imageLoaded(this, e, true); },
     pickupLifted(ok) { pickup.begin(this, ok); },
-    pickupReturn(rect) { pickup.returnTo(this, rect); },
+    pickupReturn(rect, started) { pickup.returnTo(this, rect, started); },
     pickupFailed() { pickup.fallback(this); },
     refresh() {
       // Choose once per opening. Refreshes, drafts and saves keep both faces in
