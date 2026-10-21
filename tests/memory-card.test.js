@@ -22,6 +22,33 @@ function fixture(t) {
 }
 const input = value => ({ detail: { value } });
 
+test('each opening randomly selects one material without journal writes, and keeps it while editing or refreshing', t => {
+  const f = fixture(t), raw = f.disk[KEY], random = Math.random;
+  t.after(() => { Math.random = random; });
+  for (const [value, expected] of [[0, 'cotton'], [.34, 'polaroid'], [.999, 'ticket']]) {
+    Math.random = () => value;
+    const c = f.mount();
+    assert.equal(c.data.cardStyle, expected);
+    assert.equal(f.disk[KEY], raw, 'presentation does not modify the memory or board');
+    Math.random = () => { throw new Error('must not reroll an open card'); };
+    c.flip(); c.edit(); c.refresh(); c.cancelEdit(); c.openThemes(); c.closeThemes(); c.save();
+    assert.equal(c.data.cardStyle, expected);
+  }
+});
+
+test('front caption reflects the first saved nonblank line and preserves complete back text', t => {
+  const f = fixture(t), c = f.mount();
+  assert.equal(c.data.frontCaption, '把平凡的一刻，轻轻收好');
+  assert.equal(c.data.cardDate, f.store.get().memories[f.id].date.replace(/-/g, '.'));
+  c.edit(); c.input(input(' \n窗边的绿意\n今天也很美好')); c.save();
+  assert.equal(c.data.frontCaption, '窗边的绿意');
+  assert.equal(c.data.memory.text, ' \n窗边的绿意\n今天也很美好');
+  c.edit(); c.input(input('尚未保存的文字')); c.cancelEdit();
+  assert.equal(c.data.frontCaption, '窗边的绿意');
+  c.edit(); c.input(input('')); c.save();
+  assert.equal(c.data.frontCaption, '把平凡的一刻，轻轻收好');
+});
+
 test('opening and flipping an uncaptioned image writes nothing; text can be added, edited and cleared', t => {
   const f = fixture(t), raw = f.disk[KEY], c = f.mount();
   assert.equal(c.data.flipped, false); c.flip(); assert.equal(c.data.flipped, true);

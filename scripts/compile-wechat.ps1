@@ -17,7 +17,7 @@ try {
 & $wcc -o (Join-Path $artifactRoot 'wxml.js') @wxml
 if ($LASTEXITCODE -ne 0) { throw 'WXML 编译失败' }
 $css = @('app.wxss') + @($sources | ForEach-Object { "$_.wxss" })
-$sharedStyles = @('styles/board-editor.wxss','styles/modal.wxss','styles/controls.wxss')
+$sharedStyles = @('styles/board-editor.wxss','styles/modal.wxss','styles/controls.wxss','styles/card-paper.wxss')
 for ($i = 0; $i -lt $css.Count; $i++) {
   $imports = @($css + $sharedStyles | Where-Object { $_ -ne $css[$i] })
   & $wcsc -o (Join-Path $artifactRoot "wxss-$i.js") $css[$i] @imports

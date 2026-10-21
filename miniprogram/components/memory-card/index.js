@@ -5,10 +5,17 @@ const platform = require('../../services/platform');
 const { newId } = require('../../services/photo-task');
 const modal = require('../../services/modal-presentation');
 const pickup = require('../../services/memory-pickup');
+const CARD_STYLES = ['cotton', 'polaroid', 'ticket'];
+function cardDetails(memory) {
+  const [year, month, day] = memory.date.split('-');
+  const firstLine = (memory.text || '').split(/\r?\n/).map(line => line.trim()).find(Boolean);
+  return { dateLabel: dates.label(memory.date), cardDate: `${year}.${month}.${day}`, cardYear: year,
+    cardMonth: `${Number(month)} 月`, cardDay: day, frontCaption: firstLine || '把平凡的一刻，轻轻收好' };
+}
 Component({
   options: { styleIsolation: 'apply-shared' },
   properties: { memoryId: String, source:Object },
-  data: { memory: null, dateLabel: '', flipped: false, editing: false, text: '', error: '', hint: '', missing: false, maxText: config.maxText,
+  data: { memory: null, dateLabel: '', cardStyle: 'cotton', cardDate: '', cardYear: '', cardMonth: '', cardDay: '', frontCaption: '', flipped: false, editing: false, text: '', error: '', hint: '', missing: false, maxText: config.maxText,
     themeOpen: false, themeCreating: false, themeWorking: false, themeTitle: '', themeError: '', themes: [], visibleThemes: [], themePage: 1, themePageCount: 1, maxThemeTitle: config.maxBoardTitle },
   lifetimes: {
     attached() { pickup.mount(this); modal.mount(this); this.store = getStore(); this.refresh(); },
@@ -23,10 +30,16 @@ Component({
     pickupReturn(rect) { pickup.returnTo(this, rect); },
     pickupFailed() { pickup.fallback(this); },
     refresh() {
+      // Choose once per opening. Refreshes, drafts and saves keep both faces in
+      // the same material; presentation never writes a style into the journal.
+      if (!this.cardStyleChosen) {
+        this.cardStyleChosen = true;
+        this.setData({ cardStyle: CARD_STYLES[Math.floor(Math.random() * CARD_STYLES.length)] });
+      }
       try {
         const memory = this.store.load().memories[this.data.memoryId];
         if (!memory) throw new Error('这条记忆已被删除');
-        this.setData({ memory, dateLabel: dates.label(memory.date), error: '' });
+        this.setData({ memory, ...cardDetails(memory), error: '' });
         if (!this.dirty) this.setData({ text: memory.text });
         if (!this.checkedDraft) {
           this.checkedDraft = true; const draft = this.store.getMemoryDraft(memory.id);
@@ -49,7 +62,8 @@ Component({
         if (!memory) throw new Error('这条记忆已被删除');
         if (this.dirty) this.store.edit(memory.id, this.data.text, memory.category);
         this.store.clearMemoryDraft(memory.id); this.dirty = false;
-        this.setData({ memory: this.store.get().memories[memory.id], editing: false, error: '', hint: '' });
+        const saved = this.store.get().memories[memory.id];
+        this.setData({ memory: saved, ...cardDetails(saved), editing: false, error: '', hint: '' });
         platform.unloadGuard(false); this.triggerEvent('change', { id: memory.id }); return true;
       } catch (error) { this.setData({ error: platform.message(error, '文字未保存，请重试') }); this.keepDraft(); return false; }
     },

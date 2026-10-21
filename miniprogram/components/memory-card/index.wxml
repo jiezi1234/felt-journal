@@ -1,22 +1,44 @@
-<view class="memory-card-overlay modal-overlay {{pickupEnabled ? 'has-pickup pickup-' + pickupPhase : ''}} {{modalClosing ? 'is-closing' : ''}} {{modalKeyboard ? 'has-keyboard' : ''}}" style="{{modalHeight ? 'height:' + modalHeight + 'px;padding-bottom:' + modalBottom + 'px;' : ''}}" catchtouchmove="stop" catchtap="stop">
+<view class="memory-card-overlay modal-overlay material-{{cardStyle}} {{editing ? 'is-editing' : ''}} {{pickupEnabled ? 'has-pickup pickup-' + pickupPhase : ''}} {{modalClosing ? 'is-closing' : ''}} {{modalKeyboard ? 'has-keyboard' : ''}}" style="{{modalHeight ? 'height:' + modalHeight + 'px;padding-bottom:' + modalBottom + 'px;' : ''}}" catchtouchmove="stop" catchtap="stop">
   <view class="memory-card-scrim modal-scrim" bindtap="close" />
   <view class="memory-card-dialog modal-surface" role="dialog" aria-modal="true" aria-label="记忆卡片">
     <view class="row card-heading"><text class="muted">{{dateLabel}}</text><button hover-class="ui-pressed" id="close-memory-card" class="ghost ui-close" aria-label="关闭记忆卡片" disabled="{{pickupBusy}}" bindtap="close">×</button></view>
     <view wx:if="{{!memory}}" class="error">{{error}}</view>
     <view wx:else id="pickup-paper" class="flip-scene" animation="{{pickupPaperAnimation}}">
       <view id="flip-card" class="flip-card {{flipped ? 'is-flipped' : ''}}" bindtap="flip" role="button" aria-label="{{flipped ? '翻回图片' : '翻到文字说明'}}">
-        <view class="card-face card-front" aria-hidden="{{flipped}}"><image wx:if="{{!missing}}" id="card-photo" class="card-photo {{pickupEnabled && pickupPhase !== 'open' ? 'pickup-photo-hidden' : ''}}" src="{{memory.subjectPath}}" mode="aspectFit" bindload="pickupPhotoLoaded" binderror="imageError" /><view wx:else class="muted">图片暂时无法读取</view><text class="card-cue">轻触翻面</text></view>
+        <view class="card-face card-front" aria-hidden="{{flipped}}">
+          <view class="card-paper-grain" aria-hidden="true" />
+          <view wx:if="{{cardStyle === 'polaroid'}}" class="card-tape" aria-hidden="true" />
+          <view wx:if="{{cardStyle === 'cotton'}}" class="card-front-header"><text>日 常 藏 物</text><text>{{cardDate}}</text></view>
+          <view wx:if="{{cardStyle === 'ticket'}}" class="card-ticket-stub">
+            <view class="card-ticket-date"><text class="card-ticket-day">{{cardDay}}</text><text class="card-ticket-month">{{cardMonth}}</text></view>
+            <view class="card-ticket-titles"><text class="card-ticket-title">生活存根</text><text class="card-ticket-sub">{{cardYear}} · 日常收藏</text></view><view class="card-ticket-mark" aria-hidden="true" />
+          </view>
+          <text wx:if="{{cardStyle === 'ticket'}}" class="card-ticket-overline">此刻留存</text>
+          <view class="card-photo-well">
+            <view wx:if="{{cardStyle === 'polaroid'}}" class="card-window-light" aria-hidden="true" />
+            <image wx:if="{{!missing}}" id="card-photo" class="card-photo {{pickupEnabled && pickupPhase !== 'open' ? 'pickup-photo-hidden' : ''}}" src="{{memory.subjectPath}}" mode="aspectFit" bindload="pickupPhotoLoaded" binderror="imageError" />
+            <view wx:else class="card-image-missing">图片暂时无法读取</view>
+          </view>
+          <view class="card-caption"><text class="card-caption-line">{{frontCaption}}</text><text class="card-caption-sub">{{cardStyle === 'polaroid' ? cardDate : cardStyle === 'ticket' ? '留给日后的自己' : '把这一刻，轻轻收好'}}</text></view>
+          <view class="card-front-footer"><text class="card-emboss">{{cardStyle === 'polaroid' ? '日常的一个切片' : cardStyle === 'ticket' ? '生 活 留 存' : '一 日 一 记'}}</text><text class="card-cue">轻触翻面 ↗</text></view>
+        </view>
         <view class="card-face card-back" aria-hidden="{{!flipped}}">
+          <view class="card-paper-grain" aria-hidden="true" />
+          <view wx:if="{{cardStyle === 'ticket'}}" class="card-ticket-stub">
+            <view class="card-ticket-date"><text class="card-ticket-day">{{cardDay}}</text><text class="card-ticket-month">{{cardMonth}}</text></view>
+            <view class="card-ticket-titles"><text class="card-ticket-title">当时的心情</text><text class="card-ticket-sub">{{cardYear}} · 写给未来</text></view><view class="card-ticket-mark" aria-hidden="true" />
+          </view>
+          <view wx:else class="card-note-heading"><text class="card-note-date">{{cardDate}}</text><text class="card-note-title">{{cardStyle === 'polaroid' ? '相片背后的小记' : '这一刻，想留下'}}</text><view class="card-heading-rule" /></view>
           <block wx:if="{{flipped && editing}}">
-            <textarea id="card-note-input" class="card-note-input" value="{{text}}" maxlength="{{maxText}}" placeholder="写点什么（选填）" bindinput="input" catchtap="stop" adjust-position="{{false}}" cursor-spacing="12" />
-            <text class="note-count">{{text.length}} / {{maxText}}</text>
+            <view class="card-note-zone"><textarea id="card-note-input" class="card-note-input" value="{{text}}" maxlength="{{maxText}}" placeholder="写下想留住的话……" placeholder-class="card-note-placeholder" bindinput="input" catchtap="stop" adjust-position="{{false}}" cursor-spacing="12" /></view>
+            <view class="card-note-meta"><text>写在这一天</text><text class="note-count">{{text.length}} / {{maxText}}</text></view>
             <view wx:if="{{hint}}" class="muted">{{hint}}</view><view wx:if="{{error}}" class="error">{{error}}</view>
-            <view class="row card-note-actions" catchtap="stop"><button hover-class="ui-pressed" id="cancel-card-note" class="ghost grow" bindtap="cancelEdit">取消</button><button hover-class="ui-pressed" id="save-card-note" class="primary grow" bindtap="save">保存</button></view>
+            <view class="row card-note-actions" catchtap="stop"><button hover-class="ui-pressed" id="cancel-card-note" class="ghost" bindtap="cancelEdit">取消</button><button hover-class="ui-pressed" id="save-card-note" class="primary" bindtap="save">保存记录</button></view>
           </block>
           <block wx:else>
-            <scroll-view wx:if="{{flipped && memory.text}}" class="card-note-reading" scroll-y><view class="card-note">{{memory.text}}</view></scroll-view>
-            <view wx:elif="{{!memory.text}}" class="card-empty muted">还没写说明</view>
-            <view class="row card-back-actions" catchtap="stop"><button hover-class="ui-pressed" id="edit-card-note" class="secondary grow" bindtap="edit">{{memory.text ? '编辑说明' : '添加说明'}}</button><button hover-class="ui-pressed" wx:if="{{flipped}}" id="add-to-theme" class="secondary grow" bindtap="openThemes">放入主题板</button></view><text class="card-cue">轻触翻回图片</text>
+            <view class="card-note-zone"><scroll-view wx:if="{{flipped && memory.text}}" class="card-note-reading" scroll-y><view class="card-note">{{memory.text}}</view></scroll-view><view wx:elif="{{!memory.text}}" class="card-empty">还没有留下文字。<text>写一两句，留给以后的自己。</text></view></view>
+            <view class="card-note-meta"><text>{{cardStyle === 'polaroid' ? '今天的小小美好' : cardStyle === 'ticket' ? '这一页，为自己保留' : '写在这一天'}}</text><text class="card-cue">轻触翻回图片</text></view>
+            <view class="row card-back-actions" catchtap="stop"><button hover-class="ui-pressed" id="edit-card-note" class="secondary" bindtap="edit">{{memory.text ? '编辑记录' : '写下记录'}}</button><button hover-class="ui-pressed" wx:if="{{flipped}}" id="add-to-theme" class="ghost" bindtap="openThemes">放入主题板</button></view>
           </block>
           <block wx:if="{{flipped && themeOpen}}">
             <view class="card-theme-scrim" catchtap="closeThemes" />

@@ -43,36 +43,41 @@ const output = path.resolve('artifacts/memory-pickup');
     let owner = await mini.currentPage(); for (const selector of chain) owner = await owner.$(selector);
     const board = await owner.$('#today-board') || await owner.$('#board');
     const canvas = await board.$('#feltCanvas');
-    await canvas.touchstart({ touches:[touch], changedTouches:[touch] });
-    await pause(50); await canvas.touchend({ touches:[], changedTouches:[touch] });
-    console.log('STEP:',label,'touch dispatched');
-    await until(async () => (await state(chain)).card, label + ' mounted');
-    // Trace rendered image bounds, not only the animation configuration.
+    // Arm sampling before dispatch; a fast renderer can finish while the
+    // automation bridge is still returning the touch/mount acknowledgements.
     await mini.evaluate(chain => {
-      const h = chain.reduce((p, s) => p.selectComponent(s), getCurrentPages().slice(-1)[0]), c = h.selectComponent('#memory-card');
       const q = getApp().__pickupAcceptance; q.frames = []; q.started = Date.now();
       q.sample = setInterval(() => {
+        const h = chain.reduce((p, s) => p.selectComponent(s), getCurrentPages().slice(-1)[0]), c = h && h.selectComponent('#memory-card');
         if (!c || c.dead) return;
         c.createSelectorQuery().select('#pickup-photo').boundingClientRect().select('#card-photo').boundingClientRect().exec(rects => {
           q.frames.push({ ms:Date.now()-q.started, phase:c.data.pickupPhase, rects });
         });
       }, 45);
     }, chain);
+    await canvas.touchstart({ touches:[touch], changedTouches:[touch] });
+    await pause(50); await canvas.touchend({ touches:[], changedTouches:[touch] });
+    console.log('STEP:',label,'touch dispatched');
+    await until(async () => (await state(chain)).card, label + ' mounted');
     const opened = await until(async () => { const s = await state(chain); if (s.card && !s.busy) return s; }, label + ' animation complete');
     assert.equal(opened.enabled, true, label + ' uses pickup instead of fallback: ' + JSON.stringify(opened));
     assert.equal(opened.phase, 'open'); assert.equal(opened.hidden, id); assert.equal(opened.covered, true);
     assert.ok(Math.abs(opened.from.angle) <= 180, 'short rotation');
     assert.equal(await mini.evaluate(() => JSON.stringify(require('core/store.js').getStore().get())), stored, label + ' opening is read-only');
+    const card = await owner.$('#memory-card'), paper = await card.$('#pickup-paper');
+    await until(async()=>await paper.style('opacity')==='1'&&await paper.style('transform')==='matrix(1, 0, 0, 1, 0, 0)',label+' native paper settled');
     await pause(80);
     const frames = await mini.evaluate(() => { const q=getApp().__pickupAcceptance; clearInterval(q.sample); return q.frames; });
     assert.ok(frames.some(f => f.rects[0] && f.rects[0].width > 0), label + ' native photo renders');
     const positions = new Set(frames.filter(f => f.rects[0]).map(f => Math.round(f.rects[0].left)+','+Math.round(f.rects[0].width)));
     assert.ok(positions.size > 1, label + ' native photo actually moves');
-    const card = await owner.$('#memory-card'), paper = await card.$('#pickup-paper');
     assert.equal(await paper.style('opacity'),'1',label + ' paper is visible');
     const final = frames.at(-1).rects[1];
-    assert.ok(Math.abs(final.left-opened.bounds.paper.left-24)<2 && Math.abs(final.width-opened.bounds.paper.width+48)<2,
-      label + ' paper finishes at full size: '+JSON.stringify(final));
+    const paperBounds = opened.bounds.paper, target = opened.bounds.target;
+    assert.ok(final.left >= paperBounds.left && final.right <= paperBounds.right && final.top >= paperBounds.top && final.bottom <= paperBounds.bottom,
+      label + ' image stays inside its material frame: '+JSON.stringify(final));
+    assert.ok(Math.abs(final.left+final.width/2-target.left-target.width/2)<2 && Math.abs(final.top+final.height/2-target.top-target.height/2)<2,
+      label + ' pickup finishes at the fully expanded image center');
     traces.push({ label, opened, frames }); checks.push(label + ' touch opens from actual placement');
     console.log('PASS:', label, 'open', opened.source.rect, 'frames', positions.size);
   }
