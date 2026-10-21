@@ -38,7 +38,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
       const info = await mini.callWxMethod('getImageInfo', { src: data.imagePath }), frame = (await owner.data()).shareViewport;
       assert.ok(frame && frame.width > 0 && frame.height > 0);
       assert.equal(Math.max(info.width, info.height), 1800);
-      assert.ok(Math.abs(info.width / info.height - frame.width / frame.height) < 0.001, name + ' preserves source aspect ratio');
+      assert.ok(Math.abs(info.width / info.height - frame.width / (frame.height + 64)) < 0.001, name + ' preserves board and clamp headroom');
     }
     if (withActions) {
       assert.equal(data.error, ''); assert.ok(data.imagePath);
@@ -46,7 +46,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
       const frame = (await owner.data()).shareViewport;
       assert.ok(frame && frame.width > 0 && frame.height > 0);
       assert.equal(Math.max(info.width, info.height), 1800);
-      assert.ok(Math.abs(info.width / info.height - frame.width / frame.height) < 0.001, 'Share keeps the originating canvas aspect ratio');
+      assert.ok(Math.abs(info.width / info.height - frame.width / (frame.height + 64)) < 0.001, 'Share keeps the originating canvas aspect ratio');
       await (await card.$('#share-appearance')).tap(); await wait(card, d => d.styleOpen);
       const value = data.colors.find(c => c.value !== data.previewColor).value;
       await card.callMethod('chooseColor', { currentTarget: { dataset: { value } } });

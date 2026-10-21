@@ -17,7 +17,8 @@ test('pin anchors land on visible alpha instead of the empty center or transpare
 });
 
 test('surface cache reuses material while stickers move and invalidates color, texture and dimensions', () => {
-  const canvas=createCanvas(390,260),model={color:'#D9CBAF',texture:'fine',items:[]};let builds=0;
+  const bounds=renderer.frame(), height=Math.round(390*bounds.height/bounds.width);
+  const canvas=createCanvas(390,height),model={color:'#D9CBAF',texture:'fine',items:[]};let builds=0;
   const factory=({width,height})=>{builds++;return createCanvas(width,height);};
   const cached=renderer.createSurface(canvas,model,B,null,factory);
   assert.strictEqual(renderer.createSurface(canvas,{...model,items:[{x:20}]},B,cached,factory),cached); assert.equal(builds,1);
@@ -25,10 +26,22 @@ test('surface cache reuses material while stickers move and invalidates color, t
   const texture=renderer.createSurface(canvas,{...model,texture:'long'},B,cached,factory);assert.notEqual(texture.key,cached.key);
   const resized=renderer.createSurface(createCanvas(780,520),model,B,cached,factory);assert.notEqual(resized.key,cached.key);
   assert.equal(renderer.createSurface(canvas,model,B,null,()=>{throw Error('Unavailable');}),null);
-  const direct=createCanvas(390,260),rendered=createCanvas(390,260);
+  const direct=createCanvas(390,height),rendered=createCanvas(390,height);
   for(const [target,surface] of [[direct,null],[rendered,cached.canvas]]){
-    const ctx=target.getContext('2d');ctx.scale(390/B.width,390/B.width);renderer.paint(ctx,model,{},'',B,surface);
+    const ctx=target.getContext('2d'),sy=height/bounds.height;ctx.setTransform(390/B.width,0,0,sy,0,bounds.top*sy);renderer.paint(ctx,model,{},'',B,surface);
   }
-  const a=direct.getContext('2d').getImageData(0,0,390,260).data,b=rendered.getContext('2d').getImageData(0,0,390,260).data;
+  const a=direct.getContext('2d').getImageData(0,0,390,height).data,b=rendered.getContext('2d').getImageData(0,0,390,height).data;
   let max=0;for(let n=0;n<a.length;n++)max=Math.max(max,Math.abs(a[n]-b[n]));assert.ok(max<=2,'Cached preview and direct export use the same material pixels');
+});
+
+test('clamp extends above the wooden board without cropping its opaque edge or filling the transparent margin', () => {
+  for(const width of [320,430,1800]) {
+    const bounds=renderer.frame(),height=Math.round(width*bounds.height/bounds.width),canvas=createCanvas(width,height),ctx=canvas.getContext('2d');
+    const sy=height/bounds.height;ctx.setTransform(width/bounds.width,0,0,sy,0,bounds.top*sy);
+    renderer.paint(ctx,{items:[],color:'#D9CBAF'}, {}, '');
+    const top=Math.floor(bounds.top*sy),pixels=ctx.getImageData(0,0,width,top).data;
+    assert.ok(pixels.some((v,i)=>i%4===3&&v>240),'Steel is visible above the frame');
+    for(let x=0;x<width;x++)assert.ok(pixels[x*4+3]<64,'The top edge does not cut through the metal');
+    assert.equal(ctx.getImageData(10,Math.floor(top/2),1,1).data[3],0,'Only the clamp occupies the headroom');
+  }
 });

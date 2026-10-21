@@ -3,11 +3,15 @@ const felt = require('./felt');
 const material = require('./board-material');
 const B = config.board;
 const rounded = material.rounded;
+// Logical board coordinates stay unchanged; the canvas includes transparent
+// headroom for the clamp above the wooden frame.
+function frame(dimensions = B) { return { width:dimensions.width, height:dimensions.height + B.overhang, top:B.overhang }; }
 function contain(p, image) { const scale = Math.min(p.width / image.width, p.height / image.height); return { width: image.width * scale, height: image.height * scale }; }
 function paint(ctx, model, images, selection, dimensions = B, surface, pixelScale = ctx.canvas ? ctx.canvas.width / dimensions.width : 1) {
   const B = dimensions;
-  ctx.clearRect(0, 0, B.width, B.height);
-  if (surface) ctx.drawImage(surface, 0, 0, B.width, B.height); else material.paint(ctx, model, B, pixelScale);
+  const bounds = frame(B);
+  ctx.clearRect(0, -bounds.top, bounds.width, bounds.height);
+  if (surface) ctx.drawImage(surface, 0, -bounds.top, bounds.width, bounds.height); else material.paint(ctx, model, B, pixelScale);
   const i = B.inset, w = B.width - 2 * i, h = B.height - 2 * i;
   ctx.save(); rounded(ctx, i, i, w, h, B.innerRadius); ctx.clip();
   (model.items || []).forEach(p => {
@@ -40,7 +44,8 @@ function createSurface(canvas, model, dimensions = B, previous, factory) {
   if (!create) return null;
   try {
     const surface = create({ type:'2d', width:canvas.width, height:canvas.height }), ctx = surface.getContext('2d');
-    ctx.setTransform(canvas.width / dimensions.width,0,0,canvas.height / dimensions.height,0,0);
+    const bounds = frame(dimensions), sy = canvas.height / bounds.height;
+    ctx.setTransform(canvas.width / dimensions.width,0,0,sy,0,bounds.top*sy);
     material.paint(ctx,model,dimensions,canvas.width / dimensions.width); return { key, canvas:surface };
   } catch (_) { return null; }
 }
@@ -94,4 +99,4 @@ async function loadImages(canvas, items, cache, strict) {
   await Promise.all(paths.map(async path => { if (result[path] && !result[path].missing) return; try { result[path] = await loadImage(canvas, path); } catch (e) { if (strict) throw e; result[path] = { missing: true }; } }));
   return result;
 }
-module.exports = { paint, paintControls, loadImages, rounded, contain, createSurface };
+module.exports = { paint, paintControls, loadImages, rounded, contain, createSurface, frame };

@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const { createCanvas } = require('@napi-rs/canvas');
-const { paint } = require('../miniprogram/core/renderer');
+const { paint, frame } = require('../miniprogram/core/renderer');
 const { paintSample } = require('../miniprogram/core/felt');
 const config = require('../miniprogram/core/config');
 const geo = require('../miniprogram/core/geometry');
@@ -20,11 +20,12 @@ const model = { color: config.colors[0].value, items: [
   { ...geo.create('mustard', 240, 200, 3, 3), x: 730, y: 630, angle: 0, memory: { subjectPath: 'mustard', kind: 'extracted' } }
 ] };
 function render(width, selected) {
-  const c = createCanvas(width, width * 2 / 3), ctx = c.getContext('2d'); ctx.scale(width / 1500, width / 1500); paint(ctx, model, images, selected); return c;
+  const bounds=frame(),c=createCanvas(width,Math.round(width*bounds.height/bounds.width)),ctx=c.getContext('2d'),sy=c.height/bounds.height;
+  ctx.setTransform(width/bounds.width,0,0,sy,0,bounds.top*sy);paint(ctx,model,images,selected);return c;
 }
 for (const width of [288, 320, 390, 430, 1800]) {
   const canvas = render(width, ''); fs.writeFileSync(path.join(output, `board-${width}.png`), canvas.toBuffer('image/png'));
-  const ctx = canvas.getContext('2d'), sample = (x, y) => Array.from(ctx.getImageData(x, y, 1, 1).data).slice(0, 3);
+  const ctx = canvas.getContext('2d'), sample = (x, y) => Array.from(ctx.getImageData(x, y + Math.round(config.board.overhang*width/1500), 1, 1).data).slice(0, 3);
   const s = width / 1500;
   for (const [x, y] of [[20, 500], [1480, 500], [400, 20], [750, 980]]) {
     const color=sample(Math.floor(x*s),Math.floor(y*s)); assert.ok(color[0]>color[2]+15,'All four warm walnut frame sides must survive');
@@ -34,14 +35,15 @@ for (const width of [288, 320, 390, 430, 1800]) {
 fs.writeFileSync(path.join(output, 'board-edit-390.png'), render(390, 'flower').toBuffer('image/png'));
 // A second identical output proves export uses the same deterministic construction.
 assert.deepEqual(render(1800, '').toBuffer('image/png'), render(1800, '').toBuffer('image/png'));
-console.log('PASS: shared board rendering at 288/320/390/430/1800 widths, 3:2 ratio, four frame sides and felt color');
+console.log('PASS: shared board rendering at 288/320/390/430/1800 widths, clamp headroom, four frame sides and felt color');
 
 // Material contact sheet uses the production renderer with synthetic subjects.
 const tileWidth = 440, tileHeight = 348, gap = 24;
 const sheet = createCanvas(3 * tileWidth + 4 * gap, 6 * tileHeight + 2 * gap), sheetCtx = sheet.getContext('2d');
 sheetCtx.fillStyle = '#E8EDE7'; sheetCtx.fillRect(0, 0, sheet.width, sheet.height);
 config.colors.forEach((color, row) => config.textures.forEach((texture, col) => {
-  const tile = createCanvas(tileWidth, tileWidth * 2 / 3), ctx = tile.getContext('2d'); ctx.scale(tileWidth / 1500, tileWidth / 1500);
+  const bounds=frame(),tile=createCanvas(tileWidth,Math.round(tileWidth*bounds.height/bounds.width)),ctx=tile.getContext('2d'),sy=tile.height/bounds.height;
+  ctx.setTransform(tileWidth/bounds.width,0,0,sy,0,bounds.top*sy);
   paint(ctx, { ...model, color: color.value, texture: texture.value }, images, '');
   const x = gap + col * (tileWidth + gap), y = gap + row * tileHeight;
   sheetCtx.drawImage(tile, x, y); sheetCtx.fillStyle = '#302F2B'; sheetCtx.font = '22px "Microsoft YaHei"'; sheetCtx.fillText(`${color.name} · ${texture.name}`, x + 8, y + 322);

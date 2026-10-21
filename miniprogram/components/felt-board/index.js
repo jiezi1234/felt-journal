@@ -5,7 +5,7 @@ const stickerMotion = require('../../core/sticker-motion');
 const viewport = require('../../core/board-viewport');
 Component({
   properties: { model: { type: Object, value: null }, layout: String, editable: Boolean, canEdit: Boolean, selected: String, covered: Boolean, landingId: String, interactive: { type: Boolean, value: true } },
-  data: { height: 210, width: 0, handles: [], imageError: false, snapshot: '' },
+  data: { height: 210, width: 0, topSpace: 0, canvasHeight: 210, handles: [], imageError: false, snapshot: '' },
   observers: { 'model, editable, selected, covered, landingId': function () { this.refresh(); if (this.data.layout) wx.nextTick(() => this.measure()); },
     'covered, interactive': function () { if (this.data.covered || !this.data.interactive) this.touchCancel(); }, layout() { this.measure(); } },
   lifetimes: { ready() { this.measure(); }, detached() { this.dead = true; this.clearGesture(); } },
@@ -17,14 +17,15 @@ Component({
       this.createSelectorQuery().select('#feltCanvas').fields({ node: true }).select('.board-viewport').boundingClientRect().exec(result => {
         const r = result[0], rect = result[1]; if (this.dead || !r || !r.node || !rect || !rect.width) return;
         const tall = this.data.layout === 'tall';
-        const width = this.data.layout === 'fit' && rect.height ? Math.min(rect.width, rect.height * B.width / B.height) : rect.width;
-        const height = tall ? Math.max(width * B.height / B.width, rect.height) : width * B.height / B.width;
+        const width = this.data.layout === 'fit' && rect.height ? Math.min(rect.width, rect.height * B.width / (B.height + B.overhang)) : rect.width;
+        const topSpace = width * B.overhang / B.width;
+        const height = tall ? Math.max(width * B.height / B.width, rect.height - topSpace) : width * B.height / B.width;
         if (this.canvas === r.node && Math.abs(this.screenWidth - width) < 0.5 && Math.abs(this.data.height - height) < 0.5) return;
         this.canvas = r.node; this.screenWidth = width;
         this.dimensions = tall ? viewport.present({ items: [] }, width, height).dimensions : B;
         const dpr = wx.getSystemInfoSync().pixelRatio || 2;
-        this.canvas.width = Math.round(width * dpr); this.canvas.height = Math.round(height * dpr);
-        this.setData({ height, width }, () => this.refresh());
+        this.canvas.width = Math.round(width * dpr); this.canvas.height = Math.round((height + topSpace) * dpr);
+        this.setData({ height, width, topSpace, canvasHeight: height + topSpace }, () => this.refresh());
       });
     },
     async refresh() {
@@ -36,7 +37,8 @@ Component({
         const dimensions = this.dimensions || B;
         const display = dimensions === B ? model : viewport.present(model, this.screenWidth, this.data.height).model;
         this.displayModel = display;
-        const ctx = this.canvas.getContext('2d'); ctx.setTransform(this.canvas.width / dimensions.width, 0, 0, this.canvas.height / dimensions.height, 0, 0);
+        const bounds = renderer.frame(dimensions), sy = this.canvas.height / bounds.height;
+        const ctx = this.canvas.getContext('2d'); ctx.setTransform(this.canvas.width / dimensions.width, 0, 0, sy, 0, bounds.top * sy);
         const selected = (display.items || []).find(p => p.memoryId === this.data.selected);
         const handles = this.data.editable && selected && !this.data.landingId ? geometry.handles(selected, this.screenWidth, this.data.height) : [];
         const visible = this.data.landingId ? Object.assign({}, display, { items: display.items.filter(p => p.memoryId !== this.data.landingId) }) : display;
@@ -67,7 +69,7 @@ Component({
       // View touches use viewport coordinates; native CanvasTouch uses local x/y.
       const rect = this.rect || { left: 0, top: 0 };
       if (Number.isFinite(touch.clientX) && Number.isFinite(touch.clientY)) return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
-      if (Number.isFinite(touch.x) && Number.isFinite(touch.y)) return { x: touch.x, y: touch.y };
+      if (Number.isFinite(touch.x) && Number.isFinite(touch.y)) return { x: touch.x, y: touch.y - (this.data.topSpace || 0) };
       return null;
     },
     point(touch) { const p = this.localPoint(touch); return p && { x: p.x * B.width / this.screenWidth - B.inset, y: p.y * B.width / this.screenWidth - B.inset }; },

@@ -33,10 +33,11 @@ function createShareExport() { return {
       const frame = this.exportViewport || config.board;
       if (!Number.isFinite(frame.width) || !Number.isFinite(frame.height) || frame.width <= 0 || frame.height <= 0) throw new Error('板面尺寸无效，请关闭分享后重试');
       const display = viewport.present(model, frame.width, frame.height), dimensions = display.dimensions;
-      const scale = config.exportWidth / Math.max(dimensions.width, dimensions.height);
-      canvas.width = Math.round(dimensions.width * scale); canvas.height = Math.round(dimensions.height * scale);
+      const bounds = renderer.frame(dimensions), scale = config.exportWidth / Math.max(bounds.width, bounds.height);
+      canvas.width = Math.round(bounds.width * scale); canvas.height = Math.round(bounds.height * scale);
       const images = await renderer.loadImages(canvas, display.model.items, {}, true); if (this.disposed) return;
-      const ctx = canvas.getContext('2d'); ctx.setTransform(canvas.width / dimensions.width, 0, 0, canvas.height / dimensions.height, 0, 0);
+      const ctx = canvas.getContext('2d'), sy = canvas.height / bounds.height;
+      ctx.setTransform(canvas.width / dimensions.width, 0, 0, sy, 0, bounds.top * sy);
       renderer.paint(ctx, display.model, images, '', dimensions, null, canvas.width / dimensions.width);
       const result = await platform.call('canvasToTempFilePath', { canvas, x: 0, y: 0, width: canvas.width, height: canvas.height, destWidth: canvas.width, destHeight: canvas.height, fileType: 'png' });
       if (!this.disposed) this.setData({ generating: false, imagePath: result.tempFilePath, dateLabel: boardLabel(model), isTheme: model.type === 'theme', count: model.items.length });

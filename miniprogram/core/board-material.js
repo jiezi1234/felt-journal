@@ -14,14 +14,16 @@ function oval(ctx, x, y, rx, ry) {
   ctx.save(); ctx.translate(x, y); ctx.scale(rx, ry); ctx.beginPath(); ctx.arc(0, 0, 1, 0, Math.PI * 2); ctx.restore();
 }
 function clip(ctx, width, pixelScale) {
-  ctx.save(); ctx.translate(width / 2, 6); ctx.scale(1.28, 1.18);
+  ctx.save(); ctx.translate(width / 2, -52); ctx.scale(1.28, 1.18);
   // Low-profile clipboard clamp: a hanging tab and spring wire sit behind the
   // stamped steel plate. Black end sleeves wrap its two folded corners.
   ctx.shadowColor = 'rgba(24,29,29,.25)'; ctx.shadowBlur = 13 * pixelScale; ctx.shadowOffsetY = 8 * pixelScale;
   rounded(ctx, -31, 0, 62, 49, 8);
   ctx.fillStyle = gradient(ctx, -31, 0, 31, 0, [[0,'#747E81'],[.17,'#DDE2E1'],[.45,'#F3F4EC'],[.83,'#B4BFBE'],[1,'#636F74']]); ctx.fill();
   ctx.shadowColor = 'transparent';
-  oval(ctx, 0, 17, 12, 10); ctx.fillStyle = '#665540'; ctx.fill();
+  // The hanging hole is now above the board: expose the actual background.
+  ctx.save(); ctx.globalCompositeOperation = 'destination-out';
+  oval(ctx, 0, 17, 12, 10); ctx.fill(); ctx.restore();
   ctx.strokeStyle = '#EDF0E8'; ctx.lineWidth = 2; ctx.stroke();
   ctx.beginPath(); ctx.arc(0, 16, 11, Math.PI, Math.PI*2); ctx.strokeStyle = '#555E5F'; ctx.lineWidth = 2; ctx.stroke();
   const wire = () => {
@@ -90,7 +92,7 @@ function clip(ctx, width, pixelScale) {
   ctx.restore();
 }
 function paint(ctx, model, B, pixelScale) {
-  ctx.save(); ctx.clearRect(0, 0, B.width, B.height);
+  ctx.save(); ctx.clearRect(0, -B.overhang, B.width, B.height + B.overhang);
   rounded(ctx, 0, 0, B.width, B.height, B.radius);
   ctx.fillStyle = gradient(ctx, 0, 0, B.width, B.height, [[0,'#8B7054'],[.25,'#6B513B'],[.65,'#70543D'],[1,'#443629']]); ctx.fill();
   ctx.save(); rounded(ctx, 0, 0, B.width, B.height, B.radius); ctx.clip();

@@ -1,10 +1,10 @@
 :host { display:block; width:100%; }
-.board-viewport { position:relative; width:100%; }
+.board-viewport { position:relative; width:100%; box-sizing:border-box; }
 .board-viewport.fitted { height:100%; display:flex; justify-content:center; align-items:center; }
 .fitted .image-warning { position:absolute; bottom:12px; left:16px; right:16px; padding:6px 10px; border-radius:12px; background:rgba(255,253,248,.94); font-size:11px; }
 .board-shell { position:relative; width:100%; border-radius:24px; box-shadow:0 10px 24px rgba(48,47,43,.09); }
-.board-canvas { display:block; width:100%; border-radius:24px; }
-.board-canvas[hidden] { display:none; }.board-snapshot { display:block; width:100%; border-radius:24px; }
+.board-canvas,.board-snapshot { position:absolute; left:0; display:block; width:100%; }
+.board-canvas[hidden] { display:none; }
 /* Canvas handles touch hits too, so native layers cannot block these actions.
    Overlay buttons retain the same 44px hit targets and accessible labels. */
 button.grip { position:absolute!important; z-index:10; margin:0!important; width:44px!important; min-width:44px; max-width:44px; height:44px; min-height:44px; padding:0; border-radius:50%; background:transparent; color:transparent; border:0; font-size:28px; line-height:44px; box-shadow:none; }

@@ -24,7 +24,7 @@ const difference = (op, actual, expected) => op === 'rotate' ? Math.abs(((actual
   async function touchAt(selector, id, op) {
     return mini.evaluate((selector, id, op) => new Promise(resolve => {
       const board = getCurrentPages().slice(-1)[0].selectComponent(selector);
-      board.createSelectorQuery().select('#feltCanvas').boundingClientRect(rect => {
+      board.createSelectorQuery().select('.board-shell').boundingClientRect(rect => {
         const item = board.displayModel.items.find(p => p.memoryId === id);
         const handle = op && board.data.handles.find(h => h.op === op);
         const x = handle ? handle.x : (item.x + 45) * board.screenWidth / 1500;
@@ -156,7 +156,19 @@ const difference = (op, actual, expected) => op === 'rotate' ? Math.abs(((actual
     for (const [boardId, value] of Object.entries(saved.boards)) if (boardId !== current.date) assert.deepEqual(removed.boards[boardId], value);
     await mini.restoreWxMethod('showModal'); modalMocked = false;
     await page.callMethod('done');
+    await page.callMethod('exportBoard');await wait(page,d=>!!d.shareBoardId,'share card');
+    const share=await page.$('#share-card'),exported=await wait(share,d=>!d.generating,'export');assert.equal(exported.error,'');
+    const info=await mini.callWxMethod('getImageInfo',{src:exported.imagePath}),frame=(await page.data()).shareViewport;
+    assert.equal(Math.max(info.width,info.height),1800);
+    assert.ok(Math.abs(info.width/info.height-frame.width/(frame.height+64))<.001,'Export includes full clamp headroom');
+    await wait(board,d=>d.covered&&!!d.snapshot,'covered snapshot');
+    const snapshotInfo=await mini.callWxMethod('getImageInfo',{src:(await board.data()).snapshot});
+    const shown=await board.data();assert.ok(Math.abs(snapshotInfo.width/snapshotInfo.height-shown.width/shown.canvasHeight)<.002);
+    const png=await mini.evaluate(file=>wx.getFileSystemManager().readFileSync(file,'base64'),exported.imagePath);
+    fs.writeFileSync(path.join(output,name+'-export.png'),Buffer.from(png,'base64'));
+    await share.callMethod('close');await wait(page,d=>!d.shareBoardId,'close share');
     checks.push(name + ': Canvas and overlay continuous scale/rotate; intermediate previews; release saves; cancellation restores; taps do not transform; removal and storage scope checked');
+    checks.push(name + ': full clamp preserved in the covered snapshot and real native PNG export');
     console.log('PASS:', name);
   }
   try {

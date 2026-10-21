@@ -4,7 +4,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 module.exports = async function dragControl(mini, board, selector, op, value, options = {}) {
   const points = await mini.evaluate((selector, op, value) => new Promise(resolve => {
     const b = getCurrentPages().slice(-1)[0].selectComponent(selector);
-    b.createSelectorQuery().select('#feltCanvas').boundingClientRect(rect => {
+    b.createSelectorQuery().select('.board-shell').boundingClientRect(rect => {
       const item = b.displayModel.items.find(p => p.memoryId === b.data.selected);
       const handle = b.data.handles.find(h => h.op === op), s = b.screenWidth / 1500;
       const cx = (item.x + 45) * s, cy = (item.y + 45) * s, dx = handle.x - cx, dy = handle.y - cy;

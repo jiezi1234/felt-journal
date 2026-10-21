@@ -31,6 +31,26 @@ test('covered boards do not respond to pointer input underneath a card', () => {
   board.touchStart({ touches: [{ clientX: 10, clientY: 10 }] }); assert.equal(board.gesture, null);
 });
 
+test('canvas headroom does not offset native touches or viewport-coordinate touches', () => {
+  const board={...definition.methods,data:{topSpace:18},screenWidth:430,rect:{left:12,top:50}};
+  assert.deepEqual(board.localPoint({x:100,y:118}),{x:100,y:100});
+  assert.deepEqual(board.localPoint({clientX:112,clientY:150}),{x:100,y:100});
+  assert.deepEqual(board.point({x:100,y:118}),board.point({clientX:112,clientY:150}));
+});
+
+test('fit and tall boards reserve headroom inside the available stage', t => {
+  const previous=global.wx;t.after(()=>{global.wx=previous;});global.wx={getSystemInfoSync:()=>({pixelRatio:2})};
+  for(const layout of ['fit','tall','']) {
+    const canvas={},rect={width:360,height:600};
+    const board={...definition.methods,data:{...definition.data,layout},refresh(){},
+      setData(data,done){Object.assign(this.data,data);done();},
+      createSelectorQuery(){return {select(){return this;},fields(){return this;},boundingClientRect(){return this;},exec(fn){fn([{node:canvas},rect]);}};}};
+    board.measure();const d=board.data;
+    assert.ok(d.topSpace>0);assert.equal(d.canvasHeight,d.height+d.topSpace);assert.ok(d.canvasHeight<=rect.height);
+    assert.equal(canvas.height,Math.round(d.canvasHeight*2));assert.equal(board.exportViewport().height,board.dimensions.height);
+  }
+});
+
 test('a simple editable sticker tap opens its card but dragging and long press do not open it twice', () => {
   const events = [], item = { id: 'placement', memoryId: 'memory' };
   const board = { ...definition.methods, data: { editable: true, interactive: true }, refresh() {}, triggerEvent(name, detail) { events.push({ name, detail }); } };
