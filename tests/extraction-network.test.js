@@ -47,9 +47,10 @@ test('server development authenticates both upload and download and keeps classi
   const origin = 'http://192.0.2.10', header = { Authorization: 'Bearer ' + 'd'.repeat(43) };
   config.resolve = () => ({ mode: 'remote', endpoint: origin + '/extract', origin, developmentServer: true, header });
   const classification = { category: 'food', status: 'classified' };
+  const alignment = { sourceWidth:800,sourceHeight:600,x:100,y:50,width:240,height:320 };
   global.wx.uploadFile = options => {
     assert.deepEqual(options.header, header);
-    queueMicrotask(() => options.success({ statusCode: 200, data: JSON.stringify({ cutoutUrl: origin + '/cutouts/' + 'a'.repeat(32) + '.png', classification }) }));
+    queueMicrotask(() => options.success({ statusCode: 200, data: JSON.stringify({ cutoutUrl: origin + '/cutouts/' + 'a'.repeat(32) + '.png', classification, alignment }) }));
     return { abort() {} };
   };
   global.wx.downloadFile = options => {
@@ -57,6 +58,7 @@ test('server development authenticates both upload and download and keeps classi
     queueMicrotask(() => options.success({ statusCode: 200, tempFilePath: '/result.png' })); return { abort() {} };
   };
   const task = {}; assert.equal(await extraction.extract('/photo.jpg', task, () => {}), '/result.png'); assert.deepEqual(task.classification, classification);
+  assert.deepEqual(task.alignment,alignment);
   global.wx.uploadFile = options => { queueMicrotask(() => options.success({ statusCode: 401 })); return { abort() {} }; };
   await assert.rejects(extraction.extract('/photo.jpg', {}, () => {}), /凭证已失效/);
   global.wx.uploadFile = options => { queueMicrotask(() => options.fail({ errMsg: 'connection refused' })); return { abort() {} }; };

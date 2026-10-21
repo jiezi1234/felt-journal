@@ -1,4 +1,5 @@
 const serviceConfig = require('./extraction-config');
+const reveal = require('../core/photo-reveal');
 // Backend contract: multipart photo -> { cutoutUrl, classification? }.
 // Production provider credentials belong on the backend. Dev access is opt-in.
 function network(task, invoke, local = false, developmentServer = false) {
@@ -21,6 +22,7 @@ function network(task, invoke, local = false, developmentServer = false) {
 }
 async function extract(originalPath, task, onStage) {
   task.classification = null;
+  task.alignment = null;
   const c = serviceConfig.resolve();
   if (c.mode !== 'remote' || !c.local && !c.developmentServer && !/^https:\/\//.test(c.endpoint)) throw new Error('主体提取服务尚未配置，可以选择保留原图记录');
   onStage('uploading');
@@ -44,6 +46,7 @@ async function extract(originalPath, task, onStage) {
   if (downloaded.statusCode === 401 && c.developmentServer) throw new Error('开发接口凭证已失效，请重新连接服务器');
   if (downloaded.statusCode !== 200) throw new Error('主体图片下载失败，请重新提取');
   task.classification = payload.classification || null;
+  task.alignment = reveal.alignment(payload.alignment);
   return downloaded.tempFilePath;
 }
 module.exports = { extract };

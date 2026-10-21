@@ -10,6 +10,7 @@ from PIL import Image, ImageDraw
 from backend.app import SubjectExtractor, create_app
 from backend.border import sticker_parameters, white_sticker, textured_sticker
 from backend.sticker_texture import TEXTURES
+from backend.nosh import crop_subject
 
 
 def subject():
@@ -19,6 +20,35 @@ def subject():
 
 
 class BorderTests(unittest.TestCase):
+    def test_crop_and_paper_padding_preserve_original_pixel_alignment(self):
+        for box in [(160, 60, 210, 140), (0, 0, 48, 80)]:
+            image = Image.new('RGBA', (320, 240))
+            ImageDraw.Draw(image).rectangle(box, fill=(17, 83, 149, 255))
+            result = textured_sticker(crop_subject(image), style='linen', seed=1)
+            frame = result.info['source_frame']
+            self.assertEqual((frame['sourceWidth'], frame['sourceHeight']), image.size)
+            self.assertEqual((frame['width'], frame['height']), result.size)
+            pixels = np.asarray(result)
+            locations = np.argwhere(np.all(pixels == (17, 83, 149, 255), axis=2))
+            first_y, first_x = locations.min(axis=0)
+            self.assertEqual((int(first_x) + frame['x'], int(first_y) + frame['y']), box[:2])
+            if box[0] == 0:
+                self.assertLess(frame['x'], 0)
+
+    def test_alignment_survives_api_conversion_and_matches_the_delivered_png(self):
+        image = Image.new('RGBA', (320, 240))
+        ImageDraw.Draw(image).rectangle((160, 60, 210, 140), fill=(17, 83, 149, 255))
+        result = textured_sticker(crop_subject(image), style='cotton', seed=1)
+        data = io.BytesIO(); image.convert('RGB').save(data, 'JPEG')
+        with tempfile.TemporaryDirectory() as directory:
+            with TestClient(create_app(extractor=lambda _: result, output_dir=directory, classifier=False)) as client:
+                response = client.post('/extract', files={'photo': ('test.jpg', data.getvalue(), 'image/jpeg')})
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.json()['alignment'], result.info['source_frame'])
+                png = client.get('/cutouts/' + response.json()['cutoutUrl'].rsplit('/', 1)[1])
+                with Image.open(io.BytesIO(png.content)) as actual:
+                    self.assertEqual(actual.tobytes(), result.tobytes())
+
     def test_recovered_parameters_scale_and_clamp(self):
         small = sticker_parameters((100, 60))
         self.assertEqual((small['stroke'], small['radius'], small['blur'], small['padding']), (9, 9, 2, 15))

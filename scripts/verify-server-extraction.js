@@ -24,7 +24,7 @@ const { createCanvas, loadImage } = require('@napi-rs/canvas');
     const result = await mini.evaluate(file => {
       const stages = [], task = { id: 'server-network-probe' };
       return require('services/extraction.js').extract(file, task, stage => stages.push(stage))
-        .then(filePath => ({ filePath, classification: task.classification, stages }));
+        .then(filePath => ({ filePath, classification: task.classification, alignment:task.alignment, stages }));
     }, source);
     downloaded = result.filePath;
     const png = Buffer.from(await mini.evaluate(file => wx.getFileSystemManager().readFileSync(file, 'base64'), downloaded), 'base64');
@@ -38,9 +38,13 @@ const { createCanvas, loadImage } = require('@napi-rs/canvas');
     assert.equal(denied.status, 401);
     const health = await (await fetch(connection.endpoint.replace(/\/extract$/, '/health'), { signal: AbortSignal.timeout(10000) })).json();
     assert.equal(health.modelLoaded, true); assert.equal(health.classificationLoaded, true);
+    if (health.alignmentVersion === 1) {
+      assert.ok(result.alignment, 'Compiled adapter receives validated alignment');
+      assert.equal(result.alignment.width,image.width); assert.equal(result.alignment.height,image.height);
+    }
     const report = { passed: true, endpoint: connection.endpoint, width: image.width, height: image.height, alpha: [low, high],
       milliseconds: Date.now() - started, classification: result.classification, stages: result.stages, unauthorizedUpload: denied.status,
-      health, scope: 'Compiled mini-program adapter -> real wx.uploadFile -> server inference -> authenticated wx.downloadFile; no journal edits' };
+      alignment:result.alignment, health, scope: 'Compiled mini-program adapter -> real wx.uploadFile -> server inference -> authenticated wx.downloadFile; no journal edits' };
     const reportPath = path.resolve(__dirname, '../artifacts/server-extraction-verification.json');
     fs.mkdirSync(path.dirname(reportPath), { recursive: true }); fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
     console.log(JSON.stringify(report, null, 2));

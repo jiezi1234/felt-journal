@@ -115,7 +115,11 @@ def crop_subject(image: Image.Image) -> Image.Image:
     if bbox is None:
         raise ValueError('No subject found')
     left, top, right, bottom = bbox
-    return image.crop((max(0, left - 1), max(0, top - 1), min(image.width, right + 1), min(image.height, bottom + 1)))
+    box = (max(0, left - 1), max(0, top - 1), min(image.width, right + 1), min(image.height, bottom + 1))
+    result = image.crop(box)
+    result.info['source_frame'] = {'sourceWidth': image.width, 'sourceHeight': image.height,
+                                   'x': box[0], 'y': box[1], 'width': result.width, 'height': result.height}
+    return result
 
 
 class NoshSegmenter:

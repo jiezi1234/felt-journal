@@ -29,8 +29,10 @@ backend/.venv/Scripts/python.exe -m backend.verify_nosh path/to/photo.jpg
 `POST /extract`，`multipart/form-data`，一项 `photo` 文件，可附带 `taskId` 字段。限制 15 MB、24 百万像素；接受 JPEG（含相机 MPO 容器的第一张 JPEG）、PNG、WEBP，应用 EXIF 方向。入口最长边 2048；nosh 流程再限制到 1600，模型每次输入 224×224，遮罩恢复到处理图尺寸。返回：
 
 ```json
-{"cutoutUrl":"https://你的域名/cutouts/随机令牌.png","expiresIn":900,"stickerTexture":"linen"}
+{"cutoutUrl":"https://你的域名/cutouts/随机令牌.png","expiresIn":900,"stickerTexture":"linen","alignment":{"sourceWidth":800,"sourceHeight":600,"x":100,"y":60,"width":350,"height":380}}
 ```
+
+`alignment` 用于原图到贴纸的原位显影：`sourceWidth/sourceHeight` 是应用 EXIF 方向、缩小后的原图尺寸；`x/y/width/height` 是最终 PNG（包括纸边）在该坐标系中的矩形，纸边超出原图时 `x/y` 可以为负。原图与该坐标系等比例映射，不能直接当作上传文件的原始像素坐标。Nosh 与 rembg 都保留这组信息；`GET /health` 的 `alignmentVersion: 1` 标识支持。旧服务不返回该字段时，小程序走柔和的兼容过渡；数据不写入历史记忆。
 
 结果是真实透明 RGBA PNG，按主体边界裁切并依 APK 的纯白贴纸分支生成平滑轮廓（约主体长边 4%，小主体最少 9 像素）。每次提取随机选择 `cotton`（细棉纸）、`linen`（亚麻织纹）、`watercolor`（水彩纸）、`laid`（手工横纹）之一，并以独立随机种子生成浅白材质；这是本项目新增的装饰效果。材质只作为主体后方的轮廓层，保持原 alpha 轮廓和不透明主体像素，原半透明边缘按 alpha 正常混合。纹理直接写入 PNG，画板、预览和分享共用同一张图，不在显示时重新随机；已有贴纸不自动重写。纯白版本仍可通过 `backend.border.white_sticker` 用于对照验证。接触阴影由小程序共用渲染器绘制。
 
@@ -58,7 +60,7 @@ FELT_DEV_PORT=80
 FELT_DEVELOPMENT_TOKEN=使用随机生成的32至128位URL安全字符
 ```
 
-当前部署还在私有环境中指定 `FELT_DEV_IMAGE=felt-extractor-development:20261019`，使用已验证的镜像；新机器可省略此项并从完整源码构建。`FELT_DEV_ORIGIN` 的端口必须与 `FELT_DEV_PORT` 一致；默认 80 可以在地址中省略。基础 `.env` 中的 `FELT_DOMAIN` 仍保留未来正式域名。
+当前部署在私有环境中指定 `FELT_DEV_IMAGE=felt-extractor-reveal:20261021`，使用已验证的镜像；新机器可省略此项并从完整源码构建。`FELT_DEV_ORIGIN` 的端口必须与 `FELT_DEV_PORT` 一致；默认 80 可以在地址中省略。基础 `.env` 中的 `FELT_DOMAIN` 仍保留未来正式域名。
 
 服务器启动或更新（必须同时指定两份环境和 Compose 文件）：
 
@@ -99,6 +101,8 @@ npm run dev:phone
 清空手机小程序数据、更换手机或更换开发令牌后，重新执行此命令并扫码。关闭手机配置用 `npm run dev:phone -- --off` 并扫码；它只删除开发服务配置。鉴权探测通过不等于照片端到端验收，实际手机仍须完成一次选图、提取、下载和贴到画板的检查。体验版和正式版继续使用正式 HTTPS 配置；此命令不改变它们的行为。
 
 2026-10-19 验收：服务器候选容器真实推理通过；公网未授权上传和候选容器未授权下载均返回 401。已编译的小程序通过自身提取适配器执行真实 `wx.uploadFile` 和 `wx.downloadFile`，获得 938×454、alpha 0–255 的 RGBA PNG，并自动分类为“自然”。停止本机 8788 服务并重启服务器容器后再次通过，样例全流程约 0.94 秒；这不是并发或任意网络下的性能保证。服务器状态 healthy、无 OOM、Docker 开机启动已启用，容器重启策略为 unless-stopped。报告仅保存在被忽略的 `artifacts/server-extraction-verification.json`。
+
+2026-10-21 背景柔退更新：候选容器先通过真实模型推理与 PNG 对齐坐标检查，再切换开发服务；旧镜像和配置留作回滚。当前健康检查返回 `alignmentVersion: 1`。微信模拟器中已编译的小程序通过实际上传、推理、下载链路，收到 938×454 RGBA PNG 及匹配的裁切坐标；公开动物样例全流程约 1.49 秒，未授权上传仍返回 401。28 项后端测试通过，原有记录未修改；此项为模拟器联网验收。
 
 ## 小程序本机真实联网调试
 

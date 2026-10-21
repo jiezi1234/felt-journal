@@ -38,6 +38,7 @@ Image.MAX_IMAGE_PIXELS = MAX_PIXELS
 
 
 class SubjectExtractor:
+    alignment_version = 1
     sticker_style = STICKER_STYLE
     sticker_textures = TEXTURES
 
@@ -64,7 +65,10 @@ class SubjectExtractor:
             bbox = alpha.point(lambda value: 255 if value > 8 else 0).getbbox()
             if not bbox:
                 raise ValueError('No subject found')
+            source_size = result.size
             result = result.crop(bbox)
+            result.info['source_frame'] = {'sourceWidth': source_size[0], 'sourceHeight': source_size[1],
+                                           'x': bbox[0], 'y': bbox[1], 'width': result.width, 'height': result.height}
         from backend.border import textured_sticker
         return textured_sticker(result)
 
@@ -155,6 +159,7 @@ def create_app(extractor=None, output_dir=None, public_base=None, classifier=Non
         return {**({'developmentAccess': True} if token else {}), 'status': 'ok', 'model': getattr(engine, 'model_name', os.getenv('FELT_MODEL', DEFAULT_MODEL)), 'modelLoaded': getattr(engine, 'session', None) is not None,
                 'stickerStyle': getattr(engine, 'sticker_style', None),
                 'stickerTextures': list(getattr(engine, 'sticker_textures', ())),
+                'alignmentVersion': getattr(engine, 'alignment_version', None),
                 'classificationEnabled': getattr(category_engine, 'enabled', bool(category_engine)),
                 'classificationLoaded': getattr(category_engine, 'session', None) is not None}
 
@@ -201,6 +206,7 @@ def create_app(extractor=None, output_dir=None, public_base=None, classifier=Non
                     logging.getLogger(__name__).warning('Photo classification unavailable (%s)', type(error).__name__)
                     classification = {'category': None, 'status': 'unavailable'}
                 return {'cutoutUrl': f'{base}/cutouts/{token}.png', 'expiresIn': TTL_SECONDS, 'classification': classification,
+                        **({'alignment': result.info['source_frame']} if result.info.get('source_frame') else {}),
                         **({'stickerTexture': result.info['sticker_texture']} if result.info.get('sticker_texture') else {})}
             finally:
                 image.close()

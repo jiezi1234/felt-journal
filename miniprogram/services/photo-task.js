@@ -10,7 +10,7 @@ class PhotoTask {
   stage(state, error) {
     if (this.cancelled) return;
     this.state = state;
-    this.onState({ state, error: error || '', permission: /权限/.test(error || ''), original: this.originalPath || this.photo && this.photo.path || '', subject: this.subjectPath || this.result || '', kind: this.kind || '', committed: this.committed, category: this.savedCategory || '' });
+    this.onState({ id:this.id, state, error: error || '', permission: /权限/.test(error || ''), original: this.originalPath || this.photo && this.photo.path || '', previewOriginal:this.photo && this.photo.path || this.originalPath || '', subject: this.subjectPath || this.result || '', alignment:this.alignment || null, kind: this.kind || '', committed: this.committed, category: this.savedCategory || '' });
   }
   check() { if (this.cancelled) throw new Error('处理已取消'); }
   async own(path, role) {
@@ -40,6 +40,7 @@ class PhotoTask {
       this.check();
       if (!this.originalPath) throw new Error('请重新选择照片');
       this.classification = null;
+      this.alignment = null;
       const result = useOriginal ? this.originalPath : await service.extract(this.originalPath, this, state => this.stage(state));
       this.check();
       this.result = result; this.kind = useOriginal ? 'original' : 'extracted';

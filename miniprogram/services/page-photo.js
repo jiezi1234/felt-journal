@@ -86,7 +86,7 @@ function refreshResult(page, force = false) {
   if (!task || !task.committed || page.disposed) return;
   const memory = page.store.get().memories[task.savedId || page.photoNoteId];
   if (!memory || !force && memory.subjectPath === task.subjectPath && memory.originalPath === task.originalPath) return;
-  Object.assign(task, { originalPath: memory.originalPath, subjectPath: memory.subjectPath, kind: memory.kind, savedCategory: memory.category });
+  Object.assign(task, { originalPath: memory.originalPath, subjectPath: memory.subjectPath, kind: memory.kind, savedCategory: memory.category, alignment:null });
   task.stage('done');
 }
 async function adjustResult(page) {

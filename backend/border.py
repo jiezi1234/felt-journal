@@ -90,9 +90,15 @@ def _sticker(image: Image.Image, *, subject_extent=None, texture=None, seed=None
     # Match v.x: alpha > 10 bounding box plus one transparent pixel margin.
     bbox = result.getchannel('A').point(lambda value: 255 if value > 10 else 0).getbbox()
     left, top, right, bottom = bbox
-    result = result.crop((max(0, left - 1), max(0, top - 1),
-                          min(result.width, right + 1), min(result.height, bottom + 1)))
+    crop = (max(0, left - 1), max(0, top - 1), min(result.width, right + 1), min(result.height, bottom + 1))
+    result = result.crop(crop)
     # Keep fully transparent PNG pixels clean when composited by other renderers.
     pixels = np.array(result)
     pixels[pixels[:, :, 3] == 0, :3] = 0
-    return Image.fromarray(pixels)
+    output = Image.fromarray(pixels)
+    frame = image.info.get('source_frame')
+    if frame:
+        output.info['source_frame'] = {**frame, 'x': frame['x'] - padding + crop[0],
+                                       'y': frame['y'] - padding + crop[1],
+                                       'width': output.width, 'height': output.height}
+    return output
