@@ -33,6 +33,7 @@ function validate(s) {
       const m = s.memories[p.memoryId];
       assert(m && (theme || m.date === id) && (s.version === 2 || !seen[p.memoryId] && m.boardId === id) && !localSeen.has(p.memoryId) && p.id === `p_${p.memoryId}`, '记忆与摆放关系异常');
       assert(['x', 'y', 'width', 'height', 'angle', 'z', 'createdAt'].every(k => Number.isFinite(p[k])) && p.width > 0 && p.height > 0, '物件布局异常');
+      assert(p.verticalAnchor === undefined || Number.isFinite(p.verticalAnchor) && p.verticalAnchor >= 0 && p.verticalAnchor <= 1, '物件纵向位置异常');
       const fixed = geometry.fit(p);
       assert(['x', 'y', 'width', 'height', 'angle'].every(k => Math.abs(p[k] - fixed[k]) < 0.01), '物件超出毡面');
       seen[p.memoryId] = true; localSeen.add(p.memoryId);

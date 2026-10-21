@@ -127,6 +127,40 @@ const difference = (op, actual, expected) => op === 'rotate' ? Math.abs(((actual
     const beforeTap = JSON.stringify(await state());
     for (const op of ['resize', 'rotate']) await (await board.$('.grip[data-op="' + op + '"]')).tap();
     assert.equal(JSON.stringify(await state()), beforeTap, 'A tap alone never scales or rotates');
+    for (const edge of ['top','bottom']) {
+      const points=await mini.evaluate((selector,id,edge)=>new Promise(resolve=>{
+        const b=getCurrentPages().slice(-1)[0].selectComponent(selector),p=b.displayModel.items.find(p=>p.memoryId===id);
+        b.createSelectorQuery().select('.board-shell').boundingClientRect(r=>{
+          const s=b.screenWidth/1500,x=r.left+(p.x+45)*s,y=r.top+(p.y+45)*s,target=edge==='top'?r.top+45*s:r.bottom-45*s;
+          resolve([0,.25,.5,.75,1].map(f=>({identifier:0,clientX:x,clientY:y+(target-y)*f})));
+        }).exec();
+      }),selector,id,edge);
+      const canvas=await board.$('#feltCanvas');await canvas.touchstart({touches:[points[0]],changedTouches:[points[0]]});
+      let ready=false;
+      for(let n=0;n<50;n++) {
+        ready=await mini.evaluate(selector=>{const g=getCurrentPages().slice(-1)[0].selectComponent(selector).gesture;return !!g&&!g.pending&&!g.control&&!!g.draggable;},selector);
+        if(ready)break;await pause(20);
+      }
+      assert.ok(ready,'Sticker body receives the edge drag');
+      for(const point of points.slice(1)){await canvas.touchmove({touches:[point],changedTouches:[point]});await pause(60);}
+      await canvas.touchend({touches:[],changedTouches:[points.at(-1)]});
+      await wait(page,d=>placement(d).verticalAnchor===(edge==='top'?0:1),'edge saved');
+      let boundary;
+      for(let n=0;n<50;n++){
+        boundary=await mini.evaluate((selector,id,edge)=>{
+          const b=getCurrentPages().slice(-1)[0].selectComponent(selector),p=b.displayModel.items.find(p=>p.memoryId===id),g=require('core/geometry.js');
+          const e=g.extent(p),gap=edge==='top'?p.y-e.h/2:b.dimensions.height-90-p.y-e.h/2;
+          return {gap,margin:g.margin};
+        },selector,id,edge);
+        if(Math.abs(boundary.gap-boundary.margin)<.01)break;await pause(50);
+      }
+      assert.ok(Math.abs(boundary.gap-boundary.margin)<.01,name+' reaches '+edge+' felt edge: '+JSON.stringify(boundary));
+      const reloaded=await mini.evaluate(()=>require('core/store.js').getStore().load()),date=(await page.data()).date;
+      assert.equal(reloaded.boards[date].placements.find(p=>p.memoryId===id).verticalAnchor,edge==='top'?0:1);
+      const pixels=await mini.evaluate(selector=>getCurrentPages().slice(-1)[0].selectComponent(selector).canvas.toDataURL('image/png').split(',')[1],selector);
+      fs.writeFileSync(path.join(output,name+'-'+edge+'-edge.png'),Buffer.from(pixels,'base64'));
+    }
+    checks.push(name+': sticker reaches both felt edges after rotation; save/reload retains each edge position');
     const current = await page.data(), saved = await state();
     assert.ok(Math.abs(saved.boards[current.date].placements.find(p => p.memoryId === id).angle - 37.5) < .01);
     assert.deepEqual(current.model.items.find(p => p.memoryId === other.memoryId), other);

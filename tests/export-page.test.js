@@ -47,6 +47,20 @@ test('horizontal export includes transparent clamp headroom and invalid viewport
   const exports = f.calls.length; f.page.exportViewport = { width: 0, height: 2500 }; await f.page.generate();
   assert.match(f.page.data.error, /尺寸/); assert.equal(f.page.data.imagePath, ''); assert.equal(f.calls.length, exports);
 });
+
+test('saved edge placements keep their visible gap in portrait sharing without changing storage', async t => {
+  const f=fixture(t), viewport=require('../miniprogram/core/board-viewport'), geometry=require('../miniprogram/core/geometry');
+  f.page.exportViewport={width:1500,height:2500};
+  for (const edge of [0,1]) {
+    const draft=f.store.board(f.date);
+    draft.placements[0]=viewport.toStored({...draft.placements[0],y:edge?1e6:-1e6},1500,2500);
+    f.store.saveBoard(draft);const before=f.disk[KEY];let drawn;
+    renderer.paint=(_,model)=>{drawn=model.items[0];};await f.page.generate();
+    assert.equal(f.page.data.error,'');
+    const box=geometry.extent(drawn),gap=edge?2410-drawn.y-box.h/2:drawn.y-box.h/2;
+    assert.ok(Math.abs(gap-geometry.margin)<1e-7);assert.equal(f.disk[KEY],before);
+  }
+});
 test('sharing uses the exact exported preview without app entry, storage mutation or delivery claims', async t => {
   const f = fixture(t), before = f.disk[KEY]; await f.page.shareImage();
   assert.deepEqual(f.calls, [{ name: 'showShareImageMenu', options: { path: '/preview.png', needShowEntrance: false } }]);

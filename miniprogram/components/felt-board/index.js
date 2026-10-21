@@ -35,7 +35,7 @@ Component({
         this.images = await renderer.loadImages(this.canvas, model.items || [], this.images, false);
         if (version !== this.version || this.dead) return;
         const dimensions = this.dimensions || B;
-        const display = dimensions === B ? model : viewport.present(model, this.screenWidth, this.data.height).model;
+        const display = viewport.present(model, this.screenWidth, this.data.height).model;
         this.displayModel = display;
         const bounds = renderer.frame(dimensions), sy = this.canvas.height / bounds.height;
         const ctx = this.canvas.getContext('2d'); ctx.setTransform(this.canvas.width / dimensions.width, 0, 0, sy, 0, bounds.top * sy);
@@ -108,17 +108,17 @@ Component({
           if (!this.canControl() || this.data.selected !== g.selection) { this.touchCancel(); return; }
           const item = this.data.model.items.find(p => p.memoryId === g.selection);
           if (!item) { this.touchCancel(); return; }
-          const ratio = this.data.layout === 'tall' ? viewport.verticalRatio(this.screenWidth, this.data.height) : 1;
+          const displayItem = viewport.toDisplay(item, this.screenWidth, this.data.height);
           const s = this.screenWidth / B.width;
-          Object.assign(g, { control: control.op, item, pending: false,
-            center: { x: (B.inset + item.x) * s, y: (B.inset + item.y * ratio) * s } });
+          Object.assign(g, { control: control.op, item, displayItem, pending: false,
+            center: { x: (B.inset + displayItem.x) * s, y: (B.inset + displayItem.y) * s } });
           if (g.lastTouch !== touch) this.touchMove({ touches: [g.lastTouch] });
           if (g.ended) this.touchEnd(g.endEvent);
           return;
         }
         const hit = ((this.displayModel || this.data.model).items || []).slice().reverse().find(p => geometry.hit(p, point.x, point.y));
         const item = hit && this.data.model.items.find(p => p.id === hit.id);
-        Object.assign(g, { point, item, pending: false, draggable: this.data.editable && item && this.data.selected === item.memoryId });
+        Object.assign(g, { point, item, displayItem: hit, pending: false, draggable: this.data.editable && item && this.data.selected === item.memoryId });
         if (g.ended) { this.touchEnd(g.endEvent); return; }
         if (item && !g.moved) {
           this.longTimer = setTimeout(() => {
@@ -145,15 +145,14 @@ Component({
         if (!this.canControl() || this.data.selected !== g.selection) { this.touchCancel(); return; }
         if (g.control !== 'remove' && g.moved) {
           const next = geometry.dragControl(g.item, g.control, g.center, start, current);
-          if (next) this.previewPlacement(g, next);
+          if (next) this.previewPlacement(g, viewport.toStored({ ...next, x: g.displayItem.x, y: g.displayItem.y }, this.screenWidth, this.data.height));
         }
         return;
       }
       if (!g.point) return;
       const point = this.point(e.touches[0]), dx = point.x - g.point.x, dy = point.y - g.point.y;
       if (!g.moved || !g.item || !this.data.editable || this.data.selected !== g.item.memoryId || !(g.draggable || g.long)) return;
-      const ratio = this.data.layout === 'tall' ? viewport.verticalRatio(this.screenWidth, this.data.height) : 1;
-      const next = geometry.fit(Object.assign({}, g.item, { x: g.item.x + dx, y: g.item.y + dy / ratio }));
+      const next = viewport.toStored({ ...g.displayItem, x: g.displayItem.x + dx, y: g.displayItem.y + dy }, this.screenWidth, this.data.height);
       this.previewPlacement(g, next);
     },
     previewPlacement(g, next) {
@@ -187,7 +186,7 @@ Component({
             if (!g.moved && start && finish && Math.hypot(finish.x - start.x, finish.y - start.y) <= 12 && control && control.op === 'remove') {
               this.transform({ currentTarget: { dataset: { op: 'remove' } } });
             }
-          } else if (g.next && (['x', 'y', 'width', 'height'].some(key => Math.abs(g.next[key] - g.item[key]) > 0.001) || Math.abs(((g.next.angle - g.item.angle + 540) % 360) - 180) > 0.001)) {
+          } else if (g.next && (['x', 'y', 'width', 'height'].some(key => Math.abs(g.next[key] - g.item[key]) > 0.001) || g.next.verticalAnchor !== g.item.verticalAnchor || Math.abs(((g.next.angle - g.item.angle + 540) % 360) - 180) > 0.001)) {
             this.triggerEvent('change', { placement: g.next });
           }
         }

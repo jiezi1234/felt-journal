@@ -1,16 +1,17 @@
 const config = require('./config');
 const B = config.board;
 const W = B.width - 2 * B.inset, H = B.height - 2 * B.inset;
+const margin = B.innerRadius * (1 - Math.SQRT1_2) + 4;
 function extent(p) {
   const a = p.angle * Math.PI / 180, c = Math.abs(Math.cos(a)), s = Math.abs(Math.sin(a));
   return { w: p.width * c + p.height * s, h: p.width * s + p.height * c };
 }
-function fit(input) {
+function fit(input, dimensions = B) {
+  const W = dimensions.width - 2 * B.inset, H = dimensions.height - 2 * B.inset;
   const p = Object.assign({}, input);
   p.angle = ((p.angle % 360) + 360) % 360;
   const e = extent(p);
   // Reserve the rounded inner corners as well as the straight edges.
-  const margin = B.innerRadius * (1 - Math.SQRT1_2) + 4;
   const ratio = Math.min(1, (W - 2 * margin) / e.w, (H - 2 * margin) / e.h);
   p.width *= ratio; p.height *= ratio;
   const box = extent(p);
@@ -116,4 +117,4 @@ function handles(p, screenWidth, screenHeight = screenWidth * B.height / B.width
 function hitControl(handles, x, y) {
   return (handles || []).find(handle => Math.abs(x - handle.x) <= 22 && Math.abs(y - handle.y) <= 22);
 }
-module.exports = { W, H, extent, fit, create, transform, dragControl, hit, handles, hitControl };
+module.exports = { W, H, margin, extent, fit, create, transform, dragControl, hit, handles, hitControl };

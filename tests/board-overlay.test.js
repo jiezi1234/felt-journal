@@ -215,6 +215,48 @@ test('canvas controls preview continuous size and angle, then commit once on fit
   }
 });
 
+test('tall board drags reach both felt edges through native and viewport touches with clamp headroom', t => {
+  const viewport=require('../miniprogram/core/board-viewport'),geometry=require('../miniprogram/core/geometry'),B=require('../miniprogram/core/config').board;
+  const f=controlFixture(t),b=f.board,s=360/B.width;
+  for (const native of [false,true]) {
+    Object.assign(b.data,{model:{items:[f.item]},layout:'tall',height:600,topSpace:B.overhang*s});
+    const touch=(x,y)=>native?{x,y:y+b.data.topSpace}:{clientX:x+20,clientY:y+40};
+    for (const edge of [0,1]) {
+      b.displayModel=viewport.present(b.data.model,360,600).model;
+      const item=b.displayModel.items[0];b.data.handles=geometry.handles(item,360,600);
+      const start=touch((B.inset+item.x)*s,(B.inset+item.y)*s),end=touch((B.inset+item.x)*s,edge?600:0);
+      f.events.length=0;b.touchStart({touches:[start]});b.touchMove({touches:[end]});
+      assert.equal(f.events.length,0);const preview=b.dragModel.items[0],shown=viewport.toDisplay(preview,360,600),box=geometry.extent(shown);
+      const gap=edge?2410-shown.y-box.h/2:shown.y-box.h/2;
+      assert.ok(Math.abs(gap-geometry.margin)<1e-7);
+      b.touchEnd({changedTouches:[end]});assert.equal(f.events.length,1);
+      assert.equal(f.events[0].name,'change');assert.deepEqual(f.events[0].detail.placement,preview);
+      b.data.model={items:[preview]};
+    }
+  }
+});
+
+test('resize and rotation use the displayed center after moving a sticker into an edge band', t => {
+  const viewport=require('../miniprogram/core/board-viewport'),geometry=require('../miniprogram/core/geometry');
+  const f=controlFixture(t),b=f.board,s=360/1500;
+  Object.assign(b.data,{layout:'tall',height:600});
+  for (const y of [-1e6,500,1e6]) for (const op of ['resize','rotate']) {
+    const item=viewport.toStored({...f.item,width:280,height:220,angle:17,y},360,600);
+    b.data.model={items:[item]};b.displayModel=viewport.present(b.data.model,360,600).model;
+    const shown=b.displayModel.items[0];b.data.handles=geometry.handles(shown,360,600);
+    const center={x:(shown.x+45)*s,y:(shown.y+45)*s},h=b.data.handles.find(h=>h.op===op);
+    const dx=h.x-center.x,dy=h.y-center.y,a=23.7*Math.PI/180;
+    const x=center.x+(op==='resize'?dx*1.2:dx*Math.cos(a)-dy*Math.sin(a));
+    const targetY=center.y+(op==='resize'?dy*1.2:dx*Math.sin(a)+dy*Math.cos(a));
+    const end={clientX:x+20,clientY:targetY+40};f.events.length=0;
+    b.controlStart({currentTarget:{dataset:{op}},touches:[f.at(op)]});b.touchMove({touches:[end]});
+    const next=b.dragModel.items[0],actual=viewport.toDisplay(next,360,600);
+    const expected=geometry.fit({...shown,width:shown.width*(op==='resize'?1.2:1),height:shown.height*(op==='resize'?1.2:1),angle:shown.angle+(op==='rotate'?23.7:0)},{width:1500,height:2500});
+    for(const key of ['x','y','width','height','angle'])assert.ok(Math.abs(actual[key]-expected[key])<1e-7,`${op} ${key} follows the visible center`);
+    b.touchEnd({changedTouches:[end]});assert.equal(f.events.length,1);assert.equal(f.events[0].name,'change');
+  }
+});
+
 test('control touches cancel on movement, cancellation, multitouch, selection changes and overlays', t => {
   const f = controlFixture(t), touch = f.at('remove', true);
   const cancel = [
