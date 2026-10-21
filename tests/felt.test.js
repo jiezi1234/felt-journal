@@ -64,7 +64,8 @@ test('sample preview is the same section of material used on the board', () => {
   for (const texture of config.textures) {
     const sample = createCanvas(260, 140); felt.paintSample(sample.getContext('2d'), 260, 140, '#DDC7C1', texture.value);
     const board = render(1500, '#DDC7C1', texture.value);
-    const actual = sample.getContext('2d').getImageData(0, 0, 260, 140).data, expected = board.getContext('2d').getImageData(240, 260, 260, 140).data;
+    // Compare the left half, clear of the enlarged clip and its contact shadow.
+    const actual = sample.getContext('2d').getImageData(0, 0, 130, 140).data, expected = board.getContext('2d').getImageData(240, 260, 130, 140).data;
     let maximum = 0, sum = 0;
     actual.forEach((value, index) => { const difference = Math.abs(value - expected[index]); maximum = Math.max(maximum, difference); sum += difference; });
     // Rasterizing translated paths can round edge coverage differently. Permit

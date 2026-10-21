@@ -138,17 +138,17 @@ const rows = data => data.groups.flatMap(group => group.items);
     await board.callMethod('done'); await wait(board, value => !value.editable); await capture('wechat-theme-board.png');
     await (await board.$('#export-board')).tap(); const exported = await board.$('#share-card'); data = await wait(exported, value => !value.generating);
     assert.equal(data.error, ''); assert.equal(data.isTheme, true); assert.equal(data.dateLabel, '秋日拾遗');
-    const info = await mini.callWxMethod('getImageInfo', { src: data.imagePath }); assert.deepEqual([info.width, info.height], [1800, 1354]);
+    const info = await mini.callWxMethod('getImageInfo', { src: data.imagePath }); assert.deepEqual([info.width, info.height], [1800, 1392]);
     const png = Buffer.from(await mini.evaluate(file => wx.getFileSystemManager().readFileSync(file, 'base64'), data.imagePath), 'base64');
     fs.writeFileSync(path.join(output, 'wechat-theme-artwork.png'), png);
-    const outputCanvas = createCanvas(1800, 1354), pixels = outputCanvas.getContext('2d'); pixels.drawImage(await loadImage(png), 0, 0);
+    const outputCanvas = createCanvas(1800, 1392), pixels = outputCanvas.getContext('2d'); pixels.drawImage(await loadImage(png), 0, 0);
     for (const [x, color] of [[370, [196, 119, 64]], [1030, [77, 125, 91]]]) {
-      const patch = pixels.getImageData(Math.round((45 + x) * 1.2) - 48, Math.round((128 + 45 + 440) * 1354/1128) - 48, 96, 96).data; let matches = 0;
+      const patch = pixels.getImageData(Math.round((45 + x) * 1.2) - 48, Math.round((160 + 45 + 440) * 1392/1160) - 48, 96, 96).data; let matches = 0;
       for (let index = 0; index < patch.length; index += 4) if (color.every((value, channel) => Math.abs(patch[index + channel] - value) <= 2) && patch[index + 3] === 255) matches++;
       assert.ok(matches > 1000, `Native export must show the subject at x=${x}, got ${matches} matching pixels`);
     }
     await capture('wechat-theme-export.png');
-    checks.push('shared text and native image correction update one memory across three boards while all layouts/original bytes stay unchanged; native 1800x1354 export contains the clamp and both separately positioned colors');
+    checks.push('shared text and native image correction update one memory across three boards while all layouts/original bytes stay unchanged; native 1800x1392 export contains the clamp and both separately positioned colors');
     console.log('STEP: shared content and theme export passed; checking removal boundaries');
     home = await mini.reLaunch('/pages/index/index'); await wait(home, value => !value.loading); assert.equal((await home.data()).count, 2);
     board = await mini.navigateTo(`/pages/board/index?date=${old}&mode=edit`); data = await wait(board, value => !value.loading);
