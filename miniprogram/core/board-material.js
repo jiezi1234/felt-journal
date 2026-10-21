@@ -94,7 +94,7 @@ function clip(ctx, width, pixelScale) {
   }
   ctx.restore();
 }
-function paint(ctx, model, B, pixelScale) {
+function paint(ctx, model, B) {
   ctx.save(); ctx.clearRect(0, -B.overhang, B.width, B.height + B.overhang);
   rounded(ctx, 0, 0, B.width, B.height, B.radius);
   ctx.fillStyle = gradient(ctx, 0, 0, B.width, B.height, [[0,'#8B7054'],[.25,'#6B513B'],[.65,'#70543D'],[1,'#443629']]); ctx.fill();
@@ -122,7 +122,7 @@ function paint(ctx, model, B, pixelScale) {
   ctx.fillStyle = gradient(ctx, i, 0, i+w, 0, [[0,'rgba(45,38,25,.13)'],[.024,'rgba(45,38,25,0)'],[.976,'rgba(45,38,25,0)'],[1,'rgba(45,38,25,.1)']]); ctx.fillRect(i,i,w,h);
   ctx.restore();
   rounded(ctx, i+2, i+2, w-4, h-4, B.innerRadius-1); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,244,210,.32)'; ctx.stroke();
-  clip(ctx, B.width, pixelScale); ctx.restore();
+  ctx.restore();
 }
 function anchorOf(image, factory) {
   if (anchors.has(image)) return anchors.get(image);
@@ -191,4 +191,4 @@ function pin(ctx, size, id, angle, pixelScale, image) {
   oval(ctx,-r*.29,-r*1.63,r*.37,r*.16); ctx.fillStyle='rgba(255,255,255,.62)'; ctx.fill();
   ctx.restore();
 }
-module.exports = { rounded, paint, pin, anchorOf };
+module.exports = { rounded, paint, clip, pin, anchorOf };

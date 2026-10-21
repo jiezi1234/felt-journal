@@ -11,7 +11,7 @@ function paint(ctx, model, images, selection, dimensions = B, surface, pixelScal
   const B = dimensions;
   const bounds = frame(B);
   ctx.clearRect(0, -bounds.top, bounds.width, bounds.height);
-  if (surface) ctx.drawImage(surface, 0, -bounds.top, bounds.width, bounds.height); else material.paint(ctx, model, B, pixelScale);
+  if (surface) ctx.drawImage(surface, 0, -bounds.top, bounds.width, bounds.height); else material.paint(ctx, model, B);
   const i = B.inset, w = B.width - 2 * i, h = B.height - 2 * i;
   ctx.save(); rounded(ctx, i, i, w, h, B.innerRadius); ctx.clip();
   (model.items || []).forEach(p => {
@@ -32,6 +32,9 @@ function paint(ctx, model, images, selection, dimensions = B, surface, pixelScal
     ctx.restore();
   });
   ctx.restore();
+  // The clip presses down on every sticker and pin, outside the felt's crop.
+  // Keep it out of the cached background and below the editing overlays.
+  material.clip(ctx, B.width, pixelScale);
   if (selection) {
     const p = (model.items || []).find(item => item.memoryId === selection);
     if (p) { ctx.save(); ctx.translate(i + p.x, i + p.y); ctx.rotate(p.angle * Math.PI / 180); ctx.strokeStyle = '#D9AD52'; ctx.lineWidth = 6; ctx.setLineDash([15, 12]); ctx.strokeRect(-p.width / 2 - 5, -p.height / 2 - 5, p.width + 10, p.height + 10); ctx.restore(); }
@@ -46,7 +49,7 @@ function createSurface(canvas, model, dimensions = B, previous, factory) {
     const surface = create({ type:'2d', width:canvas.width, height:canvas.height }), ctx = surface.getContext('2d');
     const bounds = frame(dimensions), sy = canvas.height / bounds.height;
     ctx.setTransform(canvas.width / dimensions.width,0,0,sy,0,bounds.top*sy);
-    material.paint(ctx,model,dimensions,canvas.width / dimensions.width); return { key, canvas:surface };
+    material.paint(ctx,model,dimensions); return { key, canvas:surface };
   } catch (_) { return null; }
 }
 function loadImage(canvas, path) {

@@ -30,6 +30,21 @@ module.exports = async function dragControl(mini, board, selector, op, value, op
   if (!ready) throw Error('Drag control did not receive touchstart: ' + op);
   for (let i = 1; i < points.length; i++) {
     await node.touchmove({ touches: [points[i]], changedTouches: [points[i]] }); await pause(60);
+    // Background DevTools windows throttle requestAnimationFrame. Inspect each
+    // intermediate position only after its native canvas frame has rendered.
+    let painted = false;
+    for (let n = 0; n < 100; n++) {
+      painted = await mini.evaluate(selector => {
+        const b = getCurrentPages().slice(-1)[0].selectComponent(selector), next = b.gesture && b.gesture.next;
+        const shown = b.displayModel && b.displayModel.items.find(p => p.memoryId === b.data.selected);
+        if (!next || !shown) return false;
+        const expected = require('core/board-viewport.js').toDisplay(next, b.screenWidth, b.data.height);
+        return ['x', 'y', 'width', 'height', 'angle'].every(key => Math.abs(shown[key] - expected[key]) < .001);
+      }, selector);
+      if (painted) break;
+      await pause(20);
+    }
+    if (!painted) throw Error('Native canvas did not render the intermediate gesture: ' + op);
     if (options.onMove) await options.onMove(i / (points.length - 1), points[i]);
   }
   if (options.cancel) await node.dispatchEvent({ eventName: 'touchcancel', touches: [], changedTouches: [points[4]] });

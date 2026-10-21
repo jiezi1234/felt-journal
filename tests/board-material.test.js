@@ -45,3 +45,41 @@ test('clamp extends above the wooden board without cropping its opaque edge or f
     assert.equal(ctx.getImageData(10,Math.floor(top/2),1,1).data[3],0,'Only the clamp occupies the headroom');
   }
 });
+
+test('steel jaws cover overlapping stickers and pins in both cached preview and direct export', () => {
+  const sticker=createCanvas(560,340),ink=sticker.getContext('2d');ink.fillStyle='#FF00C8';ink.fillRect(0,0,560,340);
+  const model={color:'#D9CBAF',texture:'fine',items:[{
+    memoryId:'under-clip',x:705,y:190,width:560,height:340,angle:0,memory:{subjectPath:'sticker'}
+  }]};
+  for(const width of [390,1800]) {
+    const dimensions={...B,height:width===390?2187.5:B.height},bounds=renderer.frame(dimensions);
+    const height=Math.round(width*bounds.height/bounds.width),sx=width/bounds.width,sy=height/bounds.height;
+    const draw=(items,surface)=>{
+      const canvas=createCanvas(width,height),ctx=canvas.getContext('2d');ctx.setTransform(sx,0,0,sy,0,bounds.top*sy);
+      renderer.paint(ctx,{...model,items},{sticker},'',dimensions,surface);return canvas;
+    };
+    const empty=draw([]),direct=draw(model.items);
+    const cached=renderer.createSurface(direct,model,dimensions,null,({width,height})=>createCanvas(width,height));
+    const preview=draw(model.items,cached.canvas);
+    const pixel=(canvas,x,y)=>Array.from(canvas.getContext('2d').getImageData(Math.floor(x*sx),Math.floor((y+bounds.top)*sy),1,1).data);
+    for(const canvas of [direct,preview]) {
+      for(const x of [600,750,900])for(const y of [90,130]) {
+        assert.deepEqual(pixel(canvas,x,y),pixel(empty,x,y),'The opaque jaw covers the object, including its pin');
+      }
+      assert.deepEqual(pixel(canvas,750,260),[255,0,200,255],'The object remains visible below the jaw');
+    }
+    const a=direct.getContext('2d').getImageData(0,0,width,height).data,b=preview.getContext('2d').getImageData(0,0,width,height).data;
+    let max=0;for(let n=0;n<a.length;n++)max=Math.max(max,Math.abs(a[n]-b[n]));
+    assert.ok(max<=2,'Cached preview and direct export keep identical overlap and shadow pixels');
+  }
+});
+
+test('selection and transform controls remain visible above the steel clip', () => {
+  const bounds=renderer.frame(),canvas=createCanvas(bounds.width,bounds.height),ctx=canvas.getContext('2d');
+  ctx.translate(0,bounds.top);
+  renderer.paint(ctx,{items:[{memoryId:'selected',x:705,y:190,width:560,height:340,angle:0,memory:{subjectPath:'missing'}}]}, {}, 'selected');
+  const pixel=(x,y)=>Array.from(ctx.getImageData(x,y+bounds.top,1,1).data);
+  assert.deepEqual(pixel(473,60),[217,173,82,255],'The selected outline stays above the jaw');
+  renderer.paintControls(ctx,[{op:'resize',x:750,y:100}],B.width);
+  assert.deepEqual(pixel(758,100),[247,242,233,255],'The resize control stays above the jaw');
+});
