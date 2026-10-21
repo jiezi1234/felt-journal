@@ -31,7 +31,7 @@ test('portrait sharing preserves screen spacing, sticker sizes and saved layout 
   f.page.exportViewport = { width: 1500, height: 2500 };
   renderer.paint = (_, model, images, selection, dimensions) => calls.push({ model, selection, dimensions });
   await f.page.generate();
-  assert.equal(f.page.data.error, ''); assert.equal(f.canvas.width, 1015); assert.equal(f.canvas.height, 1800);
+  assert.equal(f.page.data.error, ''); assert.equal(f.canvas.width, 991); assert.equal(f.canvas.height, 1800);
   const saved = f.store.view(f.date), drawn = calls[0].model.items[0], item = saved.items[0];
   assert.equal(drawn.x, item.x); assert.equal(drawn.y, item.y * (2500 - 90) / (1000 - 90));
   for (const key of ['width', 'height', 'angle', 'z']) assert.equal(drawn[key], item[key]);
@@ -43,7 +43,7 @@ test('portrait sharing preserves screen spacing, sticker sizes and saved layout 
 
 test('horizontal export includes transparent clamp headroom and invalid viewports never export', async t => {
   const f = fixture(t); await f.page.generate();
-  assert.deepEqual([f.canvas.width, f.canvas.height], [1800, 1392]);
+  assert.deepEqual([f.canvas.width, f.canvas.height], [1800, 1469]);
   const exports = f.calls.length; f.page.exportViewport = { width: 0, height: 2500 }; await f.page.generate();
   assert.match(f.page.data.error, /尺寸/); assert.equal(f.page.data.imagePath, ''); assert.equal(f.calls.length, exports);
 });
@@ -88,7 +88,7 @@ test('expired exports block share/save and can regenerate from the unchanged boa
   const f = fixture(t), before = f.disk[KEY]; f.missing(true);
   await f.page.shareImage(); await f.page.saveAlbum(); assert.equal(f.calls.length, 0); assert.equal(f.page.data.imageExpired, true); assert.match(f.page.data.error, /重新生成/);
   f.missing(false); await f.page.generate(); assert.equal(f.page.data.imagePath, '/new-export.png'); assert.equal(f.page.data.imageExpired, false); assert.equal(f.page.data.error, '');
-  assert.deepEqual([f.canvas.width, f.canvas.height], [1800, 1392]); assert.equal(f.page.data.count, 1);
+  assert.deepEqual([f.canvas.width, f.canvas.height], [1800, 1469]); assert.equal(f.page.data.count, 1);
   await f.page.shareImage(); assert.equal(f.calls.at(-1).options.path, '/new-export.png'); assert.equal(f.disk[KEY], before);
 });
 test('late share and album callbacks do not update or toast on an unloaded page', async t => {

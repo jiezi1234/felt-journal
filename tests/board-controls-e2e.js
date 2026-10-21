@@ -160,7 +160,7 @@ const difference = (op, actual, expected) => op === 'rotate' ? Math.abs(((actual
     const share=await page.$('#share-card'),exported=await wait(share,d=>!d.generating,'export');assert.equal(exported.error,'');
     const info=await mini.callWxMethod('getImageInfo',{src:exported.imagePath}),frame=(await page.data()).shareViewport;
     assert.equal(Math.max(info.width,info.height),1800);
-    assert.ok(Math.abs(info.width/info.height-frame.width/(frame.height+160))<.001,'Export includes full clamp headroom');
+    assert.ok(Math.abs(info.width/info.height-frame.width/(frame.height+224))<.001,'Export includes full clamp headroom');
     await wait(board,d=>d.covered&&!!d.snapshot,'covered snapshot');
     const snapshotInfo=await mini.callWxMethod('getImageInfo',{src:(await board.data()).snapshot});
     const shown=await board.data();assert.ok(Math.abs(snapshotInfo.width/snapshotInfo.height-shown.width/shown.canvasHeight)<.002);
