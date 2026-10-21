@@ -10,35 +10,65 @@ function rounded(ctx, x, y, w, h, r) {
 function gradient(ctx, x1, y1, x2, y2, stops) {
   const g = ctx.createLinearGradient(x1, y1, x2, y2); stops.forEach(([at, color]) => g.addColorStop(at, color)); return g;
 }
+function oval(ctx, x, y, rx, ry) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(rx, ry); ctx.beginPath(); ctx.arc(0, 0, 1, 0, Math.PI * 2); ctx.restore();
+}
 function clip(ctx, width, pixelScale) {
-  ctx.save(); ctx.translate(width / 2, 5);
-  ctx.shadowColor = 'rgba(29,31,30,.35)'; ctx.shadowBlur = 20 * pixelScale; ctx.shadowOffsetY = 13 * pixelScale;
-  rounded(ctx, -145, 20, 290, 96, 17);
-  ctx.fillStyle = gradient(ctx, -145, 0, 145, 0, [[0,'#697174'],[.08,'#C5CCCA'],[.28,'#E4E7E1'],[.5,'#AAB1AE'],[.78,'#D3D8D3'],[1,'#687173']]); ctx.fill();
+  ctx.save(); ctx.translate(width / 2, 4);
+  // Low-profile clipboard clamp: a hanging tab and spring wire sit behind the
+  // stamped steel plate. Black end sleeves wrap its two folded corners.
+  ctx.shadowColor = 'rgba(24,29,29,.35)'; ctx.shadowBlur = 13 * pixelScale; ctx.shadowOffsetY = 10 * pixelScale;
+  rounded(ctx, -31, 0, 62, 49, 8);
+  ctx.fillStyle = gradient(ctx, -31, 0, 31, 0, [[0,'#747E81'],[.17,'#DDE2E1'],[.45,'#F3F4EC'],[.83,'#B4BFBE'],[1,'#636F74']]); ctx.fill();
   ctx.shadowColor = 'transparent';
-  rounded(ctx, -146, 104, 292, 16, 6); ctx.fillStyle = '#555D5C'; ctx.fill();
-  rounded(ctx, -141, 104, 282, 5, 2); ctx.fillStyle = '#D7DBD4'; ctx.fill();
-  rounded(ctx, -135, 29, 270, 70, 11);
-  ctx.fillStyle = gradient(ctx, 0, 29, 0, 99, [[0,'#F0F1E9'],[.12,'#C6CCC6'],[.55,'#B7BFBA'],[1,'#8E9994']]); ctx.fill();
-  ctx.save(); rounded(ctx, -134, 30, 268, 68, 10); ctx.clip(); ctx.lineWidth = .8;
-  for (let y = 35; y < 96; y += 3) {
-    ctx.strokeStyle = y % 2 ? 'rgba(255,255,246,.18)' : 'rgba(50,65,61,.11)'; ctx.beginPath(); ctx.moveTo(-130, y); ctx.lineTo(130, y); ctx.stroke();
+  oval(ctx, 0, 17, 12, 10); ctx.fillStyle = '#514537'; ctx.fill();
+  ctx.strokeStyle = '#EDF0E8'; ctx.lineWidth = 3; ctx.stroke();
+  const wire = () => {
+    ctx.beginPath(); ctx.moveTo(-237, 61); ctx.quadraticCurveTo(-233, 28, -191, 29);
+    ctx.lineTo(-111, 29); ctx.bezierCurveTo(-59, 29, -66, 10, 0, 10);
+    ctx.bezierCurveTo(66, 10, 59, 29, 111, 29); ctx.lineTo(191, 29); ctx.quadraticCurveTo(233, 28, 237, 61);
+  };
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round'; wire(); ctx.lineWidth = 10; ctx.strokeStyle = '#657174'; ctx.stroke();
+  wire(); ctx.lineWidth = 6; ctx.strokeStyle = '#D5DDDC'; ctx.stroke();
+  ctx.save(); ctx.translate(0, -1.5); wire(); ctx.lineWidth = 2; ctx.strokeStyle = '#FAFCF5'; ctx.stroke(); ctx.restore();
+  ctx.shadowColor = 'rgba(25,29,27,.4)'; ctx.shadowBlur = 15 * pixelScale; ctx.shadowOffsetY = 10 * pixelScale;
+  rounded(ctx, -264, 42, 528, 76, 12);
+  ctx.fillStyle = gradient(ctx, 0, 42, 0, 118, [[0,'#D7DDDA'],[.22,'#7F8C8E'],[.72,'#C1CAC7'],[1,'#4D595C']]); ctx.fill();
+  ctx.shadowColor = 'transparent';
+  rounded(ctx, -255, 33, 510, 74, 11);
+  ctx.fillStyle = gradient(ctx, 0, 33, 0, 107, [[0,'#F0F3EF'],[.08,'#8D9A9B'],[.18,'#C1CAC8'],[.48,'#F1F3EB'],[.78,'#C5CDCA'],[1,'#8C999B']]); ctx.fill();
+  ctx.strokeStyle = '#677578'; ctx.lineWidth = 2; ctx.stroke();
+  // Fine cross-stamped marks read as metal at export resolution without noise
+  // on the phone. Clip the pattern away from the polished folded edges.
+  ctx.save(); rounded(ctx, -220, 43, 440, 51, 5); ctx.clip(); ctx.lineWidth = 1;
+  for (let x = -280; x < 280; x += 7) {
+    ctx.beginPath(); ctx.moveTo(x, 42); ctx.lineTo(x + 52, 95); ctx.strokeStyle = 'rgba(68,85,88,.1)'; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x, 42); ctx.lineTo(x - 52, 95); ctx.strokeStyle = 'rgba(255,255,249,.38)'; ctx.stroke();
   }
   ctx.restore();
-  for (const x of [-112, 112]) {
-    ctx.beginPath(); ctx.arc(x, 62, 7, 0, Math.PI * 2); ctx.fillStyle = '#68746E'; ctx.fill();
-    ctx.beginPath(); ctx.arc(x - 1, 60, 4.5, 0, Math.PI * 2); ctx.fillStyle = '#D3D9D0'; ctx.fill();
+  // The rolled front jaw provides the brightest reflection and a thin dark
+  // contact line where the clamp presses against the board.
+  rounded(ctx, -252, 99, 504, 14, 6);
+  ctx.fillStyle = gradient(ctx, 0, 99, 0, 113, [[0,'#6D7B7D'],[.26,'#F9FCF4'],[.53,'#D4DCDA'],[1,'#556367']]); ctx.fill();
+  for (const x of [-204, 204]) {
+    oval(ctx, x, 69, 20, 17); ctx.fillStyle = '#6B7676'; ctx.fill();
+    oval(ctx, x, 67, 18, 15); ctx.fillStyle = gradient(ctx, x-18, 52, x+18, 82, [[0,'#FFFFFF'],[.34,'#E2E6DF'],[.6,'#84918F'],[1,'#F4F4E9']]); ctx.fill();
+    oval(ctx, x, 67, 12, 10); ctx.fillStyle = '#424B48'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#F0F0E4'; ctx.stroke();
+    oval(ctx, x+1, 69, 8, 6); ctx.fillStyle = '#232A29'; ctx.fill();
   }
-  // Folded wire handle: a dark edge and a narrow continuous reflection.
-  const wire = () => {
-    ctx.beginPath(); ctx.moveTo(-43, 73); ctx.lineTo(-44, 39); ctx.quadraticCurveTo(-43, 7, -22, 7);
-    ctx.lineTo(22, 7); ctx.quadraticCurveTo(43, 7, 44, 39); ctx.lineTo(43, 73);
-  };
-  ctx.lineCap = 'round'; ctx.lineJoin = 'round'; wire(); ctx.lineWidth = 12; ctx.strokeStyle = '#626D69'; ctx.stroke();
-  wire(); ctx.lineWidth = 7; ctx.strokeStyle = '#E3E8DF'; ctx.stroke();
-  wire(); ctx.lineWidth = 2; ctx.strokeStyle = '#FFFFFF'; ctx.stroke();
-  rounded(ctx, -53, 68, 106, 18, 8);
-  ctx.fillStyle = gradient(ctx, 0, 68, 0, 86, [[0,'#7C8981'],[.3,'#E9EDE4'],[.55,'#BEC7BD'],[1,'#67756B']]); ctx.fill();
+  for (const side of [-1, 1]) {
+    ctx.save(); ctx.scale(side, 1);
+    ctx.beginPath(); ctx.moveTo(226, 28); ctx.lineTo(255, 28); ctx.quadraticCurveTo(268, 29, 268, 42);
+    ctx.lineTo(268, 97); ctx.quadraticCurveTo(267, 111, 254, 111); ctx.lineTo(237, 111);
+    ctx.lineTo(237, 96); ctx.lineTo(246, 96); ctx.lineTo(246, 47); ctx.lineTo(222, 47);
+    ctx.lineTo(222, 34); ctx.quadraticCurveTo(222, 28, 226, 28); ctx.closePath();
+    ctx.fillStyle = gradient(ctx, 224, 28, 268, 106, [[0,'#414647'],[.22,'#252B2D'],[.63,'#171D20'],[1,'#333B3C']]); ctx.fill();
+    ctx.strokeStyle = '#141B1D'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(228, 32); ctx.lineTo(255, 32); ctx.quadraticCurveTo(263, 33, 263, 43); ctx.lineTo(263, 96);
+    ctx.strokeStyle = 'rgba(132,143,143,.38)'; ctx.lineWidth = 2; ctx.stroke();
+    for (let y = 51; y < 94; y += 6) { ctx.beginPath(); ctx.moveTo(250, y); ctx.lineTo(260, y); ctx.strokeStyle = 'rgba(5,12,15,.42)'; ctx.stroke(); }
+    ctx.restore();
+  }
   ctx.restore();
 }
 function paint(ctx, model, B, pixelScale) {
@@ -104,18 +134,34 @@ function anchorOf(image, factory) {
 }
 function pin(ctx, size, id, angle, pixelScale, image) {
   let hash = 0; for (const c of String(id || 'pin')) hash = ((hash * 31) + c.charCodeAt(0)) >>> 0;
-  const anchor = anchorOf(image), r = Math.max(5, Math.min(23,Math.min(size.width,size.height)*.085,anchor.span*size.width*.35));
+  const anchor = anchorOf(image), r = Math.max(6, Math.min(24,Math.min(size.width,size.height)*.085,anchor.span*size.width*.4));
   ctx.save(); ctx.translate((anchor.x-.5)*size.width,(anchor.y-.5)*size.height);
-  ctx.rotate(-angle);
-  ctx.shadowColor = 'rgba(37,31,23,.45)'; ctx.shadowBlur = r*.55*pixelScale; ctx.shadowOffsetX = r*.2*pixelScale; ctx.shadowOffsetY = r*.55*pixelScale;
-  ctx.beginPath(); ctx.arc(0, r*.25, r*.76, 0, Math.PI*2); ctx.fillStyle = '#56564C'; ctx.fill();
+  ctx.rotate(-angle - .2);
+  // Keep the insertion point on the opaque subject. The tilted head exposes
+  // both flanges and the narrow waist of a real pushpin, lit from the top left.
+  ctx.shadowColor = 'rgba(37,31,23,.32)'; ctx.shadowBlur = r*.5*pixelScale; ctx.shadowOffsetX = r*.32*pixelScale; ctx.shadowOffsetY = r*.3*pixelScale;
+  oval(ctx, r*.33, -r*.14, r*.8, r*.34); ctx.fillStyle = 'rgba(58,44,29,.19)'; ctx.fill();
   ctx.shadowColor = 'transparent';
-  const colors = [['#F1E1B5','#BA9B61','#76623D'],['#EDF0E5','#AEB8AF','#5E6D62'],['#E3E6DF','#A2ACAA','#566362']][hash % 3];
-  const cap = ctx.createRadialGradient(-r*.3,-r*.4,r*.06,0,0,r);
-  cap.addColorStop(0,'#FFFDF0'); cap.addColorStop(.25,colors[0]); cap.addColorStop(.72,colors[1]); cap.addColorStop(1,colors[2]);
-  ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.fillStyle = cap; ctx.fill();
-  ctx.strokeStyle = 'rgba(57,56,43,.55)'; ctx.lineWidth = 1.3; ctx.stroke();
-  ctx.beginPath(); ctx.arc(0,0,r*.72,Math.PI*1.06,Math.PI*1.7); ctx.lineWidth = 1.7; ctx.strokeStyle = 'rgba(255,255,239,.75)'; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, -r*.72); ctx.lineTo(0, 0); ctx.lineCap = 'round'; ctx.lineWidth = Math.max(1.5, r*.18); ctx.strokeStyle = '#64716F'; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-r*.035, -r*.65); ctx.lineTo(-r*.035, -r*.08); ctx.lineWidth = Math.max(.7, r*.065); ctx.strokeStyle = '#F1F2E8'; ctx.stroke();
+  const colors = [['#F5D398','#D6A253','#8D5B2E'],['#CCDCC7','#8FA895','#4D7267'],['#F0BBA3','#C47D64','#874E40']][hash % 3];
+  const resin = gradient(ctx, -r, 0, r, 0, [[0,colors[2]],[.22,colors[0]],[.42,colors[1]],[.78,colors[1]],[1,colors[2]]]);
+  oval(ctx, 0, -r*.55, r*.81, r*.32); ctx.fillStyle = colors[2]; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-r*.81, -r*.63);
+  ctx.bezierCurveTo(-r*.76, -r*.9, -r*.32, -r*.87, -r*.32, -r*1.2);
+  ctx.quadraticCurveTo(-r*.3, -r*1.58, -r*.58, -r*1.82);
+  ctx.lineTo(r*.58, -r*1.82); ctx.quadraticCurveTo(r*.3, -r*1.58, r*.32, -r*1.2);
+  ctx.bezierCurveTo(r*.32, -r*.87, r*.76, -r*.9, r*.81, -r*.63);
+  ctx.bezierCurveTo(r*.6, -r*.32, -r*.6, -r*.32, -r*.81, -r*.63); ctx.closePath(); ctx.fillStyle = resin; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-r*.29, -r*1.56); ctx.quadraticCurveTo(-r*.4, -r, -r*.62, -r*.72);
+  ctx.lineWidth = r*.08; ctx.strokeStyle = 'rgba(255,249,221,.5)'; ctx.stroke();
+  oval(ctx, 0, -r*1.82, r, r*.36); ctx.fillStyle = colors[2]; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-r, -r*2.04); ctx.lineTo(-r, -r*1.82);
+  ctx.bezierCurveTo(-r, -r*1.36, r, -r*1.36, r, -r*1.82); ctx.lineTo(r, -r*2.04); ctx.closePath(); ctx.fillStyle = resin; ctx.fill();
+  oval(ctx, 0, -r*2.04, r, r*.36);
+  ctx.fillStyle = gradient(ctx, -r*.5, -r*2.4, r*.5, -r*1.7, [[0,'#FFF6DE'],[.2,colors[0]],[.7,colors[1]],[1,colors[2]]]); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,247,221,.5)'; ctx.lineWidth = r*.055; ctx.stroke();
+  oval(ctx, -r*.28, -r*2.13, r*.43, r*.09); ctx.fillStyle = 'rgba(255,255,239,.57)'; ctx.fill();
   ctx.restore();
 }
 module.exports = { rounded, paint, pin, anchorOf };
