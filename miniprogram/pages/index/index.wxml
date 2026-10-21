@@ -18,5 +18,5 @@
 <record-card wx:if="{{editorOpen}}" id="record-card" board-id="{{editorDate}}" lifting="{{!!placing}}" bind:place="startSticker" bind:close="closeEditor" bind:change="editorChanged" />
 <sticker-flight id="placement-flight" wx:if="{{placing}}" flight="{{placing}}" bind:peeled="stickerLifted" bind:landed="stickerLanded" />
 
-<memory-card wx:if="{{memoryCardId}}" id="memory-card" memory-id="{{memoryCardId}}" bind:close="closeMemoryCard" bind:change="memoryCardChanged" />
+<memory-card wx:if="{{memoryCardId}}" id="memory-card" memory-id="{{memoryCardId}}" source="{{memoryCardSource}}" bind:pickuplift="liftMemoryPickup" bind:pickupreturn="returnMemoryPickup" bind:pickuprestore="restoreMemoryPickup" bind:close="closeMemoryCard" bind:change="memoryCardChanged" />
 <share-card wx:if="{{shareBoardId}}" id="share-card" board-id="{{shareBoardId}}" viewport="{{shareViewport}}" bind:close="closeShareCard" />

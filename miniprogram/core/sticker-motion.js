@@ -21,4 +21,11 @@ function transform(source, target) {
     y: target.top + target.height / 2 - source.top - source.height / 2,
     scale: target.width / source.width, angle: target.angle || 0 };
 }
-module.exports = { imageRect, landingRect, transform, validRect };
+function pickupTransform(source, target) {
+  if (!validRect(source) || !validRect(target)) return null;
+  // Render at the card's contained image size; rotate along the shortest path.
+  const result = transform(target, source);
+  result.angle = ((result.angle + 180) % 360 + 360) % 360 - 180;
+  return result;
+}
+module.exports = { imageRect, landingRect, transform, pickupTransform, validRect };

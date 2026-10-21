@@ -101,6 +101,7 @@ const output = path.resolve('artifacts/round1');
     const id = await mini.evaluate(() => getApp().__round1.id);
     await act([], 'openMemory', { detail: { id } });
     await until(async () => !!await page.$('#memory-card'), 'memory card');
+    await until(async () => !(await (await page.$('#memory-card')).data()).pickupBusy, 'memory pickup');
     await act(['#memory-card'], 'flip'); await act(['#memory-card'], 'edit');
     await act(['#memory-card'], 'input', { detail: { value: '键盘与短屏验收。'.repeat(35) } });
     await keyboard(['#memory-card'], 260);

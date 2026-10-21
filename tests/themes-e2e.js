@@ -106,7 +106,7 @@ const rows = data => data.groups.flatMap(group => group.items);
     assert.equal(String(await (await picker.$(`.memory-row[data-id="${past}"]`)).attribute('disabled')), 'true');
     await picker.callMethod('back'); board = await route('pages/board/index'); await wait(board, value => value.count === 2);
     checks.push('cross-month native picker uses EventChannel to return selected item; independent layout, removal cancel/confirm, retained source and duplicate prevention');
-    await board.callMethod('memory', { detail: { id: past } }); const memoryCard = await board.$('#memory-card');
+    await board.callMethod('memory', { detail: { id: past } }); await wait(board, d => d.memoryCardId === past); const memoryCard = await board.$('#memory-card'); await wait(memoryCard, d => !d.pickupBusy);
     assert.equal(await memoryCard.$('#memory-options'), null); await (await memoryCard.$('#flip-card')).tap(); await wait(memoryCard, value => value.flipped);
     await (await memoryCard.$('#edit-card-note')).tap(); await wait(memoryCard, value => value.editing);
     await memoryCard.callMethod('input', { detail: { value: '秋日散步，在路边发现的小美好' } }); await (await memoryCard.$('#save-card-note')).tap();

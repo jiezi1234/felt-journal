@@ -7,8 +7,11 @@ Component({
   properties: { model: { type: Object, value: null }, layout: String, editable: Boolean, canEdit: Boolean, selected: String, covered: Boolean, landingId: String, interactive: { type: Boolean, value: true } },
   data: { height: 210, width: 0, topSpace: 0, canvasHeight: 210, handles: [], imageError: false, snapshot: '' },
   observers: { 'model, editable, selected, covered, landingId': function () { this.refresh(); if (this.data.layout) wx.nextTick(() => this.measure()); },
-    'covered, interactive': function () { if (this.data.covered || !this.data.interactive) this.touchCancel(); }, layout() { this.measure(); } },
-  lifetimes: { ready() { this.measure(); }, detached() { this.dead = true; this.clearGesture(); } },
+    'covered, interactive': function () {
+      if (this.data.covered || !this.data.interactive) this.touchCancel();
+      if (!this.data.covered && this.pickupId) { this.pickupId = ''; this.finishPickupSnapshot(false); this.refresh(); }
+    }, layout() { this.measure(); } },
+  lifetimes: { ready() { this.measure(); }, detached() { this.dead = true; this.clearGesture(); this.finishPickupSnapshot(false); } },
   pageLifetimes: { resize() { this.touchCancel(); this.measure(); }, hide() { this.touchCancel(); }, show() { if (this.canvas) this.refresh(); } },
   methods: {
     exportViewport() { return this.dimensions ? { width: this.dimensions.width, height: this.dimensions.height } : null; },
@@ -39,20 +42,67 @@ Component({
         this.displayModel = display;
         const bounds = renderer.frame(dimensions), sy = this.canvas.height / bounds.height;
         const ctx = this.canvas.getContext('2d'); ctx.setTransform(this.canvas.width / dimensions.width, 0, 0, sy, 0, bounds.top * sy);
-        const selected = (display.items || []).find(p => p.memoryId === this.data.selected);
+        const selected = (display.items || []).find(p => p.memoryId === this.data.selected && p.memoryId !== this.pickupId);
         const handles = this.data.editable && selected && !this.data.landingId ? geometry.handles(selected, this.screenWidth, this.data.height) : [];
-        const visible = this.data.landingId ? Object.assign({}, display, { items: display.items.filter(p => p.memoryId !== this.data.landingId) }) : display;
+        const visible = this.data.landingId || this.pickupId ? Object.assign({}, display, { items: display.items.filter(p => p.memoryId !== this.data.landingId && p.memoryId !== this.pickupId) }) : display;
         this.surface = renderer.createSurface(this.canvas, model, dimensions, this.surface);
-        renderer.paint(ctx, visible, this.images, this.data.editable && !this.data.landingId ? this.data.selected : '', dimensions, this.surface && this.surface.canvas, this.canvas.width / dimensions.width);
+        renderer.paint(ctx, visible, this.images, this.data.editable && !this.data.landingId && !this.pickupId ? this.data.selected : '', dimensions, this.surface && this.surface.canvas, this.canvas.width / dimensions.width);
         renderer.paintControls(ctx, handles, this.screenWidth);
         this.setData({ handles, imageError: (model.items || []).some(p => this.images[p.memory.subjectPath].missing) });
         // Native canvas layers can pierce an overlay. Keep the same board visible
         // as a raster while covered, without destroying the canvas or page.
         if (this.data.covered) wx.canvasToTempFilePath({ canvas: this.canvas, fileType: 'png',
-          success: result => { if (!this.dead && this.data.covered && version === this.version) this.setData({ snapshot: result.tempFilePath }, () => this.landingReady()); },
-          fail: () => { if (!this.dead && this.data.covered && version === this.version) this.landingReady(); }
+          success: result => {
+            if (this.dead || !this.data.covered || version !== this.version) return;
+            if (this.pickupWait) this.pickupWait.path = result.tempFilePath;
+            this.setData({ snapshot: result.tempFilePath }, () => this.landingReady());
+          },
+          fail: () => { if (!this.dead && this.data.covered && version === this.version) { this.finishPickupSnapshot(false); this.landingReady(); } }
         });
-      } catch (_) { if (!this.dead && version === this.version) this.setData({ imageError: true }); }
+      } catch (_) { if (!this.dead && version === this.version) { this.finishPickupSnapshot(false); this.setData({ imageError: true }); } }
+    },
+    pickupRect(id) {
+      return new Promise(resolve => {
+        const timer = setTimeout(() => resolve(null), 500);
+        this.createSelectorQuery().select('.board-shell').boundingClientRect(rect => {
+          clearTimeout(timer);
+          const item = this.displayModel && this.displayModel.items.find(p => p.memoryId === id);
+          const image = item && this.images && this.images[item.memory.subjectPath];
+          resolve(!this.dead && image && !image.missing ? stickerMotion.landingRect(rect, { ...item, memory:image }) : null);
+        }).exec();
+      });
+    },
+    async preparePickup(id) {
+      this.touchCancel();
+      const rect = await this.pickupRect(id);
+      if (!rect || this.dead || !this.canvas || this.data.covered) return null;
+      const path = await new Promise(resolve => {
+        let finished = false;
+        const done = path => { if (!finished) { finished = true; clearTimeout(timer); resolve(path); } };
+        const timer = setTimeout(() => done(null), 600);
+        wx.canvasToTempFilePath({ canvas:this.canvas, fileType:'png', success:r => done(r.tempFilePath), fail:() => done(null) });
+      });
+      if (!path || this.dead || this.data.covered) return null;
+      this.setData({ snapshot:path });
+      return { rect, id };
+    },
+    setPickupHidden(id) {
+      this.finishPickupSnapshot(false);
+      this.pickupId = id || '';
+      if (this.dead) return Promise.resolve(false);
+      if (!this.data.covered) { this.pickupId = ''; this.refresh(); return Promise.resolve(false); }
+      return new Promise(resolve => {
+        this.pickupWait = { resolve, id:this.pickupId, timer:setTimeout(() => this.finishPickupSnapshot(false), 900) };
+        this.refresh();
+      });
+    },
+    snapshotLoaded(e) {
+      if (this.pickupWait && this.pickupWait.id === (this.pickupId || '') && e.currentTarget.dataset.path === this.pickupWait.path) this.finishPickupSnapshot(true);
+    },
+    snapshotFailed() { this.finishPickupSnapshot(false); },
+    finishPickupSnapshot(ok) {
+      const wait = this.pickupWait; if (!wait) return;
+      this.pickupWait = null; clearTimeout(wait.timer); wait.resolve(ok);
     },
     landingReady() {
       const id = this.data.landingId;

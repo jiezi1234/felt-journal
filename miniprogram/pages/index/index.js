@@ -67,7 +67,7 @@ Page({
     editor.stickerLanded.call(this, e);
     this.setData({ editorOpen: false }); this.syncNavigation();
   },
-  openMemory(e) { if (!this.data.editorOpen && !this.data.placing && !this.data.memoryCardId && !this.data.shareBoardId) this.memory(e); },
+  openMemory(e) { if (!this.data.editorOpen && !this.data.placing && !this.data.memoryCardId && !this.data.shareBoardId) return this.memory(e); },
   exportToday() { if (!this.data.editorOpen && !this.data.placing && !this.data.memoryCardId && !this.data.shareBoardId) this.exportBoard(); },
   openSelection() { if (this.canAdjust()) { this.cancelGesture(); this.setData({ drawer: 'selection' }); } },
   async remove() { await editor.remove.call(this); if (!this.disposed && !this.data.selected) this.setData({ drawer: '' }); }

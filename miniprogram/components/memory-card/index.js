@@ -4,17 +4,24 @@ const config = require('../../core/config');
 const platform = require('../../services/platform');
 const { newId } = require('../../services/photo-task');
 const modal = require('../../services/modal-presentation');
+const pickup = require('../../services/memory-pickup');
 Component({
   options: { styleIsolation: 'apply-shared' },
-  properties: { memoryId: String },
+  properties: { memoryId: String, source:Object },
   data: { memory: null, dateLabel: '', flipped: false, editing: false, text: '', error: '', hint: '', missing: false, maxText: config.maxText,
     themeOpen: false, themeCreating: false, themeWorking: false, themeTitle: '', themeError: '', themes: [], visibleThemes: [], themePage: 1, themePageCount: 1, maxThemeTitle: config.maxBoardTitle },
   lifetimes: {
-    attached() { modal.mount(this); this.store = getStore(); this.refresh(); },
-    detached() { modal.dispose(this); if (this.dirty) this.keepDraft(); this.dead = true; platform.unloadGuard(false); }
+    attached() { pickup.mount(this); modal.mount(this); this.store = getStore(); this.refresh(); },
+    ready() { pickup.ready(this); },
+    detached() { pickup.dispose(this); modal.dispose(this); if (this.dirty) this.keepDraft(); this.dead = true; platform.unloadGuard(false); }
   },
-  pageLifetimes: { show() { if (this.store) this.refresh(); }, hide() { if (this.dirty) this.keepDraft(); } },
+  pageLifetimes: { show() { if (this.store) this.refresh(); }, hide() { pickup.interrupted(this); if (this.dirty) this.keepDraft(); }, resize() { pickup.interrupted(this); } },
   methods: {
+    pickupPhotoLoaded(e) { pickup.imageLoaded(this, e, false); },
+    pickupFlightLoaded(e) { pickup.imageLoaded(this, e, true); },
+    pickupLifted(ok) { pickup.begin(this, ok); },
+    pickupReturn(rect) { pickup.returnTo(this, rect); },
+    pickupFailed() { pickup.fallback(this); },
     refresh() {
       try {
         const memory = this.store.load().memories[this.data.memoryId];
@@ -28,8 +35,8 @@ Component({
         if (this.data.themeOpen) this.refreshThemes();
       } catch (error) { this.setData({ error: platform.message(error, '记忆读取失败'), memory: null }); }
     },
-    flip() { if (!this.data.editing && !this.data.themeOpen && this.data.memory) this.setData({ flipped: !this.data.flipped }); },
-    edit() { if (this.data.memory && !this.data.themeOpen) this.setData({ flipped: true, editing: true, error: '', hint: '' }); },
+    flip() { if (!this.data.pickupBusy && !this.data.editing && !this.data.themeOpen && this.data.memory) { this.lastFlipAt = Date.now(); this.setData({ flipped: !this.data.flipped }); } },
+    edit() { if (!this.data.pickupBusy && this.data.memory && !this.data.themeOpen) this.setData({ flipped: true, editing: true, error: '', hint: '' }); },
     input(e) { this.dirty = true; this.setData({ text: e.detail.value, error: '', hint: '' }); this.keepDraft(); },
     keepDraft() {
       const memory = this.store.get().memories[this.data.memoryId];
@@ -52,7 +59,7 @@ Component({
       this.setData({ text: memory ? memory.text : '', editing: false, error: '', hint: '' }); platform.unloadGuard(false);
     },
     openThemes() {
-      if (!this.data.memory || !this.data.flipped || this.data.editing || this.data.themeWorking) return;
+      if (this.data.pickupBusy || !this.data.memory || !this.data.flipped || this.data.editing || this.data.themeWorking) return;
       this.setData({ themeOpen: true, themeCreating: false, themePage: 1, themeError: '' }); this.refreshThemes();
     },
     refreshThemes() {
@@ -102,8 +109,8 @@ Component({
     close() {
       if (this.data.themeOpen) { this.closeThemes(); return; }
       if (this.data.memory && this.dirty && !this.save()) return;
-      modal.close(this, () => this.triggerEvent('close'));
+      pickup.close(this, () => this.triggerEvent('close'));
     },
-    imageError() { this.setData({ missing: true }); }, stop() {}
+    imageError() { this.setData({ missing: true }); pickup.fallback(this); }, stop() {}
   }
 });

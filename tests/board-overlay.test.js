@@ -31,6 +31,24 @@ test('covered boards do not respond to pointer input underneath a card', () => {
   board.touchStart({ touches: [{ clientX: 10, clientY: 10 }] }); assert.equal(board.gesture, null);
 });
 
+test('pickup hides only its transient photo and waits for the decoded snapshot before handing off', async t => {
+  const oldWx=global.wx,oldRenderer={...renderer},requests=[],paints=[];
+  t.after(()=>{global.wx=oldWx;Object.assign(renderer,oldRenderer);});
+  global.wx={canvasToTempFilePath:r=>requests.push(r)};
+  renderer.loadImages=async()=>({a:{},b:{}});renderer.paint=(ctx,model)=>paints.push(model.items.map(p=>p.memoryId));renderer.paintControls=()=>{};
+  const model={items:[{memoryId:'one',memory:{subjectPath:'a'}},{memoryId:'two',memory:{subjectPath:'b'}}]};
+  const original=JSON.stringify(model);
+  const board={...definition.methods,data:{model,covered:true,height:200},screenWidth:300,
+    canvas:{width:600,height:400,getContext:()=>({setTransform(){}})},setData(d,done){Object.assign(this.data,d);if(done)done();}};
+  const pending=board.setPickupHidden('one');await Promise.resolve();
+  assert.deepEqual(paints.at(-1),['two']);requests[0].success({tempFilePath:'/lift.png'});
+  assert.ok(board.pickupWait);board.snapshotLoaded({currentTarget:{dataset:{path:'/old.png'}}});assert.ok(board.pickupWait);
+  board.snapshotLoaded({currentTarget:{dataset:{path:'/lift.png'}}});assert.equal(await pending,true);
+  const restored=board.setPickupHidden('');await Promise.resolve();assert.deepEqual(paints.at(-1),['one','two']);
+  requests[1].success({tempFilePath:'/whole.png'});board.snapshotLoaded({currentTarget:{dataset:{path:'/whole.png'}}});assert.equal(await restored,true);
+  assert.equal(JSON.stringify(model),original,'Lift/return never edits the board placements');
+});
+
 test('canvas headroom does not offset native touches or viewport-coordinate touches', () => {
   const board={...definition.methods,data:{topSpace:18},screenWidth:430,rect:{left:12,top:50}};
   assert.deepEqual(board.localPoint({x:100,y:118}),{x:100,y:100});

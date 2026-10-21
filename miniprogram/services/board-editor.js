@@ -8,17 +8,18 @@ const platform = require('./platform');
 const photo = require('./page-photo');
 const stickerMotion = require('../core/sticker-motion');
 const feedback = require('./board-feedback');
+const boardMemory = require('./board-memory');
 function createBoardEditor(options = {}) { return {
   // Placement feedback never changes the saved model or creates another memory.
-  data: { showBoardGuide: false, layoutSaved: false, shareBoardId: '', memoryCardId: '', photoNoteOpen: false, photoNoteText: '', photoNoteError: '', embedded: !!options.embedded, sourceStage: false, drawer: '', libraryItems: [], visibleLibraryItems: [], libraryPage: 1, libraryPageCount: 1, noteText: '', noteCategory: 0, noteError: '', noteHint: '', categories: config.categories, maxText: config.maxText, loading: true, error: '', date: '', dateLabel: '', isTheme: false, editable: false, canEdit: false, selected: '', model: null, count: 0, saveState: '已保存', saveError: '', task: null, placing: null, colors: config.colors, textures: config.textures, appearanceLabel: '', canUndo: false, canRedo: false, canBringToFront: false, canSendToBack: false, recovering: false, openingLibrary: false },
+  data: { showBoardGuide: false, layoutSaved: false, shareBoardId: '', memoryCardId: '', memoryCardSource: null, photoNoteOpen: false, photoNoteText: '', photoNoteError: '', embedded: !!options.embedded, sourceStage: false, drawer: '', libraryItems: [], visibleLibraryItems: [], libraryPage: 1, libraryPageCount: 1, noteText: '', noteCategory: 0, noteError: '', noteHint: '', categories: config.categories, maxText: config.maxText, loading: true, error: '', date: '', dateLabel: '', isTheme: false, editable: false, canEdit: false, selected: '', model: null, count: 0, saveState: '已保存', saveError: '', task: null, placing: null, colors: config.colors, textures: config.textures, appearanceLabel: '', canUndo: false, canRedo: false, canBringToFront: false, canSendToBack: false, recovering: false, openingLibrary: false },
   onLoad(query) {
     this.store = getStore(); this.date = query.board || query.date || dates.key(); this.wantEdit = query.mode === 'edit'; this.wantAdd = query.add === '1';
   },
   onShow() { if (!this.data.shareBoardId) this.refresh(); },
   onResize() { this.stickerLanded(); },
   onReady() { if (this.wantAdd && !this.data.error) { this.wantAdd = false; this.sourceSheet(); } },
-  onHide() { this.stickerLanded(); this.cancelGesture(); if (this.dirty) this.persist(); if (this.noteDirty) this.keepNoteDraft(); feedback.reset(this); },
-  onUnload() { clearTimeout(this.placementTimer); if (this.dirty) { this.store.keepDraft(this.draft); this.persist(); } if (this.noteDirty) this.keepNoteDraft(); feedback.reset(this); photo.dispose(this); platform.unloadGuard(false); },
+  onHide() { boardMemory.cancel(this); this.stickerLanded(); this.cancelGesture(); if (this.dirty) this.persist(); if (this.noteDirty) this.keepNoteDraft(); feedback.reset(this); },
+  onUnload() { boardMemory.cancel(this); clearTimeout(this.placementTimer); if (this.dirty) { this.store.keepDraft(this.draft); this.persist(); } if (this.noteDirty) this.keepNoteDraft(); feedback.reset(this); photo.dispose(this); platform.unloadGuard(false); },
   refresh() {
     try {
       photo.refreshResult(this);
@@ -57,7 +58,7 @@ function createBoardEditor(options = {}) { return {
     finally { if (!this.disposed) this.setData({ recovering: false }); }
   },
   cancelGesture() { const board = this.selectComponent && this.selectComponent('#board'); if (board) board.touchCancel(); },
-  canAdjust() { return this.data.editable && !this.data.shareBoardId && !this.data.memoryCardId && !this.photoTask && !this.data.placing && !this.data.recovering && !this.mutating && !this.data.openingLibrary; },
+  canAdjust() { return this.data.editable && !this.memoryOpening && !this.data.shareBoardId && !this.data.memoryCardId && !this.photoTask && !this.data.placing && !this.data.recovering && !this.mutating && !this.data.openingLibrary; },
   changed(record = true) {
     if (record && !this.history.record(this.draft)) { this.display(); return !this.dirty || this.persist(); }
     this.dirty = true; this.store.keepDraft(this.draft); platform.unloadGuard(true); this.display(); return this.persist();
@@ -124,13 +125,16 @@ function createBoardEditor(options = {}) { return {
     this.cancelGesture(); this.draft.texture = value; this.changed();
   },
   memory(e) {
-    const id = e && e.detail && e.detail.id || this.data.selected; if (!id || this.data.shareBoardId || this.photoTask || this.data.recovering) return;
+    const id = e && e.detail && e.detail.id || this.data.selected; if (!id || this.memoryOpening || this.data.memoryCardId || this.data.shareBoardId || this.photoTask || this.data.recovering) return;
     this.cancelGesture();
     if (this.dirty && !this.persist()) { platform.toast('请先重试保存当前布局'); return; }
     if (this.data.embedded) { this.openNote(id); return; }
-    this.setData({ memoryCardId: id, drawer: '' }); if (this.syncNavigation) this.syncNavigation();
+    return boardMemory.open(this, id);
   },
-  closeMemoryCard() { this.setData({ memoryCardId: '' }); this.refresh(); if (this.syncNavigation) this.syncNavigation(); },
+  liftMemoryPickup(e) { return boardMemory.lift(this, e); },
+  returnMemoryPickup(e) { return boardMemory.returnSource(this, e); },
+  restoreMemoryPickup() { return boardMemory.restore(this); },
+  closeMemoryCard() { return boardMemory.close(this); },
   memoryCardChanged() { this.refresh(); },
   async sourceSheet() {
     if (!this.data.canEdit || this.data.shareBoardId || this.photoTask || this.data.placing || this.data.error || this.data.recovering) return;

@@ -27,3 +27,14 @@
 .has-keyboard .note-count { display:none; }
 .has-keyboard .card-note-actions button { min-height:44px; padding:8px; }
 .has-keyboard .card-face .error { max-height:48px; overflow-y:auto; }
+/* The paper and the contained photo move independently; the board snapshot
+   removes the original only after both photo layers have decoded. */
+.memory-card-overlay.has-pickup .memory-card-dialog { animation:none; }
+.memory-card-overlay.has-pickup .memory-card-scrim { animation:none; opacity:0; transition:opacity 300ms ease-out; }
+.has-pickup .card-heading { opacity:0; transition:opacity 220ms ease-out; }
+.pickup-opening .card-heading,.pickup-open .card-heading { opacity:1; }
+.memory-card-overlay.pickup-opening .memory-card-scrim,.memory-card-overlay.pickup-open .memory-card-scrim { opacity:1; }
+.pickup-preparing .flip-scene,.pickup-waiting .flip-scene { opacity:0; }
+.pickup-photo-hidden { opacity:0; }
+.memory-pickup-photo { position:absolute; z-index:2; width:1px; height:1px; visibility:hidden; pointer-events:none; transform-origin:50% 50%; filter:drop-shadow(0 8px 6px rgba(48,40,29,.15)); }
+.pickup-opening .memory-pickup-photo,.pickup-returning .memory-pickup-photo,.pickup-landed .memory-pickup-photo { visibility:visible; }

@@ -26,7 +26,8 @@
     "test:layout": "node tests/screen-layout-e2e.js",
     "test:round1": "node tests/round1-ui-e2e.js",
     "test:round2": "node tests/round2-ui-e2e.js",
-    "test:photo-reveal": "node tests/photo-reveal-e2e.js"
+    "test:photo-reveal": "node tests/photo-reveal-e2e.js",
+    "test:pickup": "node tests/memory-pickup-e2e.js"
   },
   "devDependencies": {
     "@napi-rs/canvas": "0.1.80",

@@ -67,7 +67,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     }
     if (target.memoryId) {
       await card.callMethod('memory', { detail: { id: target.memoryId } }); await wait(card, d => d.memoryCardId === target.memoryId);
-      const memory = await card.$('#memory-card'); await wait(memory, d => !!d.memory);
+      const memory = await card.$('#memory-card'); await wait(memory, d => !!d.memory && !d.pickupBusy);
       const board = await card.$('#board'); await wait(board, d => d.covered);
       await (await memory.$('#flip-card')).tap(); await wait(memory, d => d.flipped);
       await (await memory.$('#close-memory-card')).tap(); await wait(card, d => !d.memoryCardId);

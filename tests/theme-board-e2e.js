@@ -24,6 +24,13 @@ const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-
     return s;
   }
   const event = id => ({ currentTarget: { dataset: { id } } });
+  async function memoryReady() {
+    for (let i = 0; i < 60; i++) {
+      const ready = await mini.evaluate(() => { const c=getCurrentPages().slice(-1)[0].selectComponent('#memory-card'); return c && !c.data.pickupBusy; });
+      if (ready) return; await pause(100);
+    }
+    throw Error('Memory card entrance did not settle');
+  }
   async function inspect(name, selectors, navVisible, component = '') {
     const s = await state(); assert.equal(s.nav, navVisible, name + ' navigation');
     const result = await mini.evaluate((selectors, component) => new Promise(resolve => {
@@ -76,7 +83,7 @@ const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-
     s = await call('undo'); assert.equal(s.data.model.items[0].angle, angle);
     s = await call('redo'); assert.notEqual(s.data.model.items[0].angle, angle);
     await call('openSelection'); await inspect('selected memory and theme actions', ['.drawer-sheet', '#edit-memory', '#layer-front', '#remove-placement', '#rename-theme', '#delete-theme'], false);
-    await call('memory'); await inspect('memory card front', ['.memory-card-dialog', '#flip-card', '#card-photo'], false, '#memory-card');
+    await call('memory'); await memoryReady(); await inspect('memory card front', ['.memory-card-dialog', '#flip-card', '#card-photo'], false, '#memory-card');
     await mini.evaluate(() => { const c = getCurrentPages().slice(-1)[0].selectComponent('#memory-card'); c.flip(); c.edit(); c.input({ detail: { value: '留在这块主题板上的小记忆' } }); }); await pause(500);
     await inspect('memory card back editor', ['#card-note-input', '#save-card-note', '#cancel-card-note'], false, '#memory-card');
     await mini.evaluate(() => getCurrentPages().slice(-1)[0].selectComponent('#memory-card').save());
@@ -120,6 +127,7 @@ const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-
       const current = JSON.parse((await snapshot())[0].value), memory = current.memories[s.data.selected];
       assert.equal(memory.text, source === 'album' ? '相册里的小小美好' : '');
       s = await call('memory', { detail: { id: memory.id } }); assert.equal(s.data.memoryCardId, memory.id);
+      await memoryReady();
       const card = await mini.evaluate(() => { const c = getCurrentPages().slice(-1)[0].selectComponent('#memory-card'); c.flip(); return c.data; });
       assert.equal(card.flipped, true); assert.equal(card.memory.text, memory.text); await call('closeMemoryCard');
       assert.deepEqual(current.boards[dates.key()], daily);
