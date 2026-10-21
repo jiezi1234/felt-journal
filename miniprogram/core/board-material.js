@@ -14,47 +14,62 @@ function oval(ctx, x, y, rx, ry) {
   ctx.save(); ctx.translate(x, y); ctx.scale(rx, ry); ctx.beginPath(); ctx.arc(0, 0, 1, 0, Math.PI * 2); ctx.restore();
 }
 function clip(ctx, width, pixelScale) {
-  ctx.save(); ctx.translate(width / 2, 4);
+  ctx.save(); ctx.translate(width / 2, 6); ctx.scale(1.28, 1.18);
   // Low-profile clipboard clamp: a hanging tab and spring wire sit behind the
   // stamped steel plate. Black end sleeves wrap its two folded corners.
-  ctx.shadowColor = 'rgba(24,29,29,.35)'; ctx.shadowBlur = 13 * pixelScale; ctx.shadowOffsetY = 10 * pixelScale;
+  ctx.shadowColor = 'rgba(24,29,29,.25)'; ctx.shadowBlur = 13 * pixelScale; ctx.shadowOffsetY = 8 * pixelScale;
   rounded(ctx, -31, 0, 62, 49, 8);
   ctx.fillStyle = gradient(ctx, -31, 0, 31, 0, [[0,'#747E81'],[.17,'#DDE2E1'],[.45,'#F3F4EC'],[.83,'#B4BFBE'],[1,'#636F74']]); ctx.fill();
   ctx.shadowColor = 'transparent';
-  oval(ctx, 0, 17, 12, 10); ctx.fillStyle = '#514537'; ctx.fill();
-  ctx.strokeStyle = '#EDF0E8'; ctx.lineWidth = 3; ctx.stroke();
+  oval(ctx, 0, 17, 12, 10); ctx.fillStyle = '#665540'; ctx.fill();
+  ctx.strokeStyle = '#EDF0E8'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.beginPath(); ctx.arc(0, 16, 11, Math.PI, Math.PI*2); ctx.strokeStyle = '#555E5F'; ctx.lineWidth = 2; ctx.stroke();
   const wire = () => {
     ctx.beginPath(); ctx.moveTo(-237, 61); ctx.quadraticCurveTo(-233, 28, -191, 29);
     ctx.lineTo(-111, 29); ctx.bezierCurveTo(-59, 29, -66, 10, 0, 10);
     ctx.bezierCurveTo(66, 10, 59, 29, 111, 29); ctx.lineTo(191, 29); ctx.quadraticCurveTo(233, 28, 237, 61);
   };
-  ctx.lineCap = 'round'; ctx.lineJoin = 'round'; wire(); ctx.lineWidth = 10; ctx.strokeStyle = '#657174'; ctx.stroke();
-  wire(); ctx.lineWidth = 6; ctx.strokeStyle = '#D5DDDC'; ctx.stroke();
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round'; wire(); ctx.lineWidth = 9; ctx.strokeStyle = '#596567'; ctx.stroke();
+  wire(); ctx.lineWidth = 6; ctx.strokeStyle = '#C4CED0'; ctx.stroke();
   ctx.save(); ctx.translate(0, -1.5); wire(); ctx.lineWidth = 2; ctx.strokeStyle = '#FAFCF5'; ctx.stroke(); ctx.restore();
-  ctx.shadowColor = 'rgba(25,29,27,.4)'; ctx.shadowBlur = 15 * pixelScale; ctx.shadowOffsetY = 10 * pixelScale;
+  ctx.shadowColor = 'rgba(29,27,22,.32)'; ctx.shadowBlur = 19 * pixelScale; ctx.shadowOffsetY = 12 * pixelScale;
   rounded(ctx, -264, 42, 528, 76, 12);
-  ctx.fillStyle = gradient(ctx, 0, 42, 0, 118, [[0,'#D7DDDA'],[.22,'#7F8C8E'],[.72,'#C1CAC7'],[1,'#4D595C']]); ctx.fill();
+  ctx.fillStyle = gradient(ctx, 0, 42, 0, 118, [[0,'#C6CFD0'],[.22,'#738083'],[.68,'#E1E5E3'],[.88,'#A7B0AF'],[1,'#556164']]); ctx.fill();
   ctx.shadowColor = 'transparent';
+  rounded(ctx, -250, 108, 500, 8, 4); ctx.fillStyle = 'rgba(28,34,32,.48)'; ctx.fill();
   rounded(ctx, -255, 33, 510, 74, 11);
-  ctx.fillStyle = gradient(ctx, 0, 33, 0, 107, [[0,'#F0F3EF'],[.08,'#8D9A9B'],[.18,'#C1CAC8'],[.48,'#F1F3EB'],[.78,'#C5CDCA'],[1,'#8C999B']]); ctx.fill();
-  ctx.strokeStyle = '#677578'; ctx.lineWidth = 2; ctx.stroke();
-  // Fine cross-stamped marks read as metal at export resolution without noise
-  // on the phone. Clip the pattern away from the polished folded edges.
-  ctx.save(); rounded(ctx, -220, 43, 440, 51, 5); ctx.clip(); ctx.lineWidth = 1;
-  for (let x = -280; x < 280; x += 7) {
-    ctx.beginPath(); ctx.moveTo(x, 42); ctx.lineTo(x + 52, 95); ctx.strokeStyle = 'rgba(68,85,88,.1)'; ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(x, 42); ctx.lineTo(x - 52, 95); ctx.strokeStyle = 'rgba(255,255,249,.38)'; ctx.stroke();
+  ctx.fillStyle = gradient(ctx, 0, 33, 0, 107, [[0,'#F5F7F5'],[.055,'#FBFCFA'],[.12,'#899599'],[.24,'#BDC6C6'],[.48,'#E2E7E5'],[.73,'#F5F5EF'],[.86,'#B3BCBA'],[.96,'#687579'],[1,'#D7DEDA']]); ctx.fill();
+  ctx.strokeStyle = '#747F80'; ctx.lineWidth = 1.2; ctx.stroke();
+  // Pressed channel: the dark shoulder and narrow return highlight describe
+  // a bend in steel, rather than an outlined flat rectangle.
+  ctx.beginPath(); ctx.moveTo(-231, 43); ctx.bezierCurveTo(-123, 52, 121, 52, 231, 43);
+  ctx.strokeStyle = 'rgba(61,76,81,.48)'; ctx.lineWidth = 3; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-230, 45); ctx.bezierCurveTo(-122, 54, 120, 54, 230, 45);
+  ctx.strokeStyle = 'rgba(255,255,252,.78)'; ctx.lineWidth = 1.7; ctx.stroke();
+  ctx.save(); rounded(ctx, -232, 48, 464, 44, 7); ctx.clip();
+  ctx.fillStyle = gradient(ctx, -232, 90, 232, 48, [[0,'rgba(58,74,82,.13)'],[.28,'rgba(255,255,255,.04)'],[.42,'rgba(255,255,255,.64)'],[.53,'rgba(255,255,255,.08)'],[.76,'rgba(81,95,99,.13)'],[1,'rgba(255,255,255,.36)']]); ctx.fillRect(-232, 48, 464, 44);
+  // Restrained stamping and hairline scratches only resolve when enlarged.
+  ctx.lineWidth = .7;
+  for (let x = -280; x < 280; x += 6) {
+    ctx.beginPath(); ctx.moveTo(x, 48); ctx.lineTo(x + 44, 92); ctx.strokeStyle = 'rgba(68,85,88,.07)'; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x, 48); ctx.lineTo(x - 44, 92); ctx.strokeStyle = 'rgba(255,255,249,.19)'; ctx.stroke();
+  }
+  for (let n = 0; n < 22; n++) {
+    const y = 49 + n*1.93, x = -230 + n*67.31%240;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(Math.min(231,x+57+n*19%137), y); ctx.strokeStyle = n%3 ? 'rgba(255,255,255,.14)' : 'rgba(73,88,91,.09)'; ctx.stroke();
   }
   ctx.restore();
   // The rolled front jaw provides the brightest reflection and a thin dark
   // contact line where the clamp presses against the board.
-  rounded(ctx, -252, 99, 504, 14, 6);
-  ctx.fillStyle = gradient(ctx, 0, 99, 0, 113, [[0,'#6D7B7D'],[.26,'#F9FCF4'],[.53,'#D4DCDA'],[1,'#556367']]); ctx.fill();
+  rounded(ctx, -252, 97, 504, 17, 7);
+  ctx.fillStyle = gradient(ctx, 0, 97, 0, 114, [[0,'#67777B'],[.15,'#ABB7B8'],[.3,'#FFFFFF'],[.43,'#F5F7F1'],[.65,'#9FABAE'],[.85,'#526064'],[1,'#B8C2C0']]); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-239, 101); ctx.lineTo(239, 101); ctx.strokeStyle = 'rgba(255,255,255,.84)'; ctx.lineWidth = 1; ctx.stroke();
   for (const x of [-204, 204]) {
-    oval(ctx, x, 69, 20, 17); ctx.fillStyle = '#6B7676'; ctx.fill();
-    oval(ctx, x, 67, 18, 15); ctx.fillStyle = gradient(ctx, x-18, 52, x+18, 82, [[0,'#FFFFFF'],[.34,'#E2E6DF'],[.6,'#84918F'],[1,'#F4F4E9']]); ctx.fill();
-    oval(ctx, x, 67, 12, 10); ctx.fillStyle = '#424B48'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#F0F0E4'; ctx.stroke();
-    oval(ctx, x+1, 69, 8, 6); ctx.fillStyle = '#232A29'; ctx.fill();
+    oval(ctx, x+1, 70, 20, 16); ctx.fillStyle = 'rgba(46,58,58,.3)'; ctx.fill();
+    oval(ctx, x, 67, 19, 16); ctx.fillStyle = gradient(ctx, x-19, 51, x+19, 83, [[0,'#FCFDF9'],[.22,'#B3BFBE'],[.48,'#F4F6F0'],[.64,'#6E7B7C'],[.83,'#A8B3AF'],[1,'#EEF1E7']]); ctx.fill();
+    oval(ctx, x, 67, 14.4, 12); ctx.strokeStyle = 'rgba(255,255,249,.9)'; ctx.lineWidth = 1.4; ctx.stroke();
+    oval(ctx, x, 67, 11.5, 9.4); ctx.fillStyle = gradient(ctx, x, 57, x, 77, [[0,'#263235'],[.45,'#515B55'],[1,'#9B9F8D']]); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x-7,74); ctx.quadraticCurveTo(x,77,x+7,74); ctx.strokeStyle = '#E4E6DA'; ctx.lineWidth = 1.2; ctx.stroke();
   }
   for (const side of [-1, 1]) {
     ctx.save(); ctx.scale(side, 1);
@@ -62,11 +77,14 @@ function clip(ctx, width, pixelScale) {
     ctx.lineTo(268, 97); ctx.quadraticCurveTo(267, 111, 254, 111); ctx.lineTo(237, 111);
     ctx.lineTo(237, 96); ctx.lineTo(246, 96); ctx.lineTo(246, 47); ctx.lineTo(222, 47);
     ctx.lineTo(222, 34); ctx.quadraticCurveTo(222, 28, 226, 28); ctx.closePath();
-    ctx.fillStyle = gradient(ctx, 224, 28, 268, 106, [[0,'#414647'],[.22,'#252B2D'],[.63,'#171D20'],[1,'#333B3C']]); ctx.fill();
-    ctx.strokeStyle = '#141B1D'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = gradient(ctx, 224, 28, 268, 106, [[0,'#4E5353'],[.12,'#333B3D'],[.36,'#1E2527'],[.7,'#151C1E'],[1,'#30393B']]); ctx.fill();
+    ctx.strokeStyle = '#20272A'; ctx.lineWidth = 1.6; ctx.stroke();
     ctx.beginPath(); ctx.moveTo(228, 32); ctx.lineTo(255, 32); ctx.quadraticCurveTo(263, 33, 263, 43); ctx.lineTo(263, 96);
-    ctx.strokeStyle = 'rgba(132,143,143,.38)'; ctx.lineWidth = 2; ctx.stroke();
-    for (let y = 51; y < 94; y += 6) { ctx.beginPath(); ctx.moveTo(250, y); ctx.lineTo(260, y); ctx.strokeStyle = 'rgba(5,12,15,.42)'; ctx.stroke(); }
+    ctx.strokeStyle = 'rgba(162,172,170,.36)'; ctx.lineWidth = 1.2; ctx.stroke();
+    for (let y = 51; y < 94; y += 5) {
+      ctx.beginPath(); ctx.moveTo(250, y); ctx.lineTo(260, y); ctx.strokeStyle = 'rgba(5,12,15,.42)'; ctx.lineWidth = 1.2; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(251, y+1.3); ctx.lineTo(259, y+1.3); ctx.strokeStyle = 'rgba(142,155,157,.16)'; ctx.lineWidth = .7; ctx.stroke();
+    }
     ctx.restore();
   }
   ctx.restore();
@@ -134,34 +152,38 @@ function anchorOf(image, factory) {
 }
 function pin(ctx, size, id, angle, pixelScale, image) {
   let hash = 0; for (const c of String(id || 'pin')) hash = ((hash * 31) + c.charCodeAt(0)) >>> 0;
-  const anchor = anchorOf(image), r = Math.max(6, Math.min(24,Math.min(size.width,size.height)*.085,anchor.span*size.width*.4));
+  const anchor = anchorOf(image), r = Math.max(6, Math.min(23,Math.min(size.width,size.height)*.08,anchor.span*size.width*.4));
   ctx.save(); ctx.translate((anchor.x-.5)*size.width,(anchor.y-.5)*size.height);
-  ctx.rotate(-angle - .2);
-  // Keep the insertion point on the opaque subject. The tilted head exposes
-  // both flanges and the narrow waist of a real pushpin, lit from the top left.
-  ctx.shadowColor = 'rgba(37,31,23,.32)'; ctx.shadowBlur = r*.5*pixelScale; ctx.shadowOffsetX = r*.32*pixelScale; ctx.shadowOffsetY = r*.3*pixelScale;
-  oval(ctx, r*.33, -r*.14, r*.8, r*.34); ctx.fillStyle = 'rgba(58,44,29,.19)'; ctx.fill();
+  ctx.rotate(-angle - [.18,.28,.12][hash%3]);
+  // A close-to-overhead view shows the rounded cap and a short tapered waist.
+  // One warm ivory resin keeps small pins quiet against different photographs.
+  ctx.shadowColor = 'rgba(46,36,22,.24)'; ctx.shadowBlur = r*.48*pixelScale; ctx.shadowOffsetX = r*.28*pixelScale; ctx.shadowOffsetY = r*.32*pixelScale;
+  oval(ctx, r*.27, -r*.2, r*.77, r*.48); ctx.fillStyle = 'rgba(65,49,28,.17)'; ctx.fill();
   ctx.shadowColor = 'transparent';
-  ctx.beginPath(); ctx.moveTo(0, -r*.72); ctx.lineTo(0, 0); ctx.lineCap = 'round'; ctx.lineWidth = Math.max(1.5, r*.18); ctx.strokeStyle = '#64716F'; ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(-r*.035, -r*.65); ctx.lineTo(-r*.035, -r*.08); ctx.lineWidth = Math.max(.7, r*.065); ctx.strokeStyle = '#F1F2E8'; ctx.stroke();
-  const colors = [['#F5D398','#D6A253','#8D5B2E'],['#CCDCC7','#8FA895','#4D7267'],['#F0BBA3','#C47D64','#874E40']][hash % 3];
-  const resin = gradient(ctx, -r, 0, r, 0, [[0,colors[2]],[.22,colors[0]],[.42,colors[1]],[.78,colors[1]],[1,colors[2]]]);
-  oval(ctx, 0, -r*.55, r*.81, r*.32); ctx.fillStyle = colors[2]; ctx.fill();
-  ctx.beginPath(); ctx.moveTo(-r*.81, -r*.63);
-  ctx.bezierCurveTo(-r*.76, -r*.9, -r*.32, -r*.87, -r*.32, -r*1.2);
-  ctx.quadraticCurveTo(-r*.3, -r*1.58, -r*.58, -r*1.82);
-  ctx.lineTo(r*.58, -r*1.82); ctx.quadraticCurveTo(r*.3, -r*1.58, r*.32, -r*1.2);
-  ctx.bezierCurveTo(r*.32, -r*.87, r*.76, -r*.9, r*.81, -r*.63);
-  ctx.bezierCurveTo(r*.6, -r*.32, -r*.6, -r*.32, -r*.81, -r*.63); ctx.closePath(); ctx.fillStyle = resin; ctx.fill();
-  ctx.beginPath(); ctx.moveTo(-r*.29, -r*1.56); ctx.quadraticCurveTo(-r*.4, -r, -r*.62, -r*.72);
-  ctx.lineWidth = r*.08; ctx.strokeStyle = 'rgba(255,249,221,.5)'; ctx.stroke();
-  oval(ctx, 0, -r*1.82, r, r*.36); ctx.fillStyle = colors[2]; ctx.fill();
-  ctx.beginPath(); ctx.moveTo(-r, -r*2.04); ctx.lineTo(-r, -r*1.82);
-  ctx.bezierCurveTo(-r, -r*1.36, r, -r*1.36, r, -r*1.82); ctx.lineTo(r, -r*2.04); ctx.closePath(); ctx.fillStyle = resin; ctx.fill();
-  oval(ctx, 0, -r*2.04, r, r*.36);
-  ctx.fillStyle = gradient(ctx, -r*.5, -r*2.4, r*.5, -r*1.7, [[0,'#FFF6DE'],[.2,colors[0]],[.7,colors[1]],[1,colors[2]]]); ctx.fill();
-  ctx.strokeStyle = 'rgba(255,247,221,.5)'; ctx.lineWidth = r*.055; ctx.stroke();
-  oval(ctx, -r*.28, -r*2.13, r*.43, r*.09); ctx.fillStyle = 'rgba(255,255,239,.57)'; ctx.fill();
+  ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(0,-r*.62); ctx.lineTo(0,0); ctx.lineWidth = r*.14; ctx.strokeStyle = '#707770'; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-r*.025,-r*.58); ctx.lineTo(-r*.025,-r*.04); ctx.lineWidth = r*.045; ctx.strokeStyle = '#F8FBF4'; ctx.stroke();
+  oval(ctx, 0,-r*.34,r*.74,r*.38); ctx.fillStyle = '#A99A7D'; ctx.fill();
+  oval(ctx, 0,-r*.4,r*.74,r*.37); ctx.fillStyle = gradient(ctx,-r*.5,-r*.7,r*.6,-r*.1,[[0,'#FFFDF2'],[.35,'#EAE0CA'],[.72,'#C8B99C'],[1,'#A99A7D']]); ctx.fill();
+  const resin=gradient(ctx,-r*.7,0,r*.7,0,[[0,'#B7A68A'],[.22,'#F4EDDC'],[.38,'#FFF9EB'],[.57,'#E5D9C0'],[.8,'#C5B493'],[1,'#A39377']]);
+  ctx.beginPath(); ctx.moveTo(-r*.7,-r*.44);
+  ctx.bezierCurveTo(-r*.65,-r*.65,-r*.31,-r*.61,-r*.32,-r*.96);
+  ctx.quadraticCurveTo(-r*.34,-r*1.16,-r*.53,-r*1.27); ctx.lineTo(r*.53,-r*1.27);
+  ctx.quadraticCurveTo(r*.34,-r*1.16,r*.32,-r*.96);
+  ctx.bezierCurveTo(r*.31,-r*.61,r*.65,-r*.65,r*.7,-r*.44);
+  ctx.bezierCurveTo(r*.46,-r*.17,-r*.46,-r*.17,-r*.7,-r*.44); ctx.closePath(); ctx.fillStyle=resin; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-r*.28,-r*1.08); ctx.quadraticCurveTo(-r*.24,-r*.7,-r*.5,-r*.48);
+  ctx.lineWidth=r*.065; ctx.strokeStyle='rgba(255,255,249,.72)'; ctx.stroke();
+  // The underside rim gives the cap thickness without a heavy dark outline.
+  oval(ctx,0,-r*1.2,r*.98,r*.54); ctx.fillStyle='#AD9E81'; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-r,-r*1.4); ctx.lineTo(-r*.98,-r*1.2);
+  ctx.bezierCurveTo(-r*.85,-r*.58,r*.85,-r*.58,r*.98,-r*1.2); ctx.lineTo(r,-r*1.4); ctx.closePath();
+  ctx.fillStyle=gradient(ctx,0,-r*1.7,0,-r*.7,[[0,'#F9F4E8'],[.55,'#E2D5BC'],[.85,'#B9A789'],[1,'#96866D']]); ctx.fill();
+  oval(ctx,0,-r*1.43,r,r*.61);
+  ctx.fillStyle=gradient(ctx,-r*.65,-r*2,r*.7,-r*.9,[[0,'#FFFFFF'],[.23,'#FCF9EE'],[.55,'#EEE6D4'],[.82,'#D4C5A9'],[1,'#BBAA8A']]); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-r*.86,-r*1.47); ctx.bezierCurveTo(-r*.76,-r*1.93,r*.22,-r*2.06,r*.66,-r*1.72);
+  ctx.strokeStyle='rgba(255,255,253,.88)'; ctx.lineWidth=r*.045; ctx.stroke();
+  oval(ctx,-r*.29,-r*1.63,r*.37,r*.16); ctx.fillStyle='rgba(255,255,255,.62)'; ctx.fill();
   ctx.restore();
 }
 module.exports = { rounded, paint, pin, anchorOf };
