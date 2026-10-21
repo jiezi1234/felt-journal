@@ -3,15 +3,17 @@ const geometry = require('../../core/geometry');
 const B = require('../../core/config').board;
 const stickerMotion = require('../../core/sticker-motion');
 const viewport = require('../../core/board-viewport');
+const snapshots = require('../../services/board-snapshot');
 Component({
   properties: { model: { type: Object, value: null }, layout: String, editable: Boolean, canEdit: Boolean, selected: String, covered: Boolean, landingId: String, interactive: { type: Boolean, value: true } },
-  data: { height: 210, width: 0, topSpace: 0, canvasHeight: 210, handles: [], imageError: false, snapshot: '' },
-  observers: { 'model, editable, selected, covered, landingId': function () { this.refresh(); if (this.data.layout) wx.nextTick(() => this.measure()); },
+  data: { height: 210, width: 0, topSpace: 0, canvasHeight: 210, handles: [], imageError: false, snapshot: '', snapshotA:'', snapshotB:'', snapshotSlot:'a', snapshotVisible:false, canvasHidden:false },
+  observers: { 'model, editable, selected, landingId': function () { this.refresh(); if (this.data.layout) wx.nextTick(() => this.measure()); },
     'covered, interactive': function () {
-      if (this.data.covered || !this.data.interactive) this.touchCancel();
-      if (!this.data.covered && this.pickupId) { this.pickupId = ''; this.finishPickupSnapshot(false); this.refresh(); }
+      snapshots.cover(this);
+      if (!this.data.covered && this.pickupId) { this.pickupId = ''; this.finishPickupSnapshot(false); }
+      if (this.data.covered || !this.data.interactive) this.touchCancel(); else this.refresh();
     }, layout() { this.measure(); } },
-  lifetimes: { ready() { this.measure(); }, detached() { this.dead = true; this.clearGesture(); this.finishPickupSnapshot(false); } },
+  lifetimes: { ready() { this.measure(); }, detached() { this.dead = true; snapshots.dispose(this); this.clearGesture(); this.finishPickupSnapshot(false); } },
   pageLifetimes: { resize() { this.touchCancel(); this.measure(); }, hide() { this.touchCancel(); }, show() { if (this.canvas) this.refresh(); } },
   methods: {
     exportViewport() { return this.dimensions ? { width: this.dimensions.width, height: this.dimensions.height } : null; },
@@ -49,13 +51,18 @@ Component({
         renderer.paint(ctx, visible, this.images, this.data.editable && !this.data.landingId && !this.pickupId ? this.data.selected : '', dimensions, this.surface && this.surface.canvas, this.canvas.width / dimensions.width);
         renderer.paintControls(ctx, handles, this.screenWidth);
         this.setData({ handles, imageError: (model.items || []).some(p => this.images[p.memory.subjectPath].missing) });
+        snapshots.painted(this, version);
         // Native canvas layers can pierce an overlay. Keep the same board visible
         // as a raster while covered, without destroying the canvas or page.
         if (this.data.covered) wx.canvasToTempFilePath({ canvas: this.canvas, fileType: 'png',
           success: result => {
             if (this.dead || !this.data.covered || version !== this.version) return;
             if (this.pickupWait) this.pickupWait.path = result.tempFilePath;
-            this.setData({ snapshot: result.tempFilePath }, () => this.landingReady());
+            snapshots.stage(this, result.tempFilePath, () => !this.dead && this.data.covered && version === this.version).then(ok => {
+              if (this.dead || !this.data.covered || version !== this.version) return;
+              if (this.pickupWait && this.pickupWait.path === result.tempFilePath) this.finishPickupSnapshot(ok);
+              this.landingReady();
+            });
           },
           fail: () => { if (!this.dead && this.data.covered && version === this.version) { this.finishPickupSnapshot(false); this.landingReady(); } }
         });
@@ -83,8 +90,8 @@ Component({
         wx.canvasToTempFilePath({ canvas:this.canvas, fileType:'png', success:r => done(r.tempFilePath), fail:() => done(null) });
       });
       if (!path || this.dead || this.data.covered) return null;
-      this.setData({ snapshot:path });
-      return { rect, id };
+      const ready = await snapshots.stage(this, path, () => !this.dead && !this.data.covered);
+      return ready && !this.data.covered ? { rect, id } : null;
     },
     setPickupHidden(id) {
       this.finishPickupSnapshot(false);
@@ -96,10 +103,8 @@ Component({
         this.refresh();
       });
     },
-    snapshotLoaded(e) {
-      if (this.pickupWait && this.pickupWait.id === (this.pickupId || '') && e.currentTarget.dataset.path === this.pickupWait.path) this.finishPickupSnapshot(true);
-    },
-    snapshotFailed() { this.finishPickupSnapshot(false); },
+    snapshotLoaded(e) { snapshots.loaded(this, e); },
+    snapshotFailed(e) { snapshots.failed(this, e); },
     finishPickupSnapshot(ok) {
       const wait = this.pickupWait; if (!wait) return;
       this.pickupWait = null; clearTimeout(wait.timer); wait.resolve(ok);

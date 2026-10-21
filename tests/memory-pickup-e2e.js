@@ -10,7 +10,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 const output = path.resolve('artifacts/memory-pickup');
 (async () => {
   let mini, before, installed = false, files = [], completed = false;
-  const checks = [], traces = [], errors = [];
+  const checks = [], traces = [], handoffs = [], errors = [];
   const snapshot = () => mini.evaluate(names => names.map(key => ({ key, exists:wx.getStorageInfoSync().keys.includes(key), value:wx.getStorageSync(key) })), keys);
   const act = (chain, method, arg) => mini.evaluate((chain, method, arg) => {
     const host = chain.reduce((p, s) => p.selectComponent(s), getCurrentPages().slice(-1)[0]);
@@ -25,6 +25,31 @@ const output = path.resolve('artifacts/memory-pickup');
       covered:b && b.data.covered, paper:c && c.data.pickupPaperAnimation };
   }, chain);
   async function until(fn, label) { for (let i = 0; i < 100; i++) { const value = await fn(); if (value) return value; await pause(70); } throw Error('Timed out: ' + label); }
+  async function startHandoff(chain) {
+    await mini.evaluate(chain=>{
+      const q=getApp().__pickupAcceptance;q.handoffFrames=[];q.handoffStart=Date.now();
+      q.handoffTimer=setInterval(()=>{
+        const h=chain.reduce((p,s)=>p.selectComponent(s),getCurrentPages().slice(-1)[0]),b=h&&(h.selectComponent('#today-board')||h.selectComponent('#board'));
+        if(!b||b.dead)return;
+        const d=b.data,phase={covered:d.covered,hidden:d.canvasHidden,raster:d.snapshotVisible,path:d.snapshot,slot:d.snapshotSlot};
+        b.createSelectorQuery().select('#feltCanvas').boundingClientRect()
+          .selectAll('.board-snapshot').boundingClientRect().exec(([canvas,images])=>{
+            q.handoffFrames.push({ms:Date.now()-q.handoffStart,...phase,canvas,images});
+          });
+      },16);
+    },chain);
+  }
+  async function finishHandoff(label) {
+    await pause(100);
+    const frames=await mini.evaluate(()=>{const q=getApp().__pickupAcceptance;clearInterval(q.handoffTimer);return q.handoffFrames;});
+    assert.ok(frames.length>5,label+' samples the transition');
+    for(const f of frames) {
+      const canvas=f.canvas&&f.canvas.width>0&&f.canvas.height>0;
+      const raster=f.raster&&(f.images||[]).some(image=>image.dataset.path===f.path&&image.dataset.slot===f.slot&&image.width>0&&image.height>0);
+      assert.ok(canvas||raster,label+' must always retain a visible board layer: '+JSON.stringify(f));
+    }
+    handoffs.push({label,frames});checks.push(label+' retains a visible board throughout');
+  }
   async function open(chain, id, label) {
     await until(() => mini.evaluate(chain => {
       const h = chain.reduce((p, s) => p.selectComponent(s), getCurrentPages().slice(-1)[0]);
@@ -43,6 +68,7 @@ const output = path.resolve('artifacts/memory-pickup');
     let owner = await mini.currentPage(); for (const selector of chain) owner = await owner.$(selector);
     const board = await owner.$('#today-board') || await owner.$('#board');
     const canvas = await board.$('#feltCanvas');
+    await startHandoff(chain);
     // Arm sampling before dispatch; a fast renderer can finish while the
     // automation bridge is still returning the touch/mount acknowledgements.
     await mini.evaluate(chain => {
@@ -79,11 +105,13 @@ const output = path.resolve('artifacts/memory-pickup');
     assert.ok(Math.abs(final.left+final.width/2-target.left-target.width/2)<2 && Math.abs(final.top+final.height/2-target.top-target.height/2)<2,
       label + ' pickup finishes at the fully expanded image center');
     traces.push({ label, opened, frames }); checks.push(label + ' touch opens from actual placement');
+    await finishHandoff(label+' opening');
     console.log('PASS:', label, 'open', opened.source.rect, 'frames', positions.size);
   }
   async function close(chain, back, label) {
     const opened=await state(chain);
     if (back) { await act([...chain,'#memory-card'], 'flip'); await until(async()=>!(await state(chain)).flipBusy,label+' back settled'); }
+    await startHandoff(chain);
     await act([...chain,'#memory-card'], 'close');
     const closing = await state(chain); assert.equal(closing.busy, true);
     await act([...chain,'#memory-card'], 'close'); // A second tap must not duplicate cleanup.
@@ -92,6 +120,8 @@ const output = path.resolve('artifacts/memory-pickup');
     assert.ok(Math.abs(returning.bounds.target.width-opened.bounds.target.width)<1,label+' measures the fully front-facing image');
     await until(async () => !(await state(chain)).card, label + ' return');
     const restored = await state(chain); assert.ok(!restored.hidden); assert.equal(restored.covered, false);
+    await until(()=>mini.evaluate(chain=>{const h=chain.reduce((p,s)=>p.selectComponent(s),getCurrentPages().slice(-1)[0]),b=h.selectComponent('#today-board')||h.selectComponent('#board');return !b.data.canvasHidden&&!b.data.snapshotVisible;},chain),label+' live canvas ready');
+    await finishHandoff(label+' closing');
     const home=await mini.evaluate((chain,id)=>{
       const h=chain.reduce((p,s)=>p.selectComponent(s),getCurrentPages().slice(-1)[0]);
       return (h.selectComponent('#today-board')||h.selectComponent('#board')).pickupRect(id);
@@ -104,6 +134,7 @@ const output = path.resolve('artifacts/memory-pickup');
   }
   try {
     mini = await automator.connect({ wsEndpoint:process.env.WECHAT_AUTOMATION_URL || 'ws://127.0.0.1:9420' });
+    await until(()=>mini.evaluate(()=>!!getApp()&&getCurrentPages().length>0),'app startup');
     mini.on('exception', e => errors.push(e)); fs.mkdirSync(output, { recursive:true }); before = await snapshot(); console.log('STEP: connected');
     await mini.evaluate(() => {
       if (wx.getSystemInfoSync().platform !== 'devtools') throw Error('Simulator only');
@@ -129,6 +160,10 @@ const output = path.resolve('artifacts/memory-pickup');
       const p=getCurrentPages().slice(-1)[0]; p.history=null; p.checkedDraft=false; p.setData({editable:false,selected:''});p.refresh();
       return {wide,tall,date,theme};
     }, files); console.log('STEP: isolated fixtures ready');
+    if(process.env.PICKUP_SLOW_SNAPSHOT==='1')await mini.evaluate(()=>{
+      const module=require('services/board-snapshot.js'),q=getApp().__pickupAcceptance;q.originalLoaded=module.loaded;
+      module.loaded=(host,event)=>setTimeout(()=>q.originalLoaded(host,event),180);
+    });
     await open([],fixture.wide,'today wide tilted');
     if (process.env.PICKUP_REVIEW_MS) await pause(Number(process.env.PICKUP_REVIEW_MS));
     await act(['#memory-card'],'flip'); await pause(80); await act(['#memory-card'],'flip');
@@ -166,17 +201,18 @@ const output = path.resolve('artifacts/memory-pickup');
   } finally {
     if (mini) {
       if(installed) await mini.evaluate(()=>{
-        const q=getApp().__pickupAcceptance;if(!q)return;clearInterval(q.sample);
+        const app=getApp(),q=app&&app.__pickupAcceptance;if(!q)return;clearInterval(q.sample);clearInterval(q.handoffTimer);
+        if(q.originalLoaded)require('services/board-snapshot.js').loaded=q.originalLoaded;
         for(const p of getCurrentPages()) { for(const selector of ['#memory-card','#day-board-card']) {const c=p.selectComponent(selector);if(c){c.dirty=false;c.noteDirty=false;}}
           p.dirty=false;p.noteDirty=false;p.setData({editable:false,selected:'',memoryCardId:'',memoryCardSource:null,boardDate:''}); }
       });
       await pause(250);
-      if(installed) await mini.evaluate(()=>{const q=getApp().__pickupAcceptance;if(!q)return;Object.assign(require('core/store.js').getStore(),q.original);delete getApp().__pickupAcceptance;
+      if(installed) await mini.evaluate(()=>{const app=getApp(),q=app&&app.__pickupAcceptance;if(!q)return;Object.assign(require('core/store.js').getStore(),q.original);delete app.__pickupAcceptance;
         getCurrentPages().forEach(p=>{p.history=null;if(p.refresh)p.refresh();});if(wx.disableAlertBeforeUnload)wx.disableAlertBeforeUnload({});});
       for(const file of files) await mini.evaluate(file=>{try{wx.getFileSystemManager().unlinkSync(file);}catch(_){}},file);
       if(before) assert.deepEqual(await snapshot(),before,'user storage unchanged');
       await mini.callWxMethod('switchTab',{url:'/pages/index/index'}); const info=await mini.systemInfo(); mini.disconnect();
-      fs.writeFileSync(path.join(output,'acceptance-'+info.windowWidth+'.json'),JSON.stringify({passed:completed,info,checks,traces,errors,userStorageUnchanged:true},null,2));
+      fs.writeFileSync(path.join(output,'acceptance-'+info.windowWidth+'.json'),JSON.stringify({passed:completed,info,checks,traces,handoffs,errors,slowDecode:process.env.PICKUP_SLOW_SNAPSHOT==='1',userStorageUnchanged:true},null,2));
     }
   }
   console.log('PASS:',checks.length,'pickup checks; user storage unchanged');

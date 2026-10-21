@@ -121,4 +121,4 @@
 .pickup-open .flip-scene { opacity:1!important; }
 .pickup-photo-hidden { opacity:0; }
 .memory-pickup-photo { position:absolute; z-index:2; width:1px; height:1px; visibility:hidden; pointer-events:none; transform-origin:50% 50%; }
-.pickup-opening .memory-pickup-photo,.pickup-returning .memory-pickup-photo,.pickup-landed .memory-pickup-photo { visibility:visible; filter:drop-shadow(0 8px 6px rgba(48,40,29,.15)); }
+.pickup-opening .memory-pickup-photo,.pickup-returning .memory-pickup-photo,.pickup-landed .memory-pickup-photo { visibility:visible; }

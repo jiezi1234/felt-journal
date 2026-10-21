@@ -14,15 +14,18 @@ test('covered boards retain a snapshot but ignore callbacks after reopening or d
   const board = Object.assign({}, definition.methods, {
     data: { model: { items: [] }, covered: true, editable: false, snapshot: '', selected: '' },
     canvas: { width: 600, height: 400, getContext: () => ({ setTransform() {} }) }, screenWidth: 300,
-    setData(value) { Object.assign(this.data, value); }
+    setData(value, done) { Object.assign(this.data, value); if(done)done(); }
   });
   await board.refresh(); assert.equal(requests.length, 1);
   board.data.covered = false; await board.refresh(); requests[0].success({ tempFilePath: '/late.png' });
   assert.equal(board.data.snapshot, '', 'Returning to live editing must ignore a late snapshot');
   board.data.covered = true; await board.refresh(); requests[1].success({ tempFilePath: '/current.png' });
+  assert.equal(board.data.snapshot, '', 'The live canvas stays visible until the raster decodes');
+  board.snapshotLoaded({currentTarget:{dataset:{path:'/current.png',slot:'a'}}});
   assert.equal(board.data.snapshot, '/current.png');
   await board.refresh(); board.dead = true; requests[2].success({ tempFilePath: '/detached.png' });
   assert.equal(board.data.snapshot, '/current.png', 'Detached cards must not update their UI');
+  definition.lifetimes.detached.call(board);
 });
 
 test('covered boards do not respond to pointer input underneath a card', () => {
@@ -42,10 +45,10 @@ test('pickup hides only its transient photo and waits for the decoded snapshot b
     canvas:{width:600,height:400,getContext:()=>({setTransform(){}})},setData(d,done){Object.assign(this.data,d);if(done)done();}};
   const pending=board.setPickupHidden('one');await Promise.resolve();
   assert.deepEqual(paints.at(-1),['two']);requests[0].success({tempFilePath:'/lift.png'});
-  assert.ok(board.pickupWait);board.snapshotLoaded({currentTarget:{dataset:{path:'/old.png'}}});assert.ok(board.pickupWait);
-  board.snapshotLoaded({currentTarget:{dataset:{path:'/lift.png'}}});assert.equal(await pending,true);
+  assert.ok(board.pickupWait);board.snapshotLoaded({currentTarget:{dataset:{path:'/old.png',slot:'a'}}});assert.ok(board.pickupWait);
+  board.snapshotLoaded({currentTarget:{dataset:{path:'/lift.png',slot:'a'}}});assert.equal(await pending,true);
   const restored=board.setPickupHidden('');await Promise.resolve();assert.deepEqual(paints.at(-1),['one','two']);
-  requests[1].success({tempFilePath:'/whole.png'});board.snapshotLoaded({currentTarget:{dataset:{path:'/whole.png'}}});assert.equal(await restored,true);
+  requests[1].success({tempFilePath:'/whole.png'});board.snapshotLoaded({currentTarget:{dataset:{path:'/whole.png',slot:'b'}}});assert.equal(await restored,true);
   assert.equal(JSON.stringify(model),original,'Lift/return never edits the board placements');
 });
 
