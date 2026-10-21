@@ -108,7 +108,7 @@ const difference = (op, actual, expected) => op === 'rotate' ? Math.abs(((actual
           assert.ok(position.fits, 'All of the held target remains inside the board');
           // Compact fitted boards constrain the whole control frame to the
           // viewport. Today has room for the complete unconstrained finger arc.
-          if (name === 'today') assert.ok(Math.hypot(position.x - touch.clientX, position.y - touch.clientY) < 1, 'The held rotation button follows the finger through quadrant crossings');
+          if (name === 'today') assert.ok(Math.hypot(position.x - touch.clientX, position.y - touch.clientY) < 1, 'The held rotation button follows the finger through quadrant crossings: ' + JSON.stringify({ fraction, position, touch }));
           if (previousGrip) assert.ok(Math.hypot(position.x - previousGrip.x, position.y - previousGrip.y) < 40, 'A viewport constraint cannot make the control swap corners');
           previousGrip = position;
         }
@@ -160,7 +160,7 @@ const difference = (op, actual, expected) => op === 'rotate' ? Math.abs(((actual
     const share=await page.$('#share-card'),exported=await wait(share,d=>!d.generating,'export');assert.equal(exported.error,'');
     const info=await mini.callWxMethod('getImageInfo',{src:exported.imagePath}),frame=(await page.data()).shareViewport;
     assert.equal(Math.max(info.width,info.height),1800);
-    assert.ok(Math.abs(info.width/info.height-frame.width/(frame.height+64))<.001,'Export includes full clamp headroom');
+    assert.ok(Math.abs(info.width/info.height-frame.width/(frame.height+128))<.001,'Export includes full clamp headroom');
     await wait(board,d=>d.covered&&!!d.snapshot,'covered snapshot');
     const snapshotInfo=await mini.callWxMethod('getImageInfo',{src:(await board.data()).snapshot});
     const shown=await board.data();assert.ok(Math.abs(snapshotInfo.width/snapshotInfo.height-shown.width/shown.canvasHeight)<.002);

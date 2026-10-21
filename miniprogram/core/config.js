@@ -1,6 +1,6 @@
 // Geometry uses the inner felt's logical units, independent of screen size.
 module.exports = {
-  board: { width: 1500, height: 1000, inset: 45, radius: 90, innerRadius: 45, overhang: 64 },
+  board: { width: 1500, height: 1000, inset: 45, radius: 90, innerRadius: 45, overhang: 128 },
   colors: [
     { name: '燕麦米', value: '#D9CBAF' },
     { name: '鼠尾草', value: '#C3D0BD' },

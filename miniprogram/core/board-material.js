@@ -14,7 +14,8 @@ function oval(ctx, x, y, rx, ry) {
   ctx.save(); ctx.translate(x, y); ctx.scale(rx, ry); ctx.beginPath(); ctx.arc(0, 0, 1, 0, Math.PI * 2); ctx.restore();
 }
 function clip(ctx, width, pixelScale) {
-  ctx.save(); ctx.translate(width / 2, 0); ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  ctx.save(); ctx.translate(width / 2, -48); ctx.scale(1.2, 1.2); ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  pixelScale *= 1.2;
   // A round-handle steel bulldog clip: rear lever, spring, curved neck and
   // rolled jaws are separate layers, lit from the upper left.
   ctx.shadowColor = 'rgba(37,34,26,.27)'; ctx.shadowBlur = 16*pixelScale; ctx.shadowOffsetY = 9*pixelScale;
