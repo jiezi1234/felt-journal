@@ -23,10 +23,13 @@
       </view>
       <view wx:if="{{mode === 'themes' && !date}}" class="journal-empty"><view class="section-title">留一块板，收藏喜欢的日常</view><view class="muted">把不同日子的记忆放在一起</view></view>
       <view wx:else class="today-stage"><felt-board id="today-board" layout="tall" report-gestures="{{true}}" bind:gesturestate="gestureState" style="height:100%;" can-edit="{{canEdit}}" covered="{{editorOpen || formOpen || !!placing || !!drawer || !!journalPicker || !!task || !!memoryCardId || !!shareBoardId}}" landing-id="{{placing.id || ''}}" model="{{model}}" editable="{{editable}}" selected="{{selected}}" bind:landingready="stickerTarget" bind:select="select" bind:edititem="editItem" bind:change="placementChanged" bind:transform="transform" bind:remove="remove" bind:memory="openMemory" bind:boardtap="openBoard" /></view>
-      <view class="journal-paper-footer"><view class="journal-board-feedback"><include src="../../templates/board-feedback.wxml" /></view><button wx:if="{{editable && selected}}" id="selected-tools" class="journal-footer-button" disabled="{{navigationBusy || !!drawer || !!journalPicker}}" bindtap="openSelectedTools">布置选项</button><button wx:elif="{{mode === 'calendar' && dailyDate !== todayDate}}" id="return-today" class="journal-footer-button" disabled="{{navigationBusy || !!drawer || !!journalPicker}}" bindtap="returnToday">回到今天 ↗</button></view>
     </view>
     <view wx:if="{{saveError}}" class="error">{{saveError}}<button bindtap="retrySave">重试保存</button></view>
-    <view class="record-dock"><button id="record-today" class="record-fab" hover-class="journal-add-pressed" disabled="{{navigationBusy || !!drawer || !!journalPicker || !!saveError}}" aria-label="{{mode === 'themes' && !date ? '新建主题板' : mode === 'calendar' && dailyDate !== todayDate ? '补记这一天' : '添加记忆'}}" bindtap="primary"><text class="record-plus">＋</text><text>{{mode === 'themes' && !date ? '新建主题板' : mode === 'calendar' && dailyDate !== todayDate ? '补记这一天' : '添加记忆'}}</text></button></view>
+    <view class="record-dock">
+      <view class="journal-board-feedback"><include src="../../templates/board-feedback.wxml" /></view>
+      <button id="record-today" class="record-fab" hover-class="journal-add-pressed" disabled="{{navigationBusy || !!drawer || !!journalPicker || !!saveError}}" aria-label="{{mode === 'themes' && !date ? '新建主题板' : mode === 'calendar' && dailyDate !== todayDate ? '补记这一天' : '添加记忆'}}" bindtap="primary"><text class="record-plus">＋</text><text>{{mode === 'themes' && !date ? '新建主题板' : mode === 'calendar' && dailyDate !== todayDate ? '补记这一天' : '添加记忆'}}</text></button>
+      <view class="journal-quick-action"><button wx:if="{{editable && selected}}" id="selected-tools" class="journal-footer-button" disabled="{{navigationBusy || !!drawer || !!journalPicker}}" bindtap="openSelectedTools">布置选项</button><button wx:elif="{{mode === 'calendar' && dailyDate !== todayDate}}" id="return-today" class="journal-footer-button" disabled="{{navigationBusy || !!drawer || !!journalPicker}}" bindtap="returnToday">回到今天</button></view>
+    </view>
   </block>
 </view>
 <include src="../../templates/journal-pickers.wxml" />
