@@ -138,6 +138,24 @@ test('floating actions remain reachable on narrow boards and disappear while a p
   }
 });
 
+test('journal floating controls keep safe-area clearance, separate hit targets and pass empty space through', () => {
+  const actions = require('../miniprogram/core/board-actions');
+  for (const [width,compactFloating] of [[268,true],[298,false],[378,false],[508,false]]) {
+    for (const bottomInset of [0,20,34]) {
+      const state={interactive:true,compactFloating,bottomInset,floatingControls:{label:'添加记忆',quick:'tools'}};
+      const [add,quick]=actions.layout(width,500,state);
+      assert.ok(add.height>=44 && quick.height>=44 && quick.x>=add.x+add.width);
+      assert.ok(add.x>=0 && quick.x+quick.width<=width && add.y+add.height<=500-13);
+      assert.equal(actions.hit([add,quick],{x:add.x+add.width/2,y:add.y+25}).action,'record');
+      assert.equal(actions.hit([add,quick],{x:quick.x+quick.width/2,y:quick.y+22}).action,'tools');
+      assert.equal(actions.hit([add,quick],{x:1,y:add.y+25}),undefined);
+      assert.equal(actions.layout(width,500,{...state,floatingControls:{label:'补记这一天',quick:'today',disabled:true}})[1].action,'today');
+      assert.equal(actions.layout(width,500,{...state,floatingControls:{label:'添加记忆',disabled:true}})[0].disabled,true);
+      for (const hidden of [{dragging:true},{covered:true},{landingId:'one'},{interactive:false}]) assert.deepEqual(actions.layout(width,500,{...state,...hidden}),[]);
+    }
+  }
+});
+
 test('tapping an object opens its card without selecting it in browse or edit mode', t => {
   const f = gestureFixture(t);
   for (const editable of [false, true]) {

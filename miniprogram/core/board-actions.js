@@ -4,7 +4,18 @@ const B = require('./config').board;
 // Screen-pixel geometry is shared by Canvas paint, native touch hits and the
 // transparent accessible buttons. This UI pass never runs in board exports.
 function layout(width, height, state) {
-  if (!state.showActions || state.covered || !state.interactive || state.landingId || state.dragging) return [];
+  if (state.covered || !state.interactive || state.landingId || state.dragging) return [];
+  if (state.floatingControls) {
+    const controls = state.floatingControls, compact = !!state.compactFloating, addWidth = compact ? 124 : 140;
+    const y = height - (Math.max(16, 6 + (state.bottomInset || 0)) - 3) - 50;
+    const actions = [{ action:'record', id:'journal-canvas-record', label:controls.label, kind:'journal-add', x:(width-addWidth)/2, y, width:addWidth, height:50, disabled:!!controls.disabled }];
+    if (controls.quick) {
+      const quickWidth = compact ? 56 : 66;
+      actions.push({ action:controls.quick, id:'journal-canvas-quick', label:controls.quick === 'tools' ? '布置选项' : '回到今天', kind:'journal-quick', x:width-quickWidth, y:y+3, width:quickWidth, height:44, disabled:!!controls.disabled });
+    }
+    return actions.map(a => ({ ...a, style:`left:${a.x}px;top:${a.y}px;width:${a.width}px;height:${a.height}px;` }));
+  }
+  if (!state.showActions) return [];
   const top = height - 62, right = width - 62;
   const actions = [{ action: 'add', id: 'add-theme-memory', label: '添加记忆', x: right, y: top, width: 50, height: 50, disabled: state.actionsDisabled || !state.canAdd }];
   if (state.selected) {
@@ -19,9 +30,35 @@ function layout(width, height, state) {
 function hit(actions, point) {
   return point && actions.find(a => point.x >= a.x && point.x <= a.x + a.width && point.y >= a.y && point.y <= a.y + a.height);
 }
-function paint(ctx, actions, screenWidth, pressed) {
+function paint(ctx, actions, screenWidth, pressed, hint) {
   if (!actions.length) return;
   ctx.save(); ctx.scale(B.width / screenWidth, B.width / screenWidth);
+  if (actions[0].kind === 'journal-add') {
+    const compact = actions[0].width === 124;
+    ctx.setLineDash([]); ctx.lineWidth = 1; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    if (hint) {
+      ctx.font = '11px sans-serif';
+      const width = Math.min(screenWidth, ctx.measureText(hint).width + 18), y = actions[0].y - 21;
+      rounded(ctx,(screenWidth-width)/2,y-13,width,26,12); ctx.fillStyle = 'rgba(255,252,246,.88)'; ctx.fill();
+      ctx.fillStyle = '#7D6D5E'; ctx.fillText(hint,screenWidth/2,y,width-12);
+    }
+    actions.forEach(a => {
+      ctx.save(); ctx.globalAlpha = a.disabled ? .45 : 1;
+      ctx.shadowColor = 'rgba(79,55,21,.24)'; ctx.shadowBlur = 16; ctx.shadowOffsetY = 6;
+      rounded(ctx,a.x,a.y,a.width,a.height,a.height/2);
+      ctx.fillStyle = a.kind === 'journal-add' ? (pressed === a.action ? '#E6C47D' : '#EFD395') : '#FFFCF6'; ctx.fill();
+      ctx.shadowColor = 'transparent';
+      if (a.kind === 'journal-add') {
+        rounded(ctx,a.x+4,a.y+4,a.width-8,a.height-8,23); ctx.setLineDash([3,3]); ctx.strokeStyle = 'rgba(132,103,53,.3)'; ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = '#514126'; ctx.font = '24px sans-serif'; ctx.fillText('＋',a.x+25,a.y+25);
+        ctx.font = `${compact ? 13 : 14}px sans-serif`; ctx.fillText(a.label,a.x+a.width/2+11,a.y+25);
+      } else {
+        ctx.fillStyle = '#79644B'; ctx.font = `${compact ? 11 : 12}px sans-serif`; ctx.fillText(a.label,a.x+a.width/2,a.y+22);
+      }
+      ctx.restore();
+    });
+    ctx.restore(); return;
+  }
   ctx.setLineDash([]); ctx.lineWidth = 1;
   const row = actions.filter(a => a.action !== 'add');
   ctx.shadowColor = 'rgba(40,31,20,.18)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 3;

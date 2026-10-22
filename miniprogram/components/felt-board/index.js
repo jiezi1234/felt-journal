@@ -7,7 +7,7 @@ const snapshots = require('../../services/board-snapshot');
 const boardActions = require('../../core/board-actions');
 const swipe = require('../../services/board-swipe');
 Component({
-  properties: { model: { type: Object, value: null }, layout: String, editable: Boolean, canEdit: Boolean, selected: String, covered: Boolean, landingId: String, reportGestures: Boolean, allowSwipe: Boolean, swipePrevious: Object, swipeNext: Object, showActions: Boolean, actionsDisabled: Boolean, canAdd: Boolean, canUndo: Boolean, canBringToFront: Boolean, interactive: { type: Boolean, value: true } },
+  properties: { model: { type: Object, value: null }, layout: String, editable: Boolean, canEdit: Boolean, selected: String, covered: Boolean, landingId: String, reportGestures: Boolean, floatingControls: Object, allowSwipe: Boolean, swipePrevious: Object, swipeNext: Object, showActions: Boolean, actionsDisabled: Boolean, canAdd: Boolean, canUndo: Boolean, canBringToFront: Boolean, interactive: { type: Boolean, value: true } },
   data: { height: 210, width: 0, topSpace: 0, canvasHeight: 210, handles: [], actions: [], swipeActive: false, imageError: false, snapshot: '', snapshotA:'', snapshotB:'', snapshotSlot:'a', snapshotVisible:false, canvasHidden:false },
   observers: { 'model, editable, selected, landingId': function () { this.refresh(); if (this.data.layout) wx.nextTick(() => this.measure()); },
     'covered, interactive': function () {
@@ -16,7 +16,7 @@ Component({
       if (!this.data.covered) { this.pickupReturn = null; this.pickupId = ''; this.finishPickupSnapshot(false); }
       if (this.data.covered || !this.data.interactive) this.touchCancel(); else this.refresh();
     }, 'swipePrevious, swipeNext, allowSwipe': function () { swipe.warm(this); },
-    'showActions, actionsDisabled, canAdd, canUndo, canBringToFront': function () { this.refresh(); }, layout() { this.measure(); } },
+    'showActions, actionsDisabled, canAdd, canUndo, canBringToFront, floatingControls': function () { this.refresh(); }, layout() { this.measure(); } },
   lifetimes: { ready() { this.measure(); }, detached() { this.dead = true; swipe.dispose(this); snapshots.dispose(this); this.clearGesture(); this.finishPickupSnapshot(false); } },
   pageLifetimes: { resize() { swipe.cancel(this); this.touchCancel(); this.measure(); }, hide() { swipe.cancel(this); this.touchCancel(); }, show() { if (this.canvas) this.refresh(); } },
   methods: {
@@ -32,7 +32,9 @@ Component({
         if (this.canvas === r.node && Math.abs(this.screenWidth - width) < 0.5 && Math.abs(this.data.height - height) < 0.5) return;
         this.canvas = r.node; this.screenWidth = width;
         this.dimensions = tall ? viewport.present({ items: [] }, width, height).dimensions : B;
-        const dpr = wx.getSystemInfoSync().pixelRatio || 2;
+        const info = wx.getSystemInfoSync(), dpr = info.pixelRatio || 2;
+        this.bottomInset = info.safeArea ? Math.max(0, info.screenHeight - info.safeArea.bottom) : 0;
+        this.compactFloating = info.windowWidth <= 350;
         this.canvas.width = Math.round(width * dpr); this.canvas.height = Math.round((height + topSpace) * dpr);
         this.setData({ height, width, topSpace, canvasHeight: height + topSpace }, () => this.refresh());
       });
@@ -56,7 +58,7 @@ Component({
         renderer.paint(ctx, visible, this.images, this.data.editable && !this.data.landingId && !this.pickupId ? this.data.selected : '', dimensions, this.surface && this.surface.canvas, this.canvas.width / dimensions.width);
         renderer.paintControls(ctx, handles, this.screenWidth);
         const actions = this.actionLayout();
-        boardActions.paint(ctx, actions, this.screenWidth, this.gesture && !this.gesture.moved && this.gesture.action);
+        boardActions.paint(ctx, actions, this.screenWidth, this.gesture && !this.gesture.moved && this.gesture.action, this.data.floatingControls && this.data.floatingControls.hint);
         this.setData({ handles, actions, imageError: (model.items || []).some(p => this.images[p.memory.subjectPath].missing) });
         snapshots.painted(this, version);
         if (!this.data.covered) swipe.warm(this);
@@ -158,7 +160,7 @@ Component({
       return null;
     },
     point(touch) { const p = this.localPoint(touch); return p && { x: p.x * B.width / this.screenWidth - B.inset, y: p.y * B.width / this.screenWidth - B.inset }; },
-    actionLayout() { return boardActions.layout(this.screenWidth, this.data.height, { ...this.data, dragging: !!this.dragModel || !!this.swipeMotion }); },
+    actionLayout() { return boardActions.layout(this.screenWidth, this.data.height, { ...this.data, bottomInset:this.bottomInset || 0, compactFloating:this.compactFloating, dragging: !!this.dragModel || !!this.swipeMotion }); },
     actionAt(touch) { return boardActions.hit(this.actionLayout(), this.localPoint(touch)); },
     actionTap(e) {
       const action = e.currentTarget.dataset.action;

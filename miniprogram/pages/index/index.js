@@ -145,6 +145,7 @@ Page({
   exportToday() { if (!this.busy() && !this.data.journalPicker) this.exportBoard(); },
   openSelection() { if (this.data.mode === 'themes') return theme.openSelection.call(this); if (this.canAdjust()) { this.cancelGesture(); this.setData({ drawer: 'selection' }); } },
   openSelectedTools() { if (this.canAdjust()) { this.cancelGesture(); this.setData({ drawer: 'selection' }); } },
+  floatingAction(e) { const action = e.detail.action; if (action === 'record') this.primary(); else if (action === 'tools') this.openSelectedTools(); else if (action === 'today') this.returnToday(); },
   select(e) { return this.data.mode === 'themes' ? theme.select.call(this, e) : editor.select.call(this, e); },
   library() { return this.data.mode === 'themes' ? theme.library.call(this) : editor.library.call(this); },
   placeFromLibrary(e) { return this.data.mode === 'themes' ? theme.placeFromLibrary.call(this, e) : editor.placeFromLibrary.call(this, e); },
