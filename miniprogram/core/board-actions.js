@@ -7,7 +7,8 @@ function layout(width, height, state) {
   if (state.covered || !state.interactive || state.landingId || state.dragging) return [];
   if (state.floatingControls) {
     const controls = state.floatingControls, compact = !!state.compactFloating, addWidth = compact ? 124 : 140;
-    const y = height - (Math.max(16, 6 + (state.bottomInset || 0)) - 3) - 50;
+    // A lifted board keeps the floating controls anchored to the notebook.
+    const y = height - (Math.max(16, 6 + (state.bottomInset || 0)) - 3) - 50 + (controls.offsetY || 0);
     const actions = [{ action:'record', id:'journal-canvas-record', label:controls.label, kind:'journal-add', x:(width-addWidth)/2, y, width:addWidth, height:50, disabled:!!controls.disabled }];
     if (controls.quick) {
       const quickWidth = compact ? 56 : 66;

@@ -149,6 +149,9 @@ test('journal floating controls keep safe-area clearance, separate hit targets a
       assert.equal(actions.hit([add,quick],{x:add.x+add.width/2,y:add.y+25}).action,'record');
       assert.equal(actions.hit([add,quick],{x:quick.x+quick.width/2,y:quick.y+22}).action,'tools');
       assert.equal(actions.hit([add,quick],{x:1,y:add.y+25}),undefined);
+      const lifted=actions.layout(width,500,{...state,floatingControls:{...state.floatingControls,offsetY:12}});
+      assert.equal(lifted[0].y-12,add.y,'A lifted board keeps the add button at the same screen position');
+      assert.equal(lifted[1].y-12,quick.y,'Quick actions stay aligned with the add button');
       assert.equal(actions.layout(width,500,{...state,floatingControls:{label:'补记这一天',quick:'today',disabled:true}})[1].action,'today');
       assert.equal(actions.layout(width,500,{...state,floatingControls:{label:'添加记忆',disabled:true}})[0].disabled,true);
       for (const hidden of [{dragging:true},{covered:true},{landingId:'one'},{interactive:false}]) assert.deepEqual(actions.layout(width,500,{...state,...hidden}),[]);
