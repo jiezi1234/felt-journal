@@ -64,13 +64,14 @@ test('canvas headroom does not offset native touches or viewport-coordinate touc
 
 test('fit and tall boards reserve headroom inside the available stage', t => {
   const previous=global.wx;t.after(()=>{global.wx=previous;});global.wx={getSystemInfoSync:()=>({pixelRatio:2})};
-  for(const layout of ['fit','tall','']) {
+  for(const [layout,offsetY] of [['fit',0],['tall',0],['',0],['tall',42]]) {
     const canvas={},rect={width:360,height:600};
-    const board={...definition.methods,data:{...definition.data,layout},refresh(){},
+    const board={...definition.methods,data:{...definition.data,layout,floatingControls:offsetY ? {offsetY} : null},refresh(){},
       setData(data,done){Object.assign(this.data,data);done();},
       createSelectorQuery(){return {select(){return this;},fields(){return this;},boundingClientRect(){return this;},exec(fn){fn([{node:canvas},rect]);}};}};
     board.measure();const d=board.data;
-    assert.ok(d.topSpace>0);assert.equal(d.canvasHeight,d.height+d.topSpace);assert.ok(d.canvasHeight<=rect.height);
+    assert.ok(d.topSpace>0);assert.equal(d.canvasHeight,d.height+d.topSpace+offsetY);assert.ok(d.canvasHeight-offsetY<=rect.height);
+    assert.equal(board.paintHeight,Math.round((d.height+d.topSpace)*2),'Extra floating space never stretches the board');
     assert.equal(canvas.height,Math.round(d.canvasHeight*2));assert.equal(board.exportViewport().height,board.dimensions.height);
   }
 });
@@ -149,9 +150,9 @@ test('journal floating controls keep safe-area clearance, separate hit targets a
       assert.equal(actions.hit([add,quick],{x:add.x+add.width/2,y:add.y+25}).action,'record');
       assert.equal(actions.hit([add,quick],{x:quick.x+quick.width/2,y:quick.y+22}).action,'tools');
       assert.equal(actions.hit([add,quick],{x:1,y:add.y+25}),undefined);
-      const lifted=actions.layout(width,500,{...state,floatingControls:{...state.floatingControls,offsetY:12}});
-      assert.equal(lifted[0].y-12,add.y,'A lifted board keeps the add button at the same screen position');
-      assert.equal(lifted[1].y-12,quick.y,'Quick actions stay aligned with the add button');
+      const lifted=actions.layout(width,500,{...state,floatingControls:{...state.floatingControls,offsetY:42}});
+      assert.equal(lifted[0].y-42,add.y,'A lifted board keeps the add button at the same screen position');
+      assert.equal(lifted[1].y-42,quick.y,'Quick actions stay aligned with the add button');
       assert.equal(actions.layout(width,500,{...state,floatingControls:{label:'补记这一天',quick:'today',disabled:true}})[1].action,'today');
       assert.equal(actions.layout(width,500,{...state,floatingControls:{label:'添加记忆',disabled:true}})[0].disabled,true);
       for (const hidden of [{dragging:true},{covered:true},{landingId:'one'},{interactive:false}]) assert.deepEqual(actions.layout(width,500,{...state,...hidden}),[]);

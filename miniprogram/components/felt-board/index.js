@@ -9,14 +9,14 @@ const swipe = require('../../services/board-swipe');
 Component({
   properties: { model: { type: Object, value: null }, layout: String, editable: Boolean, canEdit: Boolean, selected: String, covered: Boolean, landingId: String, reportGestures: Boolean, floatingControls: Object, allowSwipe: Boolean, swipePrevious: Object, swipeNext: Object, showActions: Boolean, actionsDisabled: Boolean, canAdd: Boolean, canUndo: Boolean, canBringToFront: Boolean, interactive: { type: Boolean, value: true } },
   data: { height: 210, width: 0, topSpace: 0, canvasHeight: 210, handles: [], actions: [], swipeActive: false, imageError: false, snapshot: '', snapshotA:'', snapshotB:'', snapshotSlot:'a', snapshotVisible:false, canvasHidden:false },
-  observers: { 'model, editable, selected, landingId': function () { this.refresh(); if (this.data.layout) wx.nextTick(() => this.measure()); },
+  observers: { 'model, editable, selected, landingId, floatingControls': function () { this.refresh(); if (this.data.layout) wx.nextTick(() => this.measure()); },
     'covered, interactive': function () {
       if (this.data.covered || !this.data.interactive) swipe.cancel(this);
       snapshots.cover(this);
       if (!this.data.covered) { this.pickupReturn = null; this.pickupId = ''; this.finishPickupSnapshot(false); }
       if (this.data.covered || !this.data.interactive) this.touchCancel(); else this.refresh();
     }, 'swipePrevious, swipeNext, allowSwipe': function () { swipe.warm(this); },
-    'showActions, actionsDisabled, canAdd, canUndo, canBringToFront, floatingControls': function () { this.refresh(); }, layout() { this.measure(); } },
+    'showActions, actionsDisabled, canAdd, canUndo, canBringToFront': function () { this.refresh(); }, layout() { this.measure(); } },
   lifetimes: { ready() { this.measure(); }, detached() { this.dead = true; swipe.dispose(this); snapshots.dispose(this); this.clearGesture(); this.finishPickupSnapshot(false); } },
   pageLifetimes: { resize() { swipe.cancel(this); this.touchCancel(); this.measure(); }, hide() { swipe.cancel(this); this.touchCancel(); }, show() { if (this.canvas) this.refresh(); } },
   methods: {
@@ -29,14 +29,18 @@ Component({
         const width = this.data.layout === 'fit' && rect.height ? Math.min(rect.width, rect.height * B.width / (B.height + B.overhang)) : rect.width;
         const topSpace = width * B.overhang / B.width;
         const height = tall ? Math.max(width * B.height / B.width, rect.height - topSpace) : width * B.height / B.width;
-        if (this.canvas === r.node && Math.abs(this.screenWidth - width) < 0.5 && Math.abs(this.data.height - height) < 0.5) return;
+        const tail = Math.max(0, this.data.floatingControls && this.data.floatingControls.offsetY || 0);
+        if (this.canvas === r.node && Math.abs(this.screenWidth - width) < 0.5 && Math.abs(this.data.height - height) < 0.5 && this.floatingTail === tail) return;
         this.canvas = r.node; this.screenWidth = width;
         this.dimensions = tall ? viewport.present({ items: [] }, width, height).dimensions : B;
         const info = wx.getSystemInfoSync(), dpr = info.pixelRatio || 2;
         this.bottomInset = info.safeArea ? Math.max(0, info.screenHeight - info.safeArea.bottom) : 0;
         this.compactFloating = info.windowWidth <= 350;
-        this.canvas.width = Math.round(width * dpr); this.canvas.height = Math.round((height + topSpace) * dpr);
-        this.setData({ height, width, topSpace, canvasHeight: height + topSpace }, () => this.refresh());
+        // Transparent space below a raised board keeps the fixed floating
+        // controls inside the canvas without stretching the board itself.
+        this.floatingTail = tail; this.paintHeight = Math.round((height + topSpace) * dpr);
+        this.canvas.width = Math.round(width * dpr); this.canvas.height = Math.round((height + topSpace + tail) * dpr);
+        this.setData({ height, width, topSpace, canvasHeight: height + topSpace + tail }, () => this.refresh());
       });
     },
     async refresh() {
@@ -49,12 +53,14 @@ Component({
         const dimensions = this.dimensions || B;
         const display = viewport.present(model, this.screenWidth, this.data.height).model;
         this.displayModel = display;
-        const bounds = renderer.frame(dimensions), sy = this.canvas.height / bounds.height;
+        const bounds = renderer.frame(dimensions), paintHeight = this.paintHeight || this.canvas.height, sy = paintHeight / bounds.height;
         const ctx = this.canvas.getContext('2d'); ctx.setTransform(this.canvas.width / dimensions.width, 0, 0, sy, 0, bounds.top * sy);
+        if (this.floatingTail) ctx.clearRect(0, -bounds.top, bounds.width, this.canvas.height / sy);
         const selected = (display.items || []).find(p => p.memoryId === this.data.selected && p.memoryId !== this.pickupId);
         const handles = this.data.editable && selected && !this.data.landingId ? geometry.handles(selected, this.screenWidth, this.data.height) : [];
         const visible = this.data.landingId || this.pickupId ? Object.assign({}, display, { items: display.items.filter(p => p.memoryId !== this.data.landingId && p.memoryId !== this.pickupId) }) : display;
-        this.surface = renderer.createSurface(this.canvas, model, dimensions, this.surface);
+        const surfaceSize = this.floatingTail ? { width:this.canvas.width, height:paintHeight } : this.canvas;
+        this.surface = renderer.createSurface(surfaceSize, model, dimensions, this.surface);
         renderer.paint(ctx, visible, this.images, this.data.editable && !this.data.landingId && !this.pickupId ? this.data.selected : '', dimensions, this.surface && this.surface.canvas, this.canvas.width / dimensions.width);
         renderer.paintControls(ctx, handles, this.screenWidth);
         const actions = this.actionLayout();

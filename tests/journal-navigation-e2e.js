@@ -48,16 +48,16 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     result.add={ 'pointer-events':await button.style('pointer-events') };
     const boardLayout=await mini.evaluate(()=>new Promise(resolve=>{
       const board=getCurrentPages().slice(-1)[0].selectComponent('#today-board');
-      board.createSelectorQuery().select('.board-viewport').boundingClientRect().select('.board-shell').boundingClientRect().exec(([viewport,rect])=>resolve({viewport,actions:board.data.actions.map(a=>({action:a.action,left:rect.left+a.x,top:rect.top+a.y,width:a.width,height:a.height}))}));
+      board.createSelectorQuery().select('.board-viewport').boundingClientRect().select('.board-shell').boundingClientRect().select('#feltCanvas').boundingClientRect().exec(([viewport,rect,canvas])=>resolve({viewport,canvas,actions:board.data.actions.map(a=>({action:a.action,left:rect.left+a.x,top:rect.top+a.y,width:a.width,height:a.height}))}));
     }));
-    result.boardBounds=boardLayout.viewport; result.nativeControls=boardLayout.actions;
+    result.boardBounds=boardLayout.viewport; result.canvasBounds=boardLayout.canvas; result.nativeControls=boardLayout.actions;
     assert.equal(result.error, '', name);
     result.rects.filter(Boolean).forEach(r => { assert.ok(r.left >= -1 && r.right <= result.width+1, `${name} horizontal overflow ${JSON.stringify(r)}`); assert.ok(r.top >= -1 && r.bottom <= result.height+1, `${name} vertical overflow ${JSON.stringify(r)}`); });
     result.rail.forEach(r => assert.ok(r.width >= 43 && r.height >= 44, `${name} touch target ${JSON.stringify(r)}`));
     const tabVisible = await mini.evaluate(() => { const p = getCurrentPages().slice(-1)[0], tab = p.getTabBar && p.getTabBar(); return !!(tab && tab.selectComponent('#main-nav')); });
     assert.equal(tabVisible, false);
     const stage = result.rects[3], add = result.rects[4];
-    assert.ok(Math.abs(stage.top-result.boardBounds.top-12)<1 && Math.abs(stage.bottom-result.boardBounds.bottom-12)<1, 'Only the felt board is raised 12px within the notebook');
+    assert.ok(Math.abs(stage.top-result.boardBounds.top-42)<1 && Math.abs(stage.bottom-result.boardBounds.bottom-42)<1, 'Only the felt board is raised 42px within the notebook');
     assert.ok(stage.bottom >= result.height - 16, 'Board extends close to the screen bottom');
     assert.ok(add.top >= stage.top && add.bottom <= stage.bottom - 10, 'Add button floats inside the board with bottom clearance');
     assert.ok(add.height >= 44 && add.width >= 44, 'Floating add button retains its touch target');
@@ -65,6 +65,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     assert.equal(result.add['pointer-events'], 'auto', 'Floating add button remains interactive');
     if (!result.rects[5]) {
       const native=result.nativeControls.find(a=>a.action==='record'); assert.ok(native,'Native canvas paints the add control');
+      assert.ok(native.top+native.height<=result.canvasBounds.bottom-1,'Floating button is fully painted below the raised board');
       for (const key of ['left','top','width','height']) assert.ok(Math.abs(native[key]-add[key])<1,`Native paint and accessible button agree on ${key}`);
     }
     result.quickActions.forEach(r => {
