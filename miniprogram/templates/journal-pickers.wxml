@@ -1,0 +1,13 @@
+<view wx:if="{{journalPicker}}" class="journal-picker-veil" catchtouchmove="stop">
+  <view class="journal-picker-scrim" bindtap="closeJournalPicker" />
+  <view class="journal-picker-card" role="dialog" aria-modal="true" aria-label="{{journalPicker === 'calendar' ? '月历时光' : '全部主题板'}}">
+    <view class="journal-picker-heading"><view class="section-title">{{journalPicker === 'calendar' ? '月历时光' : '全部主题板'}}</view><button id="close-journal-picker" class="journal-close" aria-label="关闭卡片" bindtap="closeJournalPicker">×</button></view>
+    <block wx:if="{{journalPicker === 'calendar'}}">
+      <view class="journal-month-controls"><button id="journal-previous-month" class="journal-month-arrow" aria-label="上个月" bindtap="previousMonth">‹</button><text>{{journalYear}}年{{journalMonth}}月</text><button id="journal-next-month" class="journal-month-arrow" aria-label="下个月" disabled="{{!canNextMonth}}" bindtap="nextMonth">›</button></view>
+      <view class="journal-month-week"><text wx:for="{{weekdays}}" wx:key="*this">{{item}}</text></view>
+      <view class="journal-month-grid"><block wx:for="{{calendarCells}}" wx:key="id"><view wx:if="{{item.blank}}" class="journal-calendar-blank" /><button wx:else class="journal-calendar-day {{item.date === dailyDate ? 'journal-calendar-selected' : ''}} {{item.today ? 'journal-calendar-today' : ''}}" data-date="{{item.date}}" disabled="{{item.future}}" aria-label="{{item.date + (item.images.length ? '，有记忆' : '') + (item.date === dailyDate ? '，已选中' : '')}}" bindtap="chooseDate"><text>{{item.day}}</text><view class="journal-memory-dot {{item.images.length ? 'has-memory' : ''}}" /></button></block></view>
+      <view class="journal-calendar-footer"><view class="journal-calendar-legend"><view class="journal-memory-dot has-memory" />有记忆的日子</view><button class="journal-footer-button" bindtap="memories">记忆库</button><button id="journal-today" class="journal-footer-button" bindtap="returnToday">回到今天</button></view>
+    </block>
+    <scroll-view wx:else scroll-y class="journal-theme-picker-scroll"><view class="journal-theme-grid"><button wx:for="{{journalThemes}}" wx:key="id" class="journal-theme-choice {{item.id === date ? 'journal-theme-choice-active' : ''}}" data-id="{{item.id}}" aria-label="{{item.title + '，' + item.count + '件记忆'}}" bindtap="chooseTheme"><image wx:if="{{item.latestPath}}" src="{{item.latestPath}}" mode="aspectFit" /><view wx:else class="journal-theme-placeholder">＋</view><text class="journal-theme-choice-name">{{item.title}}</text><text class="muted">{{item.count}} 件记忆</text></button><button id="new-theme" class="journal-theme-choice journal-theme-new" bindtap="createJournalTheme"><text>＋</text><text>新建主题板</text></button></view></scroll-view>
+  </view>
+</view>

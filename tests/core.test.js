@@ -32,7 +32,7 @@ test('replace keeps exact placement, failed replace keeps original content, dele
   f.store.edit(id, '', '未分类'); f.store.remove(id); assert.equal(f.store.view(today).items.length, 0); assert.equal(Object.keys(f.store.get().memories).length, 0); assert.equal(f.store.get().garbage.length, 4);
 });
 test('adding to locked target date never uses current date, reading history never creates a board', () => {
-  const f = fixture(); f.store.board('2024-02-29'); assert.equal(Object.keys(f.store.get().boards).length, 0); assert.equal(f.store.canEdit('2024-02-29'), false);
+  const f = fixture(); f.store.board('2024-02-29'); assert.equal(Object.keys(f.store.get().boards).length, 0); assert.equal(f.store.canEdit('2024-02-29'), true); assert.equal(f.store.canEdit('2999-01-01'), false);
   f.store.add('started-before-midnight', '2024-02-29', photos('old')); assert.equal(f.store.get().memories.m_started_before_midnight, undefined);
   assert.equal(f.store.get().memories['m_started-before-midnight'].date, '2024-02-29'); assert.equal(f.store.board(dates.key()).placements.length, 0);
 });

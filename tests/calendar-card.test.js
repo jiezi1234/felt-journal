@@ -63,7 +63,7 @@ test('closing after a board change refreshes calendar previews and totals in the
 
 test('reading and closing an empty day does not create a stored board', async t => {
   const f = fixture(t, false), before = f.store.get();
-  assert.equal(f.card.data.count, 0); assert.equal(f.card.data.canEdit, false); assert.equal(f.card.data.editable, false);
+  assert.equal(f.card.data.count, 0); assert.equal(f.card.data.canEdit, true); assert.equal(f.card.data.editable, false);
   await f.card.close(); assert.deepEqual(f.events, ['close']); assert.deepEqual(f.navigation, []); assert.deepEqual(f.store.get(), before);
 });
 

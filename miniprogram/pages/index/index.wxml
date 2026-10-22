@@ -1,22 +1,40 @@
-<view class="page screen-page with-main-nav home-page">
+<view class="page screen-page home-page">
+  <view class="journal-heading">
+    <button id="switch-mode" class="journal-mode" hover-class="journal-pressed" disabled="{{navigationBusy || loading || !!error || !!drawer || !!journalPicker}}" aria-label="{{mode === 'calendar' ? '当前为日历板，点击切换为主题板' : '当前为主题板，点击切换为日历板'}}" bindtap="switchMode"><text>{{mode === 'calendar' ? '日历板' : '主题板'}}</text><text class="journal-switch-mark" aria-hidden="true">⇄</text></button>
+    <view class="journal-subtitle">{{modeSubtitle}}</view>
+  </view>
   <view wx:if="{{loading}}" class="loading">加载中…</view>
   <view wx:elif="{{error}}" class="error">{{error}}<button class="ghost" bindtap="refresh">重新读取</button></view>
   <block wx:else>
+    <view wx:if="{{mode === 'calendar'}}" class="journal-rail journal-date-rail" aria-label="近期日期">
+      <button wx:for="{{recentDays}}" wx:key="date" class="journal-day {{item.date === dailyDate ? 'journal-day-active' : ''}}" hover-class="journal-pressed" data-date="{{item.date}}" disabled="{{navigationBusy || !!drawer || !!journalPicker}}" aria-label="{{item.date + '，' + item.count + '件记忆' + (item.date === dailyDate ? '，已选中' : '')}}" bindtap="chooseDate"><text class="journal-weekday">{{item.weekday}}</text><text class="journal-day-number">{{item.day}}</text><view class="journal-memory-dot {{item.count ? 'has-memory' : ''}}" /></button>
+      <button id="journal-more" class="journal-more" hover-class="journal-pressed" disabled="{{navigationBusy || !!drawer || !!journalPicker}}" aria-label="更多日期，打开月历时光" bindtap="openJournalPicker"><text class="journal-more-dots">···</text><text>更多</text></button>
+    </view>
+    <view wx:else class="journal-rail journal-theme-rail" aria-label="主题名称与最新添加物体">
+      <button wx:for="{{themeRail}}" wx:key="id" class="journal-theme {{item.id === date ? 'journal-theme-active' : ''}}" hover-class="journal-pressed" data-id="{{item.id}}" disabled="{{navigationBusy || !!drawer || !!journalPicker}}" aria-label="{{item.title + '，' + item.count + '件记忆' + (item.id === date ? '，已选中' : '')}}" bindtap="chooseTheme"><image wx:if="{{item.latestPath}}" class="journal-theme-thumb" src="{{item.latestPath}}" mode="aspectFit" /><view wx:else class="journal-theme-placeholder">＋</view><text class="journal-theme-name">{{item.title}}</text></button>
+      <button wx:if="{{!themeRail.length}}" class="journal-first-theme" disabled="{{navigationBusy || !!drawer || !!journalPicker}}" bindtap="createJournalTheme">＋ 创建第一块主题板</button>
+      <button id="journal-more" class="journal-more" hover-class="journal-pressed" disabled="{{navigationBusy || !!drawer || !!journalPicker}}" aria-label="更多主题，打开全部主题板" bindtap="openJournalPicker"><text class="journal-more-dots">···</text><text>更多</text></button>
+    </view>
     <view class="today-sheet">
       <view class="sheet-binding" aria-hidden="true"><view/><view/><view/><view/><view/><view/></view>
       <view class="row home-meta">
-        <view class="sheet-date">{{dateLabel}}<text class="memory-count">{{count}} 件</text></view>
-        <view class="home-actions"><button wx:if="{{count}}" id="export-today" class="board-share-button" hover-class="board-share-pressed" aria-label="分享毛毡板" disabled="{{editorOpen || !!placing || recovering}}" bindtap="exportToday"><image class="board-share-icon" src="/images/actions/share.png" mode="aspectFit" aria-hidden="true" /></button></view>
+        <view class="sheet-date">{{mode === 'themes' ? dateLabel || '新的收藏，慢慢开始' : dateLabel}}<text class="memory-count">{{count}} 件</text></view>
+        <view class="home-actions"><button wx:if="{{count}}" id="export-today" class="board-share-button" hover-class="board-share-pressed" aria-label="分享毛毡板" disabled="{{navigationBusy || !!journalPicker || !!drawer}}" bindtap="exportToday"><image class="board-share-icon" src="/images/actions/share.png" mode="aspectFit" aria-hidden="true" /></button><button wx:if="{{mode === 'themes' && date}}" id="theme-options" class="journal-options" disabled="{{navigationBusy || !!journalPicker || !!drawer}}" aria-label="主题板选项" bindtap="openSelection">···</button></view>
       </view>
-      <view class="today-stage"><felt-board id="today-board" layout="tall" style="height:100%;" can-edit="{{canEdit}}" covered="{{editorOpen || !!placing || !!drawer || !!memoryCardId || !!shareBoardId}}" landing-id="{{placing.id || ''}}" model="{{model}}" editable="{{editable}}" selected="{{selected}}" bind:landingready="stickerTarget" bind:select="select" bind:edititem="editItem" bind:change="placementChanged" bind:transform="transform" bind:remove="remove" bind:memory="openMemory" bind:boardtap="openBoard" /></view>
+      <view wx:if="{{mode === 'themes' && !date}}" class="journal-empty"><view class="section-title">留一块板，收藏喜欢的日常</view><view class="muted">把不同日子的记忆放在一起</view></view>
+      <view wx:else class="today-stage"><felt-board id="today-board" layout="tall" report-gestures="{{true}}" bind:gesturestate="gestureState" style="height:100%;" can-edit="{{canEdit}}" covered="{{editorOpen || formOpen || !!placing || !!drawer || !!journalPicker || !!task || !!memoryCardId || !!shareBoardId}}" landing-id="{{placing.id || ''}}" model="{{model}}" editable="{{editable}}" selected="{{selected}}" bind:landingready="stickerTarget" bind:select="select" bind:edititem="editItem" bind:change="placementChanged" bind:transform="transform" bind:remove="remove" bind:memory="openMemory" bind:boardtap="openBoard" /></view>
+      <view class="journal-paper-footer"><view class="journal-board-feedback"><include src="../../templates/board-feedback.wxml" /></view><button wx:if="{{editable && selected}}" id="selected-tools" class="journal-footer-button" disabled="{{navigationBusy || !!drawer || !!journalPicker}}" bindtap="openSelectedTools">布置选项</button><button wx:elif="{{mode === 'calendar' && dailyDate !== todayDate}}" id="return-today" class="journal-footer-button" disabled="{{navigationBusy || !!drawer || !!journalPicker}}" bindtap="returnToday">回到今天 ↗</button></view>
     </view>
     <view wx:if="{{saveError}}" class="error">{{saveError}}<button bindtap="retrySave">重试保存</button></view>
-    <view class="record-dock"><include src="../../templates/board-feedback.wxml" /><button id="record-today" class="primary record-fab" hover-class="ui-pressed" disabled="{{editorOpen || !!placing}}" aria-label="{{count ? '再记一件' : '记录今天'}}" bindtap="primary"><text class="record-plus">＋</text><text>{{count ? '再记一件' : '记录今天'}}</text></button></view>
+    <view class="record-dock"><button id="record-today" class="record-fab" hover-class="journal-add-pressed" disabled="{{navigationBusy || !!drawer || !!journalPicker || !!saveError}}" aria-label="{{mode === 'themes' && !date ? '新建主题板' : mode === 'calendar' && dailyDate !== todayDate ? '补记这一天' : '添加记忆'}}" bindtap="primary"><text class="record-plus">＋</text><text>{{mode === 'themes' && !date ? '新建主题板' : mode === 'calendar' && dailyDate !== todayDate ? '补记这一天' : '添加记忆'}}</text></button></view>
   </block>
 </view>
-<include src="../../templates/board-drawers.wxml" />
+<include src="../../templates/journal-pickers.wxml" />
+<block wx:if="{{mode === 'themes' && drawer !== 'source' && drawer !== 'note' && drawer !== 'selection'}}"><include src="../../templates/theme-board-drawers.wxml" /></block>
+<block wx:else><include src="../../templates/board-drawers.wxml" /></block>
+<include src="../../templates/theme-form.wxml" />
 <record-card wx:if="{{editorOpen}}" id="record-card" board-id="{{editorDate}}" lifting="{{!!placing}}" bind:place="startSticker" bind:close="closeEditor" bind:change="editorChanged" />
+<photo-panel adjusting="{{photoAdjusting}}" adjustment-error="{{photoAdjustmentError}}" bind:adjust="adjustPhoto" note-open="{{photoNoteOpen}}" note-text="{{photoNoteText}}" note-error="{{photoNoteError}}" bind:noteopen="openPhotoNote" bind:noteinput="photoNoteInput" id="theme-photo" task="{{task}}" lifting="{{!!placing}}" continue-label="开始布置" bind:retry="retryPhoto" bind:original="originalPhoto" bind:cancel="cancelPhoto" />
 <sticker-flight id="placement-flight" wx:if="{{placing}}" flight="{{placing}}" bind:peeled="stickerLifted" bind:landed="stickerLanded" />
-
 <memory-card wx:if="{{memoryCardId}}" id="memory-card" memory-id="{{memoryCardId}}" source="{{memoryCardSource}}" bind:pickuplift="liftMemoryPickup" bind:pickupreturn="returnMemoryPickup" bind:pickuprestore="restoreMemoryPickup" bind:close="closeMemoryCard" bind:change="memoryCardChanged" />
 <share-card wx:if="{{shareBoardId}}" id="share-card" board-id="{{shareBoardId}}" viewport="{{shareViewport}}" bind:close="closeShareCard" />

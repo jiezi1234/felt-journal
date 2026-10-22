@@ -48,7 +48,7 @@ test('sharing freezes Today across midnight and returns to the same selected boa
   home.primary(); assert.equal(home.data.editorOpen, false); assert.equal(home.data.model, model);
   home.refresh(); assert.equal(home.date, f.date); assert.equal(home.data.selected, id);
   home.closeShareCard(); assert.equal(home.date, f.date); assert.equal(home.data.editable, true);
-  assert.equal(tabs.at(-1).hidden, false); assert.deepEqual(f.store.get(), before); assert.deepEqual(f.navigation, []);
+  assert.equal(tabs.at(-1).hidden, true); assert.deepEqual(f.store.get(), before); assert.deepEqual(f.navigation, []);
 });
 
 test('appearance stays collapsed until opened and saves only the selected daily board', async t => {
@@ -120,7 +120,7 @@ test('home opens a component, hides navigation, and refreshes the day only after
   assert.equal(home.data.editorDate, f.date); assert.deepEqual(f.navigation, []);
   dates.key = () => '2099-01-02'; home.primary(); assert.equal(home.data.editorDate, f.date);
   home.closeEditor(); assert.equal(home.data.date, '2099-01-02'); assert.equal(home.data.editorOpen, false);
-  assert.deepEqual(tabs, [{ active: 'today', hidden: true }, { active: 'today', hidden: false }]);
+  assert.deepEqual(tabs, [{ active: 'today', hidden: true }, { active: 'today', hidden: true }]);
   assert.equal(f.store.get().boards['2099-01-02'], undefined);
 });
 

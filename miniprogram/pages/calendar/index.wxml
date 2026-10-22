@@ -1,4 +1,4 @@
-<view class="page screen-page with-main-nav calendar-page">
+<view class="page screen-page calendar-page">
   <view class="row calendar-top"><view class="section-title">月历</view><button class="ghost" bindtap="current">当月 ↗</button></view>
   <view class="row month"><button aria-label="上个月" bindtap="previous">‹</button><text class="section-title">{{year}}年 {{month}}月</text><button aria-label="下个月" disabled="{{!canNext}}" bindtap="next">›</button></view>
   <view wx:if="{{loading}}" class="loading">加载中…</view><view wx:elif="{{error}}" class="error">{{error}}<button bindtap="refresh">重试读取</button></view>

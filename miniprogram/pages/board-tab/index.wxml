@@ -1,4 +1,4 @@
-<view class="page screen-page themes-page theme-board-page with-main-nav">
+<view class="page screen-page themes-page theme-board-page">
   <view wx:if="{{loading}}" class="loading">加载中…</view>
   <view wx:elif="{{error}}" class="error">{{error}}<button class="ghost" bindtap="refresh">重试读取</button></view>
   <view wx:elif="{{!themes.length}}" class="paper empty-theme"><view class="section-title">留一块板，收藏喜欢的日常</view><view class="muted">把不同日子的记忆放在一起</view><button id="new-theme" class="primary" disabled="{{working || recovering}}" bindtap="create">＋ 新建主题板</button></view>

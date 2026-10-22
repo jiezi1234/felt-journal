@@ -73,7 +73,7 @@ function createStore(storage) {
   }
   function canEdit(id) {
     if (isThemeId(id)) return !!get().boards[id];
-    return dates.valid(id) && id <= dates.key() && (id === dates.key() || board(id).placements.length > 0 || Object.values(get().memories).some(m => m.date === id));
+    return dates.valid(id) && id <= dates.key();
   }
   function add(taskId, date, photos, targetBoardId = date) {
     assert(dates.valid(date) && date <= dates.key(), '不能向未来或无效日期添加记忆');

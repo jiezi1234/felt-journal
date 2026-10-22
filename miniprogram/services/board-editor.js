@@ -28,7 +28,7 @@ function createBoardEditor(options = {}) { return {
       if (!this.history) this.history = createBoardHistory(this.draft, config.historyLimit);
       else this.history.sync(this.draft);
       const canEdit = this.store.canEdit(this.date);
-      this.setData({ loading: false, error: '', date: this.date, dateLabel: boardLabel(this.draft), isTheme: this.draft.type === 'theme', canEdit, editable: canEdit && (this.data.editable || this.wantEdit), selected: this.pendingSelection || this.data.selected }); this.wantEdit = false; this.pendingSelection = '';
+      this.setData({ loading: false, error: '', date: this.date, dateLabel: boardLabel(this.draft), isTheme: this.draft.type === 'theme', canEdit, editable: canEdit && !!(this.data.editable || this.wantEdit), selected: this.pendingSelection || this.data.selected }); this.wantEdit = false; this.pendingSelection = '';
       this.display();
       if (!this.checkedDraft) { this.checkedDraft = true; this.recoverDraft(); }
     } catch (e) { this.setData({ loading: false, error: platform.message(e, '板面读取失败，请重试') }); }
@@ -94,7 +94,7 @@ function createBoardEditor(options = {}) { return {
     const id = e.detail.id;
     if (!this.data.canEdit || !this.store.canEdit(this.date) || this.data.loading || this.data.error || this.data.drawer || this.data.formOpen || this.data.editorOpen ||
       this.data.shareBoardId || this.data.memoryCardId || this.data.task || this.photoTask || this.data.placing || this.data.recovering || this.data.openingLibrary || this.data.working || this.mutating ||
-      !this.draft.placements.some(p => p.memoryId === id) || !this.store.get().memories[id]) return;
+      this.draft.id !== this.date || !this.draft.placements.some(p => p.memoryId === id) || !this.store.get().memories[id]) return;
     this.edit(); this.select(e); feedback.learn(this);
   },
   done() {
