@@ -5,17 +5,20 @@ const stickerMotion = require('../../core/sticker-motion');
 const viewport = require('../../core/board-viewport');
 const snapshots = require('../../services/board-snapshot');
 const boardActions = require('../../core/board-actions');
+const swipe = require('../../services/board-swipe');
 Component({
-  properties: { model: { type: Object, value: null }, layout: String, editable: Boolean, canEdit: Boolean, selected: String, covered: Boolean, landingId: String, reportGestures: Boolean, allowSwipe: Boolean, showActions: Boolean, actionsDisabled: Boolean, canAdd: Boolean, canUndo: Boolean, canBringToFront: Boolean, interactive: { type: Boolean, value: true } },
-  data: { height: 210, width: 0, topSpace: 0, canvasHeight: 210, handles: [], actions: [], imageError: false, snapshot: '', snapshotA:'', snapshotB:'', snapshotSlot:'a', snapshotVisible:false, canvasHidden:false },
+  properties: { model: { type: Object, value: null }, layout: String, editable: Boolean, canEdit: Boolean, selected: String, covered: Boolean, landingId: String, reportGestures: Boolean, allowSwipe: Boolean, swipePrevious: Object, swipeNext: Object, showActions: Boolean, actionsDisabled: Boolean, canAdd: Boolean, canUndo: Boolean, canBringToFront: Boolean, interactive: { type: Boolean, value: true } },
+  data: { height: 210, width: 0, topSpace: 0, canvasHeight: 210, handles: [], actions: [], swipeActive: false, imageError: false, snapshot: '', snapshotA:'', snapshotB:'', snapshotSlot:'a', snapshotVisible:false, canvasHidden:false },
   observers: { 'model, editable, selected, landingId': function () { this.refresh(); if (this.data.layout) wx.nextTick(() => this.measure()); },
     'covered, interactive': function () {
+      if (this.data.covered || !this.data.interactive) swipe.cancel(this);
       snapshots.cover(this);
       if (!this.data.covered) { this.pickupReturn = null; this.pickupId = ''; this.finishPickupSnapshot(false); }
       if (this.data.covered || !this.data.interactive) this.touchCancel(); else this.refresh();
-    }, 'showActions, actionsDisabled, canAdd, canUndo, canBringToFront': function () { this.refresh(); }, layout() { this.measure(); } },
-  lifetimes: { ready() { this.measure(); }, detached() { this.dead = true; snapshots.dispose(this); this.clearGesture(); this.finishPickupSnapshot(false); } },
-  pageLifetimes: { resize() { this.touchCancel(); this.measure(); }, hide() { this.touchCancel(); }, show() { if (this.canvas) this.refresh(); } },
+    }, 'swipePrevious, swipeNext, allowSwipe': function () { swipe.warm(this); },
+    'showActions, actionsDisabled, canAdd, canUndo, canBringToFront': function () { this.refresh(); }, layout() { this.measure(); } },
+  lifetimes: { ready() { this.measure(); }, detached() { this.dead = true; swipe.dispose(this); snapshots.dispose(this); this.clearGesture(); this.finishPickupSnapshot(false); } },
+  pageLifetimes: { resize() { swipe.cancel(this); this.touchCancel(); this.measure(); }, hide() { swipe.cancel(this); this.touchCancel(); }, show() { if (this.canvas) this.refresh(); } },
   methods: {
     exportViewport() { return this.dimensions ? { width: this.dimensions.width, height: this.dimensions.height } : null; },
     stop() {},
@@ -35,11 +38,12 @@ Component({
       });
     },
     async refresh() {
-      if (!this.canvas || !this.data.model || this.dead) return;
+      if (!this.canvas || !this.data.model || this.dead || swipe.hold(this)) return;
       const version = this.version = (this.version || 0) + 1, model = this.dragModel || this.data.model;
       try {
         this.images = await renderer.loadImages(this.canvas, model.items || [], this.images, false);
         if (version !== this.version || this.dead) return;
+        swipe.beforePaint(this);
         const dimensions = this.dimensions || B;
         const display = viewport.present(model, this.screenWidth, this.data.height).model;
         this.displayModel = display;
@@ -55,6 +59,7 @@ Component({
         boardActions.paint(ctx, actions, this.screenWidth, this.gesture && !this.gesture.moved && this.gesture.action);
         this.setData({ handles, actions, imageError: (model.items || []).some(p => this.images[p.memory.subjectPath].missing) });
         snapshots.painted(this, version);
+        if (!this.data.covered) swipe.warm(this);
         // Native canvas layers can pierce an overlay. Keep the same board visible
         // as a raster while covered, without destroying the canvas or page.
         if (this.data.covered) wx.canvasToTempFilePath({ canvas: this.canvas, fileType: 'png',
@@ -153,7 +158,7 @@ Component({
       return null;
     },
     point(touch) { const p = this.localPoint(touch); return p && { x: p.x * B.width / this.screenWidth - B.inset, y: p.y * B.width / this.screenWidth - B.inset }; },
-    actionLayout() { return boardActions.layout(this.screenWidth, this.data.height, { ...this.data, dragging: !!this.dragModel }); },
+    actionLayout() { return boardActions.layout(this.screenWidth, this.data.height, { ...this.data, dragging: !!this.dragModel || !!this.swipeMotion }); },
     actionAt(touch) { return boardActions.hit(this.actionLayout(), this.localPoint(touch)); },
     actionTap(e) {
       const action = e.currentTarget.dataset.action;
@@ -190,6 +195,7 @@ Component({
       return Math.abs(dx) >= 52 && Math.abs(dx) > Math.abs(dy) * 1.5 ? (dx < 0 ? 1 : -1) : 0;
     },
     beginGesture(e, buttonOp) {
+      if (this.swipeMotion) return;
       this.clearGesture(); this.controlTapBlock = null;
       if (this.dead || this.data.covered || !this.data.interactive || !this.data.model || e.touches.length !== 1) return;
       if (buttonOp && !this.canControl()) return;
@@ -222,6 +228,9 @@ Component({
         const hit = ((this.displayModel || this.data.model).items || []).slice().reverse().find(p => geometry.hit(p, point.x, point.y));
         const item = hit && this.data.model.items.find(p => p.id === hit.id);
         Object.assign(g, { point, item, displayItem: hit, pending: false, draggable: this.data.editable && item && this.data.selected === item.memoryId });
+        // Measurement is asynchronous; consume the latest move immediately so
+        // a fast gesture follows the finger before the next touch event.
+        if (g.lastTouch !== touch) this.touchMove({ touches: [g.lastTouch] });
         if (g.ended) { this.touchEnd(g.endEvent); return; }
         if (item && !g.moved) {
           this.longTimer = setTimeout(() => {
@@ -255,6 +264,7 @@ Component({
         return;
       }
       if (!g.point) return;
+      if (this.data.allowSwipe && g.axis === 'x' && !g.long && !g.draggable && !this.data.landingId) { swipe.update(this, current.x - start.x); return; }
       const point = this.point(e.touches[0]), dx = point.x - g.point.x, dy = point.y - g.point.y;
       if (!g.moved || !g.item || !this.data.editable || this.data.selected !== g.item.memoryId || !(g.draggable || g.long)) return;
       const next = viewport.toStored({ ...g.displayItem, x: g.displayItem.x + dx, y: g.displayItem.y + dy }, this.screenWidth, this.data.height);
@@ -284,6 +294,7 @@ Component({
       if (g && g.action) this.actionTapBlock = { action: g.action, until: Date.now() + 700 };
       this.clearGesture();
       if (!g || this.dead || this.data.covered || !this.data.interactive) return;
+      if (swipe.release(this, this.swipeOffset(g))) return;
       if (g.action) {
         const target = this.actionAt(e && e.changedTouches && e.changedTouches[0] || g.lastTouch);
         if (!g.moved && target && target.action === g.action && !target.disabled) this.triggerEvent('boardaction', { action: g.action });
@@ -317,8 +328,11 @@ Component({
     touchCancel() {
       if (this.gesture && this.gesture.control) this.controlTapBlock = { op: this.gesture.control, until: Date.now() + 700 };
       if (this.gesture && this.gesture.action) this.actionTapBlock = { action: this.gesture.action, until: Date.now() + 700 };
-      this.clearGesture(); this.refresh();
+      this.clearGesture();
+      if (this.swipeMotion) { if (this.swipeMotion.phase !== 'committing') swipe.cancel(this, false); return; }
+      this.refresh();
     },
+    cancelSwipe() { swipe.cancel(this, false); },
     transform(e) {
       if (this.dead || this.data.covered || !this.data.interactive || !this.data.canEdit || !this.data.editable || !this.data.selected || this.data.landingId) return;
       const op = e.currentTarget.dataset.op;

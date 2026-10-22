@@ -8,7 +8,7 @@ function createThemeBoardPage() {
   const editor = createBoardEditor({ inline: true });
   return {
     ...editor, ...collection,
-    data: { ...editor.data, ...collection.data, inlineTheme: true, dragging: false,
+    data: { ...editor.data, ...collection.data, inlineTheme: true, dragging: false, swiping: false, swipePrevious: null, swipeNext: null,
       libraryQuery: '', libraryCategory: '全部', libraryFilters: ['全部', ...config.categories], librarySelected: [], libraryError: '' },
     onShow() { if (!this.data.shareBoardId) this.refresh(); this.syncNavigation(); },
     onHide() { editor.onHide.call(this); },
@@ -27,11 +27,15 @@ function createThemeBoardPage() {
           canUndo: false, canRedo: false, saveError: '', saveState: '已保存', noteError: '' });
       }
       if (id) editor.refresh.call(this);
+      const index = this.data.themes.findIndex(theme => theme.id === id);
+      const neighbour = offset => { const theme = this.data.themes[index + offset]; return theme ? this.store.view(theme.id) : null; };
+      this.setData({ swipePrevious: neighbour(-1), swipeNext: neighbour(1) });
       this.store.rememberTheme(id || '');
       this.syncNavigation();
     },
     // Finish pending edits before changing which board the shared editor owns.
     prepareThemeChange() {
+      if (this.data.swiping && !this.committingSwipe) return false;
       if (this.data.working || this.data.formOpen || this.data.loading || this.data.error || this.data.recovering || this.mutating || this.memoryOpening || this.photoTask || this.data.placing || this.data.memoryCardId || this.data.shareBoardId) return false;
       this.cancelGesture();
       if (this.dirty && !this.persist() || this.noteDirty && !this.saveNote()) return false;
@@ -61,9 +65,14 @@ function createThemeBoardPage() {
       this.activeThemeId = theme.id; this.refresh();
     },
     swipeBoard(e) {
-      if (this.disposed || this.data.drawer || this.data.dragging || this.data.task) return;
-      this.turn(e.detail.offset);
+      const before = this.date;
+      if (!this.disposed && !this.data.drawer && !this.data.dragging && !this.data.task) {
+        this.committingSwipe = true;
+        try { this.turn(e.detail.offset); } finally { this.committingSwipe = false; }
+      }
+      if (this.date === before) { const board = this.selectComponent && this.selectComponent('#board'); if (board && board.cancelSwipe) board.cancelSwipe(); }
     },
+    swipeState(e) { this.setData({ swiping: !!e.detail.active }); },
     open(e) {
       const id = e.currentTarget.dataset.id;
       if (!this.data.themes.some(theme => theme.id === id) || !this.prepareThemeChange()) return;

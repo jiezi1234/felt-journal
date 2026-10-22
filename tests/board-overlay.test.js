@@ -102,6 +102,17 @@ function gestureFixture(t, data = {}, delayed = false) {
     move: dx => board.touchMove({ touches: [{ ...touch, clientX: touch.clientX + dx }] }) };
 }
 
+test('a swipe already moving during measurement starts tracking without waiting for release', t => {
+  const swipe = require('../miniprogram/services/board-swipe'), updates = [];
+  t.mock.method(swipe, 'update', (host, dx) => { updates.push(dx); return true; });
+  const f = gestureFixture(t, { allowSwipe: true }, true);
+  f.board.rect = { left: 20, top: 40 };
+  f.start(); f.move(-70); assert.deepEqual(updates, []);
+  f.measure(); assert.deepEqual(updates, [-70]);
+  assert.equal(f.board.gesture.pending, false); assert.equal(f.board.gesture.moved, true);
+  assert.equal(f.events.length, 0);
+});
+
 test('native floating actions consume taps above objects and ignore disabled, moved or canceled presses', t => {
   const f = gestureFixture(t, { showActions: true, canAdd: true, height: 500 });
   const touch = { clientX: 20 + 360 - 37, clientY: 40 + 500 - 37 };

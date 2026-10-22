@@ -12,3 +12,5 @@ button.grip { position:absolute!important; z-index:10; margin:0!important; width
 .grip::after { border:none; }.image-warning { margin-top:12px; color:#97574C; font-size:12px; }
 button.board-action { position:absolute!important; z-index:11; margin:0!important; min-width:44px; min-height:44px; padding:0; border:0; border-radius:18px; background:transparent; color:transparent; box-shadow:none; }
 .board-action::after { border:0; }
+
+.board-shell-swiping { box-shadow:none; }

@@ -49,10 +49,10 @@ const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-
     });
     assert.ok(color && color[3] > 240 && color.slice(0, 3).every(v => v < 70), 'FAB is actually painted above the felt: ' + color);
   }
-  async function swipe(dx, dy = 0, fromObject = false) {
+  async function swipe(dx, dy = 0, fromObject = false, probeMotion = false) {
     await until(() => mini.evaluate(() => {
       const p = getCurrentPages().slice(-1)[0], b = p.selectComponent('#board');
-      return b && b.displayModel && b.displayModel.id === p.date && !b.data.covered && !b.data.canvasHidden;
+      return b && b.displayModel && b.displayModel.id === p.date && !b.data.covered && !b.data.canvasHidden && !b.swipeMotion;
     }), 'swipe board paint ready');
     const touch = await mini.evaluate(fromObject => new Promise(resolve => {
       const b = getCurrentPages().slice(-1)[0].selectComponent('#board');
@@ -67,8 +67,39 @@ const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-
     const moved = { ...touch, clientX: touch.clientX + dx, clientY: touch.clientY + dy };
     await canvas.touchstart({ touches: [touch], changedTouches: [touch] });
     await canvas.touchmove({ touches: [moved], changedTouches: [moved] });
+    if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      await until(() => mini.evaluate(() => { const b = getCurrentPages().slice(-1)[0].selectComponent('#board'); return b.swipeMotion && b.swipeMotion.phase === 'tracking' && Math.abs(b.swipeMotion.x) > 1; }), 'board follows finger');
+    }
+    if (probeMotion) {
+      const track = await mini.evaluate(() => {
+        const b = getCurrentPages().slice(-1)[0].selectComponent('#board'), m = b.swipeMotion;
+        return { x: m.x, ready: !!m.entry.frame, phase: m.phase, source: b.data.model.id, target: m.entry.model.id };
+      });
+      assert.equal(track.x, dx); assert.equal(track.ready, true); assert.equal(track.phase, 'tracking');
+      assert.notEqual(track.source, track.target);
+      await mini.screenshot({ path: path.join(output, 'swipe-tracking.png') });
+      await mini.evaluate(() => {
+        const b = getCurrentPages().slice(-1)[0].selectComponent('#board'); b.__swipeFrames = [];
+        const sample = () => {
+          if (b.dead || !b.swipeMotion) return;
+          const m = b.swipeMotion, pixels = b.canvas.getContext('2d').getImageData(0, Math.round(b.canvas.height * .65), b.canvas.width, 1).data;
+          b.__swipeFrames.push({ x: m.x, phase: m.phase, time: Date.now(), opaque: [.2,.5,.8].filter(p => pixels[Math.floor(b.canvas.width * p) * 4 + 3] > 240).length });
+          b.canvas.requestAnimationFrame(sample);
+        }; b.canvas.requestAnimationFrame(sample);
+      });
+    }
     await canvas.touchend({ touches: [], changedTouches: [moved] });
     await pause(220);
+    await until(() => mini.evaluate(() => !getCurrentPages().slice(-1)[0].selectComponent('#board').swipeMotion), 'slide settles into live board');
+    if (probeMotion) {
+      const frames = await mini.evaluate(() => getCurrentPages().slice(-1)[0].selectComponent('#board').__swipeFrames);
+      const moving = frames.filter(f => f.phase === 'settling');
+      assert.ok(new Set(moving.map(f => f.x)).size >= 4, 'Native animation contains intermediate positions');
+      assert.ok(moving.every((f, i) => !i || f.x <= moving[i-1].x), 'The board keeps moving in one direction');
+      assert.ok(frames.every(f => f.opaque >= 2), 'No blank board frame during the transition');
+      fs.writeFileSync(path.join(output, 'swipe-frames.json'), JSON.stringify(frames, null, 2));
+      passed('swipe follows the finger and eases through continuous native frames without a blank handoff');
+    }
   }
   async function inView(selectors) {
     const result = await rects(selectors);
@@ -116,7 +147,7 @@ const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-
     await mini.screenshot({ path: path.join(output, 'board.png') });
     const order = (await state()).themes.map(b => b.id);
     await call('open', { currentTarget: { dataset: { id: order[0] } } });
-    await swipe(-100); await until(async () => (await state()).date === order[1], 'left swipe changes board');
+    await swipe(-100, 0, false, true); await until(async () => (await state()).date === order[1], 'left swipe changes board');
     await swipe(-100); assert.equal((await state()).date, order[1], 'Last board stays in place');
     await swipe(100); await until(async () => (await state()).date === order[0], 'right swipe changes board');
     assert.equal((await state()).memoryCardId, '');
@@ -203,7 +234,7 @@ const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-
     if (installed) {
       const s = await state();
       console.error('Acceptance state:', JSON.stringify({ drawer: s.drawer, formOpen: s.formOpen, formError: s.formError, working: s.working, title: s.title, date: s.date, count: s.count, error: s.error }));
-      console.error('Canvas state:', await mini.evaluate(() => { const b = getCurrentPages().slice(-1)[0].selectComponent('#board'); return b && { covered: b.data.covered, hidden: b.data.canvasHidden, snapshot: b.data.snapshotVisible, actions: b.data.actions, show: b.data.showActions }; }));
+      console.error('Canvas state:', await mini.evaluate(() => { const b = getCurrentPages().slice(-1)[0].selectComponent('#board'), g = b && b.gesture, m = b && b.swipeMotion; return b && { covered: b.data.covered, hidden: b.data.canvasHidden, snapshot: b.data.snapshotVisible, actions: b.data.actions, show: b.data.showActions, allowSwipe: b.data.allowSwipe, gesture: g && { pending: g.pending, axis: g.axis, moved: g.moved, long: g.long, draggable: g.draggable, action: g.action, control: g.control }, motion: m && { phase: m.phase, x: m.x } }; }));
       await mini.screenshot({ path: path.join(output, 'failure.png') });
     }
     throw error;
