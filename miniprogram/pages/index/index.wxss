@@ -1,5 +1,5 @@
 @import "../board-tab/index.wxss";
-.page.home-page { padding:8px 10px calc(4px + env(safe-area-inset-bottom)); gap:8px; }
+.page.home-page { padding:8px 10px 6px; padding-bottom:max(6px, env(safe-area-inset-bottom)); gap:8px; }
 .journal-heading { flex-shrink:0; padding:0 12px; min-height:64px; }
 button.journal-mode { display:inline-flex; align-items:center; gap:12px; width:auto; min-height:44px; margin:0 0 0 -5px; padding:0 12px 0 8px; background:#FFFCF6; border:1px solid #E7DED0; border-radius:17px; font-family:"Songti SC",SimSun,serif; font-size:23px; line-height:1.5; font-weight:500; color:#5A4B3C; }
 .journal-switch-mark { font-family:system-ui,sans-serif; font-size:21px; color:#8C7A65; }
@@ -21,7 +21,7 @@ button.journal-theme-active { background:#FFFCF7; border-color:#E7C780; box-shad
 button.journal-first-theme { grid-column:span 3; width:100%; min-height:80px; padding:10px; background:transparent; border:1px dashed #DCCDB8; border-radius:20px; font-size:13px; }
 button.journal-more { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; width:44px; min-width:44px; height:68px; margin:0; padding:0; background:transparent; border:0; border-left:1px solid #E6DED1; border-radius:0; font-size:11px; line-height:1.4; color:#857562; }
 .journal-more-dots { font-size:25px; line-height:24px; }
-.today-sheet { position:relative; flex:1; min-height:0; display:flex; flex-direction:column; gap:8px; padding:6px 8px 5px 23px; background:linear-gradient(140deg,#FFFFFF,#FEFDFB); border:1px solid #FFFFFF; border-radius:8px 26px 26px 8px; box-shadow:0 5px 17px rgba(65,48,36,.06); }
+.today-sheet { position:relative; flex:1; min-height:0; display:flex; flex-direction:column; gap:8px; padding:6px 8px 3px 23px; background:linear-gradient(140deg,#FFFFFF,#FEFDFB); border:1px solid #FFFFFF; border-radius:8px 26px 26px 8px; box-shadow:0 5px 17px rgba(65,48,36,.06); }
 .home-meta { flex-shrink:0; min-height:38px; padding:0 0 3px; gap:4px; border-bottom:1px dashed #E9E2D9; }
 .sheet-date { flex:1; min-width:0; color:#766457; font-size:12px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
 .memory-count { margin-left:8px; color:#8A7B6D; font-size:11px; }
@@ -33,8 +33,8 @@ button.journal-options { width:44px; height:44px; min-height:44px; padding:0; ba
 .journal-quick-action { display:flex; min-width:0; justify-content:flex-end; align-items:center; }
 .journal-quick-action .journal-footer-button { max-width:100%; padding:4px 6px; white-space:nowrap; }
 button.journal-footer-button { flex-shrink:0; width:auto; min-height:44px; margin:0; padding:4px 9px; border:0; background:transparent; border-radius:20px; font-size:12px; color:#79644B; line-height:1.5; }
-.record-dock { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); gap:6px; flex-shrink:0; align-items:center; min-height:56px; padding:3px 0; }
-button.record-fab { position:relative; display:flex; align-items:center; justify-content:center; gap:7px; width:auto; min-width:140px; height:50px; min-height:50px; margin:0; padding:0 22px; border:0; border-radius:26px; background:#EFD395; color:#514126; font-size:14px; font-weight:500; line-height:1.5; box-shadow:inset 0 1px 0 #FFF4CD,0 4px 12px rgba(104,76,30,.13); }
+.record-dock { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); gap:6px; flex-shrink:0; align-items:center; min-height:44px; padding:0; margin-top:-6px; }
+button.record-fab { position:relative; display:flex; align-items:center; justify-content:center; gap:7px; width:auto; min-width:140px; height:44px; min-height:44px; margin:0; padding:0 22px; border:0; border-radius:23px; background:#EFD395; color:#514126; font-size:14px; font-weight:500; line-height:1.5; box-shadow:inset 0 1px 0 #FFF4CD,0 4px 12px rgba(104,76,30,.13); }
 button.record-fab::after { content:""; position:absolute; inset:4px; width:auto; height:auto; margin:0; transform:none; box-sizing:border-box; border:1px dashed rgba(132,103,53,.3); border-radius:23px; }
 .record-plus { font-size:24px; font-weight:400; }
 button.journal-pressed { opacity:.7; }button.journal-add-pressed { transform:scale(.97); background:#E6C47D; }
@@ -56,4 +56,4 @@ button.journal-theme-choice { display:flex; flex-direction:column; align-items:c
 .journal-theme-choice image { width:54px; height:54px; }.journal-theme-choice .muted { font-size:11px; }.journal-theme-choice-name { width:100%; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; text-align:center; }
 button.journal-theme-choice-active { border-color:#DABB7B; background:#F7ECD5; }.journal-theme-new>text:first-child { font-size:26px; }
 @media (max-width:350px) { .page.home-page { padding-left:8px; padding-right:8px; gap:6px; }.journal-heading { padding-left:12px; }.journal-rail { gap:1px; padding-left:0; padding-right:0; }.journal-day-number { width:34px; height:34px; line-height:26px; }.today-sheet { padding-left:21px; padding-right:5px; }.memory-count { margin-left:5px; }.journal-calendar-legend { font-size:10px; }.journal-calendar-footer .journal-footer-button { padding:4px 6px; } }
-@media (max-height:570px) { .journal-heading { min-height:58px; }.journal-rail button.journal-day,.journal-rail button.journal-theme { height:72px; }.journal-day-number { width:30px; height:30px; line-height:24px; border-width:3px; font-size:18px; }.journal-theme-thumb,.journal-theme-placeholder { width:39px; height:39px; }.home-meta { min-height:32px; }.record-dock { min-height:56px; }button.journal-calendar-day { height:36px; min-height:36px; }.journal-month-controls { margin:0; }.journal-picker-card { padding:8px 10px; }.journal-calendar-footer { margin-top:6px; padding-top:4px; }.journal-theme-picker-scroll { height:300px; } }
+@media (max-height:570px) { .journal-heading { min-height:58px; }.journal-rail button.journal-day,.journal-rail button.journal-theme { height:72px; }.journal-day-number { width:30px; height:30px; line-height:24px; border-width:3px; font-size:18px; }.journal-theme-thumb,.journal-theme-placeholder { width:39px; height:39px; }.home-meta { min-height:32px; }.record-dock { min-height:44px; }button.journal-calendar-day { height:36px; min-height:36px; }.journal-month-controls { margin:0; }.journal-picker-card { padding:8px 10px; }.journal-calendar-footer { margin-top:6px; padding-top:4px; }.journal-theme-picker-scroll { height:300px; } }
