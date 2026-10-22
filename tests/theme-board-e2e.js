@@ -6,7 +6,7 @@ const automator = require('miniprogram-automator');
 const { createStore } = require('../miniprogram/core/store');
 const dates = require('../miniprogram/core/date');
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
-const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-drafts:v1', 'felt-journal:dev-extraction:v1'];
+const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-drafts:v1', 'felt-journal:dev-extraction:v1', 'felt-journal:active-theme:v1'];
 
 (async () => {
   let mini, backup, testPhoto, picker, isolated = false, uploadMocked = false;
@@ -34,9 +34,11 @@ const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-
   async function inspect(name, selectors, navVisible, component = '') {
     const s = await state(); assert.equal(s.nav, navVisible, name + ' navigation');
     const result = await mini.evaluate((selectors, component) => new Promise(resolve => {
-      const p = getCurrentPages().slice(-1)[0], q = component ? p.selectComponent(component).createSelectorQuery() : wx.createSelectorQuery().in(p);
-      selectors.forEach(selector => q.select(selector).boundingClientRect());
-      q.exec(rects => resolve({ height: wx.getWindowInfo().windowHeight, rects }));
+      const p = getCurrentPages().slice(-1)[0];
+      Promise.all(selectors.map(selector => new Promise(done => {
+        const host = component ? p.selectComponent(component) : /^#(add-theme-memory|theme-(undo|view-memory|layer-front|remove-placement))$/.test(selector) ? p.selectComponent('#board') : p;
+        host.createSelectorQuery().select(selector).boundingClientRect(done).exec();
+      }))).then(rects => resolve({ height: wx.getWindowInfo().windowHeight, rects }));
     }), selectors, component);
     for (const rect of result.rects) {
       assert.ok(rect && rect.width > 0 && rect.height > 0, name + ' missing control');
@@ -70,19 +72,21 @@ const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-
     await call('create'); await inspect('create form', ['.theme-form', '#save-theme', '#cancel-theme'], false);
     await call('input', { detail: { value: '秋日散步与旅行途中收集的那些值得珍藏的小小日常和温柔时光记忆' } });
     let s = await call('save'); const first = s.data.date;
-    assert.equal(s.data.editable, true); assert.equal(s.data.formOpen, false);
-    await inspect('new board in the existing page', ['.theme-stage', '#finish-theme', '#add-theme-memory', '#next-theme'], true);
+    assert.equal(s.data.editable, false); assert.equal(s.data.formOpen, false); assert.equal(s.data.drawer, 'library');
+    await call('closeDrawer');
+    await inspect('new board in the existing page', ['.theme-stage', '#switch-theme', '#add-theme-memory', '#theme-options'], true);
     const initialRect = checks.at(-1).rects[0];
     await call('sourceSheet'); await inspect('camera, album and memory sources', ['.drawer-sheet', '#source-camera', '#source-album', '#source-library'], false);
-    await call('library'); await inspect('memory drawer', ['.drawer-sheet', '.library-memory', '.library-pagination'], false);
-    const seen = []; for (let i = 0; i < 3; i++) { seen.push(...(await state()).data.visibleLibraryItems.map(m => m.id)); await call('libraryNext'); }
+    await call('library'); await inspect('memory drawer', ['.drawer-sheet', '.theme-memory', '#add-library-selection'], false);
+    const seen = (await state()).data.visibleLibraryItems.map(m => m.id);
     assert.equal(new Set(seen).size, 7);
     s = await call('placeFromLibrary', event(ids[1])); assert.equal(s.data.selected, ids[1]); assert.equal(s.data.count, 1); assert.equal(s.nav, true);
     const angle = s.data.model.items[0].angle;
     s = await call('transform', { detail: { op: 'cw' } }); assert.notEqual(s.data.model.items[0].angle, angle);
     s = await call('undo'); assert.equal(s.data.model.items[0].angle, angle);
     s = await call('redo'); assert.notEqual(s.data.model.items[0].angle, angle);
-    await call('openSelection'); await inspect('selected memory and theme actions', ['.drawer-sheet', '#edit-memory', '#layer-front', '#remove-placement', '#rename-theme', '#delete-theme'], false);
+    await inspect('selected memory actions', ['#theme-undo', '#theme-view-memory', '#theme-layer-front', '#theme-remove-placement'], true);
+    await call('openSelection'); await inspect('theme actions', ['.drawer-sheet', '#share-theme', '#rename-theme', '#delete-theme'], false);
     await call('memory'); await memoryReady(); await inspect('memory card front', ['.memory-card-dialog', '#flip-card', '#card-photo'], false, '#memory-card');
     await mini.evaluate(() => getCurrentPages().slice(-1)[0].selectComponent('#memory-card').flip()); await memoryReady();
     await mini.evaluate(() => { const c = getCurrentPages().slice(-1)[0].selectComponent('#memory-card'); c.edit(); c.input({ detail: { value: '留在这块主题板上的小记忆' } }); }); await pause(500);
@@ -96,7 +100,7 @@ const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-
     await call('create'); await call('input', { detail: { value: '第二块主题板' } }); s = await call('save'); const second = s.data.date;
     assert.notEqual(first, second); assert.equal(s.data.count, 0); assert.equal(s.data.canUndo, false);
     s = await call('open', event(first)); assert.equal(s.data.count, 1); assert.equal(s.data.canUndo, false); assert.equal(s.data.selected, '');
-    await call('done'); await inspect('completed board stays in place', ['.theme-stage', '#share-theme', '#add-theme-memory'], true);
+    await call('clearSelection'); await inspect('completed board stays in place', ['.theme-stage', '#theme-options', '#add-theme-memory'], true);
     assert.ok(checks.at(-1).rects[0].height >= initialRect.height, 'completing arrangement keeps the board space');
     const saved = JSON.parse((await snapshot())[0].value); assert.deepEqual(saved.boards[dates.key()], daily);
     assert.equal(Object.keys(saved.boards).filter(id => id.startsWith('theme_')).length, 2);

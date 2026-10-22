@@ -6,6 +6,7 @@ const felt = require('./felt');
 const KEY = 'felt-journal:v1';
 const DRAFT = 'felt-journal:drafts:v1';
 const MEMORY_DRAFT = 'felt-journal:memory-drafts:v1';
+const ACTIVE_THEME = 'felt-journal:active-theme:v1';
 const clone = value => JSON.parse(JSON.stringify(value));
 // Keep the storage key so existing installations retain their data. Version 1
 // is validated before a read-only upgrade; only a successful mutation writes v2.
@@ -129,6 +130,16 @@ function createStore(storage) {
     commit(s => { const target = s.boards[boardId]; target.placements = target.placements.filter(p => p.memoryId !== memoryId); touchMembers(target); });
     clearDraft(boardId);
   }
+  function placeMany(memoryIds, boardId) {
+    const ids = [...new Set(memoryIds)];
+    assert(ids.length > 0, '请先选择记忆');
+    assert(isThemeId(boardId) && get().boards[boardId], '主题板已被删除或不存在');
+    assert(!getDraft(boardId), '目标板面存在未保存的布局，请先打开板面保存');
+    // Validate and save the entire selection together; a full board or failed
+    // storage write must never leave a partially added selection.
+    commit(s => ids.forEach(id => put(s, id, boardId)));
+    clearDraft(boardId); return ids;
+  }
   function createTheme(taskId, title, memoryId) {
     const id = `theme_${taskId}`, name = themeTitle(title); assert(isThemeId(id), '主题板编号无效');
     if (get().boards[id]) return id;
@@ -198,11 +209,13 @@ function createStore(storage) {
   function getMemoryDraft(id) { try { return memoryDrafts()[id]; } catch (_) { return undefined; } }
   function clearMemoryDraft(id) { try { const d = memoryDrafts(); delete d[id]; storage.set(MEMORY_DRAFT, JSON.stringify(d)); } catch (_) {} }
   function referenced(path) { return Object.values(get().memories).some(m => m.originalPath === path || m.subjectPath === path); }
-  return { load, get, commit, board, view, canEdit, add, replace, editSubject, edit, remove, place, unplace, createTheme, renameTheme, deleteTheme, boardsForMemory, saveBoard, keepDraft, clearDraft, getDraft, keepMemoryDraft, getMemoryDraft, clearMemoryDraft, referenced };
+  function activeTheme() { try { return storage.get(ACTIVE_THEME) || ''; } catch (_) { return ''; } }
+  function rememberTheme(id) { try { if (activeTheme() !== id) storage.set(ACTIVE_THEME, id); } catch (_) { /* A preference must not block an otherwise saved board. */ } }
+  return { load, get, commit, board, view, canEdit, add, replace, editSubject, edit, remove, place, placeMany, unplace, createTheme, renameTheme, deleteTheme, boardsForMemory, saveBoard, keepDraft, clearDraft, getDraft, keepMemoryDraft, getMemoryDraft, clearMemoryDraft, referenced, activeTheme, rememberTheme };
 }
 let singleton;
 function getStore() {
   if (!singleton) singleton = createStore({ get: k => wx.getStorageSync(k), set: (k, v) => wx.setStorageSync(k, v) });
   return singleton;
 }
-module.exports = { KEY, DRAFT, validate, createStore, getStore, clone, isThemeId, boardLabel, membership };
+module.exports = { KEY, DRAFT, ACTIVE_THEME, validate, createStore, getStore, clone, isThemeId, boardLabel, membership };

@@ -1,20 +1,19 @@
 <view class="page screen-page themes-page theme-board-page with-main-nav">
-  <view class="screen-header"><view class="title">主题板</view><button id="new-theme" class="primary theme-create" disabled="{{working || loading || recovering || !!error}}" bindtap="create">＋ 新建</button></view>
   <view wx:if="{{loading}}" class="loading">加载中…</view>
   <view wx:elif="{{error}}" class="error">{{error}}<button class="ghost" bindtap="refresh">重试读取</button></view>
-  <view wx:elif="{{!themes.length}}" class="paper empty-theme"><view class="muted">暂无主题板</view></view>
+  <view wx:elif="{{!themes.length}}" class="paper empty-theme"><view class="section-title">留一块板，收藏喜欢的日常</view><view class="muted">把不同日子的记忆放在一起</view><button id="new-theme" class="primary" disabled="{{working || recovering}}" bindtap="create">＋ 新建主题板</button></view>
   <block wx:else>
-    <view class="paper theme-card">
-      <view class="row theme-heading"><view class="theme-title-group"><view class="theme-name">{{dateLabel}}</view><text class="muted">{{count}} / {{maxItems}}</text></view><view class="theme-header-actions"><button wx:if="{{editable}}" id="finish-theme" class="ghost" disabled="{{recovering}}" bindtap="done">完成</button><button wx:if="{{count}}" id="share-theme" class="board-share-button" hover-class="board-share-pressed" aria-label="分享毛毡板" disabled="{{working || recovering || !!task || !!placing}}" bindtap="shareTheme"><image class="board-share-icon" src="/images/actions/share.png" mode="aspectFit" aria-hidden="true" /></button></view></view>
-      <view class="theme-stage"><felt-board id="board" layout="tall" style="height:100%;" model="{{model}}" editable="{{editable}}" selected="{{selected}}" can-edit="{{canEdit}}" covered="{{formOpen || !!drawer || !!task || !!placing || !!memoryCardId || !!shareBoardId}}" landing-id="{{placing.id || ''}}" bind:landingready="stickerTarget" bind:select="select" bind:edititem="editItem" bind:change="placementChanged" bind:transform="transform" bind:remove="remove" bind:memory="memory" bind:boardtap="edit" /></view>
+    <view class="theme-heading">
+      <button id="switch-theme" class="theme-title-button" hover-class="theme-title-pressed" aria-label="切换主题板" disabled="{{working || recovering || !!task || !!placing}}" bindtap="openThemePicker"><view class="theme-title-row"><text class="theme-name">{{dateLabel}}</text><view class="theme-chevron" /></view><view class="theme-count">{{count}} 件记忆</view></button>
+      <button id="theme-options" class="theme-more" aria-label="主题板选项" disabled="{{working || recovering || !!task || !!placing}}" bindtap="openSelection">···</button>
     </view>
+    <view class="theme-stage"><felt-board id="board" layout="tall" report-gestures="{{true}}" allow-swipe="{{themes.length > 1}}" bind:boardswipe="swipeBoard" show-actions="{{true}}" actions-disabled="{{working || recovering}}" can-add="{{count < maxItems}}" can-undo="{{canUndo}}" can-bring-to-front="{{canBringToFront}}" bind:boardaction="boardAction" style="height:100%;" model="{{model}}" editable="{{editable}}" selected="{{selected}}" can-edit="{{canEdit}}" covered="{{formOpen || !!drawer || !!task || !!placing || !!memoryCardId || !!shareBoardId}}" landing-id="{{placing.id || ''}}" bind:landingready="stickerTarget" bind:select="select" bind:edititem="editItem" bind:change="placementChanged" bind:transform="transform" bind:remove="remove" bind:memory="memory" bind:boardtap="clearSelection" bind:gesturestate="gestureState" /></view>
     <view wx:if="{{saveError}}" class="error">{{saveError}}<button class="ghost" bindtap="retrySave">重试保存</button></view>
-    <include src="../../templates/board-feedback.wxml" />
-    <view class="theme-toolbar"><button id="add-theme-memory" class="primary" disabled="{{working || recovering || !!task || !!placing || count >= maxItems}}" bindtap="sourceSheet">＋ 添加</button></view>
-    <view class="screen-pagination"><button id="previous-theme" class="ghost" disabled="{{page <= 1 || working || recovering}}" bindtap="previous" aria-label="上一块主题板">‹</button><text>{{page}} / {{pageCount}}</text><button id="next-theme" class="ghost" disabled="{{page >= pageCount || working || recovering}}" bindtap="next" aria-label="下一块主题板">›</button></view>
+    <view class="theme-board-hint {{layoutSaved ? 'board-feedback-saved' : ''}}">{{dragging ? '松手放好，自动保存' : layoutSaved ? '已保存布局' : selected ? '拖动调整 · 轻点空白取消选中' : themes.length > 1 ? '左右滑动换板 · 轻点查看 · 长按拖动' : count ? '轻点看记忆 · 长按自由拖动' : '点右下角 ＋，放入第一件记忆'}}</view>
   </block>
 </view>
-<include src="../../templates/board-drawers.wxml" />
+<include src="../../templates/theme-board-drawers.wxml" />
+<block wx:if="{{drawer === 'source' || drawer === 'note'}}"><include src="../../templates/board-drawers.wxml" /></block>
 <include src="../../templates/theme-form.wxml" />
 <photo-panel adjusting="{{photoAdjusting}}" adjustment-error="{{photoAdjustmentError}}" bind:adjust="adjustPhoto" note-open="{{photoNoteOpen}}" note-text="{{photoNoteText}}" note-error="{{photoNoteError}}" bind:noteopen="openPhotoNote" bind:noteinput="photoNoteInput" id="theme-photo" task="{{task}}" lifting="{{!!placing}}" continue-label="开始布置" bind:retry="retryPhoto" bind:original="originalPhoto" bind:cancel="cancelPhoto" />
 <sticker-flight id="placement-flight" wx:if="{{placing}}" flight="{{placing}}" bind:peeled="stickerLifted" bind:landed="stickerLanded" />

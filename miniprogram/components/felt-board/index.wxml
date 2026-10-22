@@ -4,6 +4,7 @@
   <image wx:if="{{snapshotA}}" class="board-snapshot snapshot-a" src="{{snapshotA}}" data-path="{{snapshotA}}" data-slot="a" bindload="snapshotLoaded" binderror="snapshotFailed" mode="scaleToFill" style="top:-{{topSpace}}px;height:{{canvasHeight}}px;opacity:{{snapshotVisible && snapshotSlot === 'a' ? 1 : 0}};" />
   <image wx:if="{{snapshotB}}" class="board-snapshot snapshot-b" src="{{snapshotB}}" data-path="{{snapshotB}}" data-slot="b" bindload="snapshotLoaded" binderror="snapshotFailed" mode="scaleToFill" style="top:-{{topSpace}}px;height:{{canvasHeight}}px;opacity:{{snapshotVisible && snapshotSlot === 'b' ? 1 : 0}};" />
   <block wx:if="{{!covered}}"><button wx:for="{{handles}}" wx:key="op" id="control-{{item.op}}" class="grip" hover-class="none" style="{{item.style}}" data-op="{{item.op}}" aria-label="{{item.label}}" catchtouchstart="controlStart" catchtouchmove="touchMove" catchtouchend="touchEnd" catchtouchcancel="touchCancel" catchtap="controlTap" catchlongpress="stop"></button></block>
+  <button wx:for="{{actions}}" wx:key="action" id="{{item.id}}" class="board-action" hover-class="none" style="{{item.style}}" data-action="{{item.action}}" disabled="{{item.disabled}}" aria-label="{{item.label}}" catchtouchstart="touchStart" catchtouchmove="touchMove" catchtouchend="touchEnd" catchtouchcancel="touchCancel" catchtap="actionTap" catchlongpress="stop" />
 </view>
 <view wx:if="{{imageError}}" class="image-warning">有照片无法读取，可进入记忆详情替换</view>
 </view>

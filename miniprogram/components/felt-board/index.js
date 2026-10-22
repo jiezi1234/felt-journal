@@ -4,15 +4,16 @@ const B = require('../../core/config').board;
 const stickerMotion = require('../../core/sticker-motion');
 const viewport = require('../../core/board-viewport');
 const snapshots = require('../../services/board-snapshot');
+const boardActions = require('../../core/board-actions');
 Component({
-  properties: { model: { type: Object, value: null }, layout: String, editable: Boolean, canEdit: Boolean, selected: String, covered: Boolean, landingId: String, interactive: { type: Boolean, value: true } },
-  data: { height: 210, width: 0, topSpace: 0, canvasHeight: 210, handles: [], imageError: false, snapshot: '', snapshotA:'', snapshotB:'', snapshotSlot:'a', snapshotVisible:false, canvasHidden:false },
+  properties: { model: { type: Object, value: null }, layout: String, editable: Boolean, canEdit: Boolean, selected: String, covered: Boolean, landingId: String, reportGestures: Boolean, allowSwipe: Boolean, showActions: Boolean, actionsDisabled: Boolean, canAdd: Boolean, canUndo: Boolean, canBringToFront: Boolean, interactive: { type: Boolean, value: true } },
+  data: { height: 210, width: 0, topSpace: 0, canvasHeight: 210, handles: [], actions: [], imageError: false, snapshot: '', snapshotA:'', snapshotB:'', snapshotSlot:'a', snapshotVisible:false, canvasHidden:false },
   observers: { 'model, editable, selected, landingId': function () { this.refresh(); if (this.data.layout) wx.nextTick(() => this.measure()); },
     'covered, interactive': function () {
       snapshots.cover(this);
       if (!this.data.covered) { this.pickupReturn = null; this.pickupId = ''; this.finishPickupSnapshot(false); }
       if (this.data.covered || !this.data.interactive) this.touchCancel(); else this.refresh();
-    }, layout() { this.measure(); } },
+    }, 'showActions, actionsDisabled, canAdd, canUndo, canBringToFront': function () { this.refresh(); }, layout() { this.measure(); } },
   lifetimes: { ready() { this.measure(); }, detached() { this.dead = true; snapshots.dispose(this); this.clearGesture(); this.finishPickupSnapshot(false); } },
   pageLifetimes: { resize() { this.touchCancel(); this.measure(); }, hide() { this.touchCancel(); }, show() { if (this.canvas) this.refresh(); } },
   methods: {
@@ -50,7 +51,9 @@ Component({
         this.surface = renderer.createSurface(this.canvas, model, dimensions, this.surface);
         renderer.paint(ctx, visible, this.images, this.data.editable && !this.data.landingId && !this.pickupId ? this.data.selected : '', dimensions, this.surface && this.surface.canvas, this.canvas.width / dimensions.width);
         renderer.paintControls(ctx, handles, this.screenWidth);
-        this.setData({ handles, imageError: (model.items || []).some(p => this.images[p.memory.subjectPath].missing) });
+        const actions = this.actionLayout();
+        boardActions.paint(ctx, actions, this.screenWidth, this.gesture && !this.gesture.moved && this.gesture.action);
+        this.setData({ handles, actions, imageError: (model.items || []).some(p => this.images[p.memory.subjectPath].missing) });
         snapshots.painted(this, version);
         // Native canvas layers can pierce an overlay. Keep the same board visible
         // as a raster while covered, without destroying the canvas or page.
@@ -150,6 +153,14 @@ Component({
       return null;
     },
     point(touch) { const p = this.localPoint(touch); return p && { x: p.x * B.width / this.screenWidth - B.inset, y: p.y * B.width / this.screenWidth - B.inset }; },
+    actionLayout() { return boardActions.layout(this.screenWidth, this.data.height, { ...this.data, dragging: !!this.dragModel }); },
+    actionAt(touch) { return boardActions.hit(this.actionLayout(), this.localPoint(touch)); },
+    actionTap(e) {
+      const action = e.currentTarget.dataset.action;
+      if (this.actionTapBlock && this.actionTapBlock.action === action && Date.now() < this.actionTapBlock.until) return;
+      const target = this.actionLayout().find(a => a.action === action);
+      if (target && !target.disabled) this.triggerEvent('boardaction', { action });
+    },
     controlAt(touch) {
       if (this.dead || this.data.covered || !this.data.interactive || !this.data.canEdit || !this.data.editable || !this.data.selected || this.data.landingId) return null;
       const p = this.localPoint(touch), handle = p && geometry.hitControl(this.data.handles, p.x, p.y);
@@ -169,6 +180,15 @@ Component({
     canControl() {
       return !this.dead && !this.data.covered && this.data.interactive && this.data.canEdit && this.data.editable && !!this.data.selected && !this.data.landingId;
     },
+    swipeOffset(g) {
+      // A selected object, long press, handle or floating action owns its entire
+      // gesture. Only a horizontal browse gesture may turn the theme board.
+      if (!this.data.allowSwipe || this.data.landingId || !g || !g.moved || g.long || g.draggable || g.next || g.control || g.action || g.axis !== 'x') return 0;
+      const start = this.localPoint(g.touch), end = this.localPoint(g.lastTouch);
+      if (!start || !end) return 0;
+      const dx = end.x - start.x, dy = end.y - start.y;
+      return Math.abs(dx) >= 52 && Math.abs(dx) > Math.abs(dy) * 1.5 ? (dx < 0 ? 1 : -1) : 0;
+    },
     beginGesture(e, buttonOp) {
       this.clearGesture(); this.controlTapBlock = null;
       if (this.dead || this.data.covered || !this.data.interactive || !this.data.model || e.touches.length !== 1) return;
@@ -179,6 +199,12 @@ Component({
         if (!rect || this.dead || token !== this.gestureToken) return;
         this.rect = rect;
         const point = this.point(touch); if (!point) { this.clearGesture(); return; }
+        const action = !buttonOp && this.actionAt(touch);
+        if (action) {
+          Object.assign(g, { action: action.action, pending: false });
+          if (g.ended) this.touchEnd(g.endEvent); else this.refresh();
+          return;
+        }
         // Both DOM and native canvas touches enter the same drag state machine.
         const control = buttonOp ? { op: buttonOp } : this.controlAt(touch);
         if (control) {
@@ -217,7 +243,9 @@ Component({
       if (!start || !current) { this.touchCancel(); return; }
       const threshold = g.control === 'remove' ? 12 : g.control ? 2 : 6;
       if (Math.hypot(current.x - start.x, current.y - start.y) > threshold) { g.moved = true; clearTimeout(this.longTimer); }
+      if (!g.axis && Math.hypot(current.x - start.x, current.y - start.y) > 12) g.axis = Math.abs(current.x - start.x) > Math.abs(current.y - start.y) * 1.5 ? 'x' : 'y';
       if (g.pending) return;
+      if (g.action) { if (g.moved) this.refresh(); return; }
       if (g.control) {
         if (!this.canControl() || this.data.selected !== g.selection) { this.touchCancel(); return; }
         if (g.control !== 'remove' && g.moved) {
@@ -233,6 +261,7 @@ Component({
       this.previewPlacement(g, next);
     },
     previewPlacement(g, next) {
+      if (this.data.reportGestures && !g.announced) { g.announced = true; this.triggerEvent('gesturestate', { active: true }); }
       g.next = next;
       this.dragModel = Object.assign({}, this.data.model, { items: this.data.model.items.map(p => p.id === next.id ? next : p) });
       // Touch events can arrive faster than the display refreshes. Keep the
@@ -247,14 +276,18 @@ Component({
     touchEnd(e) {
       const g = this.gesture;
       if (g && g.pending) { g.ended = true; g.endEvent = e; return; }
-      if (g && (g.moved || g.control) && g.control !== 'remove' && e && e.changedTouches && e.changedTouches.length) {
+      if (g && (g.moved || g.control || this.data.allowSwipe) && g.control !== 'remove' && e && e.changedTouches && e.changedTouches.length) {
         this.touchMove({ touches: [e.changedTouches[0]] });
         if (this.gesture !== g) return;
       }
       if (g && g.control) this.controlTapBlock = { op: g.control, until: Date.now() + 700 };
+      if (g && g.action) this.actionTapBlock = { action: g.action, until: Date.now() + 700 };
       this.clearGesture();
       if (!g || this.dead || this.data.covered || !this.data.interactive) return;
-      if (g.control) {
+      if (g.action) {
+        const target = this.actionAt(e && e.changedTouches && e.changedTouches[0] || g.lastTouch);
+        if (!g.moved && target && target.action === g.action && !target.disabled) this.triggerEvent('boardaction', { action: g.action });
+      } else if (g.control) {
         if (this.canControl() && this.data.selected === g.selection) {
           if (g.control === 'remove') {
             const end = e && e.changedTouches && e.changedTouches[0] || g.lastTouch;
@@ -268,6 +301,7 @@ Component({
           }
         }
       } else if (g.next) this.triggerEvent('change', { placement: g.next });
+      else if (this.swipeOffset(g)) this.triggerEvent('boardswipe', { offset: this.swipeOffset(g) });
       else if (!g.moved && !g.long) {
         if (g.item) this.triggerEvent('memory', { id: g.item.memoryId });
         else this.triggerEvent(this.data.editable ? 'select' : 'boardtap', { id: '' });
@@ -275,12 +309,14 @@ Component({
       this.refresh();
     },
     clearGesture() {
+      if (this.gesture && this.gesture.announced) this.triggerEvent('gesturestate', { active: false });
       this.gestureToken = (this.gestureToken || 0) + 1; clearTimeout(this.longTimer);
       if (this.previewFrame != null && this.canvas && this.canvas.cancelAnimationFrame) this.canvas.cancelAnimationFrame(this.previewFrame);
       this.previewFrame = null; this.gesture = null; this.dragModel = null;
     },
     touchCancel() {
       if (this.gesture && this.gesture.control) this.controlTapBlock = { op: this.gesture.control, until: Date.now() + 700 };
+      if (this.gesture && this.gesture.action) this.actionTapBlock = { action: this.gesture.action, until: Date.now() + 700 };
       this.clearGesture(); this.refresh();
     },
     transform(e) {

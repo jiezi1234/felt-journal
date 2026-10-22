@@ -102,6 +102,31 @@ function gestureFixture(t, data = {}, delayed = false) {
     move: dx => board.touchMove({ touches: [{ ...touch, clientX: touch.clientX + dx }] }) };
 }
 
+test('native floating actions consume taps above objects and ignore disabled, moved or canceled presses', t => {
+  const f = gestureFixture(t, { showActions: true, canAdd: true, height: 500 });
+  const touch = { clientX: 20 + 360 - 37, clientY: 40 + 500 - 37 };
+  const start = () => f.board.touchStart({ touches: [touch] });
+  const end = () => f.board.touchEnd({ changedTouches: [touch] });
+  start(); end(); assert.deepEqual(f.events, [{ name: 'boardaction', detail: { action: 'add' } }]);
+  f.board.actionTap({ currentTarget: { dataset: { action: 'add' } } }); assert.equal(f.events.length, 1, 'Synthetic tap cannot open twice');
+  f.events.length = 0; f.board.data.canAdd = false; start(); end(); assert.deepEqual(f.events, []);
+  f.board.data.canAdd = true; start(); f.board.touchMove({ touches: [{ ...touch, clientX: touch.clientX - 12 }] }); end(); assert.deepEqual(f.events, []);
+  start(); f.board.touchCancel(); end(); assert.deepEqual(f.events, []);
+  f.board.data.covered = true; start(); end(); assert.deepEqual(f.events, []);
+});
+
+test('floating actions remain reachable on narrow boards and disappear while a placement moves', () => {
+  const actions = require('../miniprogram/core/board-actions');
+  for (const width of [288, 320, 398, 540]) {
+    const state = { showActions: true, interactive: true, selected: 'one', canAdd: true };
+    const controls = actions.layout(width, 400, state);
+    assert.equal(controls.length, 5);
+    for (const a of controls) assert.ok(a.width >= 44 && a.height >= 44 && a.x >= 0 && a.x + a.width <= width && a.y + a.height <= 400);
+    assert.deepEqual(actions.layout(width, 400, { ...state, dragging: true }), []);
+    assert.deepEqual(actions.layout(width, 400, { ...state, covered: true }), []);
+  }
+});
+
 test('tapping an object opens its card without selecting it in browse or edit mode', t => {
   const f = gestureFixture(t);
   for (const editable of [false, true]) {
@@ -110,6 +135,40 @@ test('tapping an object opens its card without selecting it in browse or edit mo
     assert.deepEqual(f.events, [{ name: 'memory', detail: { id: f.item.memoryId } }]);
     assert.equal(f.board.data.selected, '');
   }
+});
+
+test('horizontal browse swipes turn once in either direction without opening or moving an object', t => {
+  const f = gestureFixture(t, { allowSwipe: true });
+  for (const dx of [-90, 90]) {
+    f.events.length = 0; f.start(); f.move(dx); f.board.touchEnd();
+    assert.deepEqual(f.events, [{ name: 'boardswipe', detail: { offset: dx < 0 ? 1 : -1 } }]);
+    f.board.touchEnd(); assert.equal(f.events.length, 1);
+  }
+  f.events.length = 0; f.start(); f.move(30); f.board.touchEnd(); assert.deepEqual(f.events, []);
+  f.start(); const touch = f.board.gesture.touch;
+  f.board.touchMove({ touches: [{ ...touch, clientY: touch.clientY + 30 }] });
+  f.board.touchMove({ touches: [{ ...touch, clientX: touch.clientX + 100, clientY: touch.clientY + 30 }] });
+  f.board.touchEnd(); assert.deepEqual(f.events, [], 'A vertical start stays vertical');
+  f.start(); f.move(90); f.board.touchCancel(); f.board.touchEnd(); assert.deepEqual(f.events, []);
+  f.start(); f.board.touchMove({ touches: [touch, { ...touch, identifier: 2 }] }); f.board.touchEnd(); assert.deepEqual(f.events, []);
+});
+
+test('swipe recognition never steals long-press or selected-object drags', t => {
+  const f = gestureFixture(t, { allowSwipe: true });
+  f.start(); t.mock.timers.tick(650); f.move(90); f.board.touchEnd();
+  assert.deepEqual(f.events.map(e => e.name), ['edititem', 'change']);
+  f.events.length = 0; f.start(); f.move(-90); f.board.touchEnd();
+  assert.deepEqual(f.events.map(e => e.name), ['change']);
+  f.board.data.allowSwipe = false; f.board.data.selected = ''; f.events.length = 0;
+  f.start(); f.move(90); f.board.touchEnd(); assert.deepEqual(f.events, [], 'Other board pages keep their original gestures');
+});
+
+test('fast swipe release before board measurement is resolved once using final native coordinates', t => {
+  const f = gestureFixture(t, { allowSwipe: true }, true);
+  f.start(); const touch = f.board.gesture.touch;
+  f.board.touchEnd({ changedTouches: [{ ...touch, clientX: touch.clientX - 100 }] });
+  assert.deepEqual(f.events, []); f.measure();
+  assert.deepEqual(f.events, [{ name: 'boardswipe', detail: { offset: 1 } }]);
 });
 
 test('holding an object enters editing once; releasing does not open its card', t => {
@@ -122,6 +181,17 @@ test('holding an object enters editing once; releasing does not open its card', 
 test('movement cancels long press and cannot move an unselected object', t => {
   const f = gestureFixture(t, { editable: true }); f.start(); f.move(20); t.mock.timers.tick(1000); f.board.touchEnd();
   assert.deepEqual(f.events, []); assert.equal(f.board.dragModel, null);
+});
+
+test('theme drag notifications hide floating actions once and restore them on release or cancellation', t => {
+  const f = gestureFixture(t, { reportGestures: true });
+  f.start(); t.mock.timers.tick(650); f.move(20); f.move(30);
+  assert.deepEqual(f.events.filter(e => e.name === 'gesturestate').map(e => e.detail.active), [true]);
+  f.board.touchEnd();
+  assert.deepEqual(f.events.filter(e => e.name === 'gesturestate').map(e => e.detail.active), [true, false]);
+  f.events.length = 0; f.start(); f.move(20); f.board.touchCancel();
+  assert.deepEqual(f.events.filter(e => e.name === 'gesturestate').map(e => e.detail.active), [true, false]);
+  assert.equal(f.events.some(e => e.name === 'change'), false);
 });
 
 test('rapid movement paints once per frame and saves the final release position', t => {

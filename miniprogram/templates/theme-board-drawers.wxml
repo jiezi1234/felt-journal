@@ -1,0 +1,34 @@
+<view wx:if="{{drawer === 'themes' || drawer === 'theme' || drawer === 'library' || drawer === 'appearance'}}" class="drawer-veil theme-drawer" catchtouchmove="stop">
+  <view class="drawer-scrim" bindtap="closeDrawer" />
+  <view class="drawer-sheet" role="dialog" aria-modal="true" aria-label="{{drawer === 'themes' ? '所有主题板' : drawer === 'theme' ? '主题板选项' : drawer === 'appearance' ? '板面与纹理' : '添加记忆'}}">
+    <view class="drawer-handle" aria-hidden="true" />
+    <view class="row drawer-heading"><view class="section-title">{{drawer === 'themes' ? '所有主题板' : drawer === 'theme' ? dateLabel : drawer === 'appearance' ? '板面与纹理' : '添加记忆'}}</view><button id="close-drawer" class="ghost" disabled="{{working}}" aria-label="关闭面板" bindtap="closeDrawer">{{drawer === 'library' && !count ? '稍后添加' : '收起 ⌄'}}</button></view>
+    <block wx:if="{{drawer === 'themes'}}">
+      <scroll-view scroll-y class="theme-picker-scroll"><view class="theme-picker-grid">
+        <button wx:for="{{themes}}" wx:key="id" class="theme-preview {{date === item.id ? 'theme-preview-active' : ''}}" data-id="{{item.id}}" bindtap="open" aria-label="{{item.title + '，' + item.count + ' 件记忆' + (date === item.id ? '，当前主题板' : '')}}">
+          <view class="theme-thumbnail" style="background-color:{{item.color}};"><image wx:for="{{item.images}}" wx:for-item="photo" wx:for-index="photoIndex" wx:key="id" class="theme-thumb-image theme-thumb-{{photoIndex}}" src="{{photo.path}}" mode="aspectFit" /><text wx:if="{{!item.count}}" class="theme-thumbnail-empty">等待第一件记忆</text></view>
+          <view class="theme-preview-name">{{item.title}}</view><view class="theme-count">{{item.count}} 件记忆{{date === item.id ? ' · 当前' : ''}}</view>
+        </button>
+        <button id="new-theme" class="theme-preview theme-new-preview" bindtap="create"><view class="theme-thumbnail theme-new-thumbnail"><text>＋</text><text>新建主题板</text></view></button>
+      </view></scroll-view>
+    </block>
+    <view wx:elif="{{drawer === 'theme'}}" class="theme-menu">
+      <button id="share-theme" disabled="{{!count}}" bindtap="shareTheme">分享这块板<text>↗</text></button>
+      <button id="rename-theme" bindtap="rename">重命名<text>›</text></button>
+      <button id="theme-appearance" bindtap="openAppearance">板面与纹理<text>›</text></button>
+      <button id="delete-theme" class="danger" bindtap="removeTheme">删除主题板<text>›</text></button>
+    </view>
+    <block wx:elif="{{drawer === 'library'}}">
+      <view class="theme-library-controls"><input id="theme-library-search" class="theme-search" value="{{libraryQuery}}" placeholder="搜索记录、日期或分类" maxlength="100" bindinput="searchLibrary" /><scroll-view scroll-x class="theme-category-scroll"><view class="theme-category-row"><button wx:for="{{libraryFilters}}" wx:key="*this" class="theme-filter {{libraryCategory === item ? 'theme-filter-active' : ''}}" data-category="{{item}}" bindtap="categoryLibrary">{{item}}</button></view></scroll-view></view>
+      <scroll-view scroll-y class="theme-library-scroll"><view class="theme-library-grid">
+        <button wx:for="{{visibleLibraryItems}}" wx:key="id" class="theme-memory {{item.checked ? 'theme-memory-checked' : ''}}" data-id="{{item.id}}" bindtap="toggleLibrary" disabled="{{working}}" aria-label="{{(item.checked ? '已选择，' : '') + item.date + '，' + item.category + '，' + item.text}}"><image src="{{item.path}}" mode="aspectFit" /><view class="theme-memory-date">{{item.date}}</view><view class="theme-memory-copy">{{item.text || item.category}}</view><view class="theme-memory-check">{{item.checked ? '✓' : ''}}</view></button>
+      </view><view wx:if="{{!visibleLibraryItems.length}}" class="empty-library">{{libraryItems.length ? '没有找到匹配的记忆' : '暂无可添加的记忆'}}<view class="muted">{{libraryItems.length ? '换个关键词或分类试试' : '可以拍照，或从相册记录一件新物品'}}</view></view></scroll-view>
+      <view class="theme-library-footer"><view wx:if="{{libraryError}}" class="error">{{libraryError}}</view><view class="row"><button id="theme-new-photo" class="secondary grow" disabled="{{working}}" bindtap="sourceSheet">拍照 / 相册</button><button id="add-library-selection" class="primary grow" disabled="{{!librarySelected.length || working}}" loading="{{working}}" bindtap="addLibrary">放入 {{librarySelected.length}} 件</button></view></view>
+    </block>
+    <view wx:elif="{{drawer === 'appearance'}}" class="drawer-content">
+      <view class="colors"><button wx:for="{{colors}}" wx:key="value" class="color {{model.color === item.value ? 'active' : ''}}" data-value="{{item.value}}" bindtap="color"><text class="swatch" style="background:{{item.value}}">{{model.color === item.value ? '✓' : ''}}</text>{{item.name}}</button></view>
+      <view class="textures"><button wx:for="{{textures}}" wx:key="value" class="texture {{model.texture === item.value ? 'active' : ''}}" data-value="{{item.value}}" bindtap="texture"><felt-swatch color="{{model.color}}" texture="{{item.value}}" /><view class="texture-name">{{item.name}}</view><view class="texture-note">{{item.description}}</view></button></view>
+      <view class="appearance-hint muted">{{saveError || '调整后自动保存'}}</view>
+    </view>
+  </view>
+</view>

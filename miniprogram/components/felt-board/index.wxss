@@ -10,3 +10,5 @@
    Overlay buttons retain the same 44px hit targets and accessible labels. */
 button.grip { position:absolute!important; z-index:10; margin:0!important; width:44px!important; min-width:44px; max-width:44px; height:44px; min-height:44px; padding:0; border-radius:50%; background:transparent; color:transparent; border:0; font-size:28px; line-height:44px; box-shadow:none; }
 .grip::after { border:none; }.image-warning { margin-top:12px; color:#97574C; font-size:12px; }
+button.board-action { position:absolute!important; z-index:11; margin:0!important; min-width:44px; min-height:44px; padding:0; border:0; border-radius:18px; background:transparent; color:transparent; box-shadow:none; }
+.board-action::after { border:0; }

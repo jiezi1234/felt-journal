@@ -1,6 +1,7 @@
 {
   "navigationBarTitleText": "主题板",
   "usingComponents": {
+    "felt-swatch": "/components/felt-swatch/index",
     "share-card": "/components/share-card/index",
     "memory-card": "/components/memory-card/index",
     "felt-board": "/components/felt-board/index",

@@ -11,6 +11,18 @@ function fixture() {
   const add = (id, day = date) => store.add(id, day, { originalPath: `/o-${id}.jpg`, subjectPath: `/s-${id}.png`, width: 300, height: 400, kind: 'extracted' });
   return { disk, store, storage, date, add, fail(value) { fail = value; } };
 }
+
+test('multi-add rejects an invalid member, capacity overflow or write failure without partial placement', () => {
+  const f = fixture(), ids = [f.add('multi_a'), f.add('multi_b')], theme = f.store.createTheme('multi', '收藏');
+  let before = f.disk[KEY];
+  assert.throws(() => f.store.placeMany([...ids, 'missing'], theme), /已被删除/); assert.equal(f.disk[KEY], before);
+  f.fail(true); assert.throws(() => f.store.placeMany(ids, theme), /quota/); assert.equal(f.disk[KEY], before); f.fail(false);
+  for (let i = 0; i < config.maxItems - 1; i++) f.store.add('filled_' + i, f.date, { originalPath: '/o', subjectPath: '/s', width: 100, height: 100 }, theme);
+  before = f.disk[KEY]; assert.throws(() => f.store.placeMany(ids, theme), /最多/); assert.equal(f.disk[KEY], before);
+  const daily = f.store.board(f.date), revision = f.store.get().revision;
+  f.store.placeMany([ids[0], ids[0]], theme); assert.equal(f.store.board(theme).placements.length, config.maxItems);
+  assert.equal(f.store.get().revision, revision + 1); assert.deepEqual(f.store.board(f.date), daily);
+});
 test('v1 upgrade is read-only, preserves geometry/photos and is written atomically on first mutation', () => {
   const f = fixture(), id = f.add('legacy'); const legacy = f.store.get(); legacy.version = 1; delete legacy.boards[f.date].membershipRevision;
   f.disk[KEY] = JSON.stringify(legacy); const raw = f.disk[KEY], store = createStore(f.storage);

@@ -95,10 +95,10 @@ test('theme tab excludes daily boards, refreshes renamed themes, and does not cr
   assert.equal(page.data.themes.length, 1); assert.equal(page.store.get().boards['2099-01-02'], undefined);
 });
 
-test('theme tab arranges its selected board in place without opening a child', t => {
+test('theme switching stays in place and opens in browsing state', t => {
   const page = boardFixture(t); page.store.createTheme('travel', '旅途'); page.refresh(); const calls = [];
   platform.call = async (method, options) => calls.push({ method, ...options });
   const before = page.store.get(); page.open(event('theme_travel')); page.open(event('theme_travel'));
-  assert.deepEqual(calls, []); assert.equal(page.data.editable, true); assert.equal(page.data.model.id, 'theme_travel');
+  assert.deepEqual(calls, []); assert.equal(page.data.editable, false); assert.equal(page.data.model.id, 'theme_travel');
   assert.deepEqual(page.store.get(), before);
 });

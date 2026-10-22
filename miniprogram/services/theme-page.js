@@ -11,7 +11,7 @@ function createThemePage(options = {}) { return {
     try {
       const state = this.store.load();
       if (this.memoryId && !state.memories[this.memoryId]) throw new Error('这条记忆已被删除，请返回记忆库');
-      const themes = Object.values(state.boards).filter(b => b.type === 'theme').sort((a, b) => b.updatedAt - a.updatedAt || a.id.localeCompare(b.id)).map(b => ({
+      const themes = Object.values(state.boards).filter(b => b.type === 'theme').sort((a, b) => (options.inline ? b.createdAt - a.createdAt : b.updatedAt - a.updatedAt) || a.id.localeCompare(b.id)).map(b => ({
         id: b.id, title: b.title, color: b.color, count: b.placements.length, placed: b.placements.some(p => p.memoryId === this.memoryId),
         images: b.placements.slice(0, 3).map(p => ({ id: p.memoryId, path: state.memories[p.memoryId].subjectPath }))
       }));
