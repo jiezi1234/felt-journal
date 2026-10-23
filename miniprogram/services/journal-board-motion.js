@@ -43,10 +43,9 @@ function run(host) {
     if (host.data.covered || host.canvas !== motion.canvas) { stop(host); return; }
     const t = Math.min(1,(Date.now()-motion.started)/240), ease = t*t*(3-2*t);
     const ctx = host.canvas.getContext('2d'), width = host.canvas.width, height = host.canvas.height;
-    const travel = 8*width/host.screenWidth;
     ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,width,height);
-    ctx.globalAlpha = 1; ctx.drawImage(source.canvas,-travel*ease,0,width,height);
-    ctx.globalAlpha = ease; ctx.drawImage(target,travel*(1-ease),0,width,height); ctx.restore();
+    ctx.globalAlpha = 1; ctx.drawImage(source.canvas,0,0,width,height);
+    ctx.globalAlpha = ease; ctx.drawImage(target,0,0,width,height); ctx.restore();
     if (t === 1) { stop(host); host.refresh(); return; }
     motion.native = !!(host.canvas.requestAnimationFrame && host.canvas.cancelAnimationFrame);
     motion.frame = motion.native ? host.canvas.requestAnimationFrame(tick) : setTimeout(tick,16);

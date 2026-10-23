@@ -16,6 +16,8 @@ test('native board change blends two frames and restores live interaction after 
   t.mock.timers.tick(128);assert.ok(draws.length>2);assert.equal(host.data.navigationAnimating,true);
   assert.equal(draws.at(-2).alpha,1,'The old frame remains opaque so the blend never flashes white');
   assert.ok(draws.at(-1).alpha>0 && draws.at(-1).alpha<1);
+  assert.deepEqual(draws.at(-2).args.slice(1),[0,0,900,1500],'The outgoing board frame stays at the same size and position');
+  assert.deepEqual(draws.at(-1).args.slice(1),[0,0,900,1500],'The incoming board frame does not slide or scale');
   t.mock.timers.tick(128);assert.equal(host.data.navigationAnimating,false);assert.equal(host.journalMotion,null);assert.equal(host.refreshCount,1);
 });
 test('rapid board changes cancel the previous frame loop and settle on the latest board',t=>{

@@ -58,9 +58,14 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     result.add={ 'pointer-events':await button.style('pointer-events') };
     const boardLayout=await mini.evaluate(()=>new Promise(resolve=>{
       const board=getCurrentPages().slice(-1)[0].selectComponent('#today-board');
-      board.createSelectorQuery().select('.board-viewport').boundingClientRect().select('.board-shell').boundingClientRect().select('#feltCanvas').boundingClientRect().exec(([viewport,rect,canvas])=>resolve({viewport,canvas,actions:board.data.actions.map(a=>({action:a.action,left:rect.left+a.x,top:rect.top+a.y,width:a.width,height:a.height}))}));
+      board.createSelectorQuery().select('.board-viewport').boundingClientRect().select('.board-shell').boundingClientRect().select('#feltCanvas').boundingClientRect().exec(([viewport,rect,canvas])=>resolve({viewport,canvas,canvasHidden:board.data.canvasHidden,renderedSize:{width:board.data.width,height:board.data.height,canvasHeight:board.data.canvasHeight},actions:board.data.actions.map(a=>({action:a.action,left:rect.left+a.x,top:rect.top+a.y,width:a.width,height:a.height}))}));
     }));
-    result.boardBounds=boardLayout.viewport; result.canvasBounds=boardLayout.canvas; result.nativeControls=boardLayout.actions;
+    result.boardBounds=boardLayout.viewport; result.canvasBounds=boardLayout.canvas; result.renderedSize=boardLayout.renderedSize; result.nativeControls=boardLayout.actions;
+    const baseline=checks.find(check=>check.name==='calendar-board');
+    if(baseline) {
+      for(const bounds of boardLayout.canvasHidden ? ['boardBounds'] : ['boardBounds','canvasBounds'])for(const key of ['left','top','width','height','bottom'])assert.ok(Math.abs(result[bounds][key]-baseline[bounds][key])<1,`${name}: ${bounds} ${key} stays fixed across modes and empty boards`);
+      for(const key of ['width','height','canvasHeight'])assert.ok(Math.abs(result.renderedSize[key]-baseline.renderedSize[key])<1,`${name}: rendered board ${key} stays fixed`);
+    }
     assert.equal(result.error, '', name);
     result.rects.filter(Boolean).forEach(r => { assert.ok(r.left >= -1 && r.right <= result.width+1, `${name} horizontal overflow ${JSON.stringify(r)}`); assert.ok(r.top >= -1 && r.bottom <= result.height+1, `${name} vertical overflow ${JSON.stringify(r)}`); });
     result.rail.forEach(r => assert.ok(r.width >= 43 && r.height >= 44, `${name} touch target ${JSON.stringify(r)}`));
@@ -123,6 +128,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     await tap('#switch-mode'); assert.equal((await (await mini.currentPage()).data()).date,past);
     await tap('#switch-mode'); assert.equal((await (await mini.currentPage()).data()).date,c);
     await inspect('theme-board');
+    await tap('#journal-more');await tap(`.journal-theme-choice[data-id="${d}"]`);await wait(data=>data.date===d&&!data.journalPicker);await inspect('empty-theme-board');
     await tap('#journal-more'); await inspect('all-themes-card');
     const themePair=await (await mini.currentPage()).$(`.journal-theme-choice[data-id="${a}"]`);
     assert.equal((await themePair.$$('image')).length,2,'Theme chooser displays two actual objects');
