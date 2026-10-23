@@ -46,7 +46,7 @@ backend/.venv/Scripts/python.exe -m backend.verify_nosh path/to/photo.jpg
 4. 修改 `miniprogram/core/config.js` 的 `extraction`：`mode: 'remote'`，`endpoint: 'https://你的域名/extract'`。不要将供应商密钥写入小程序。
 5. 开发工具须开启 URL、TLS 和 HTTPS 证书校验；私有配置 `project.private.config.json` 中的 `setting.urlCheck` 会覆盖公共配置，验收时应为 `true`。开启后还须在手机上测试。localhost、局域网 HTTP 和本地测试通过都不能替代 HTTPS 真机接通。
 
-2026-10-19 接通服务器 IP 开发接口，2026-10-23 已迁移到下节的 HTTPS 接口。正式配置仍保持 `unconfigured`；微信合法域名、正式鉴权和手机发布链路尚待完成。没有显式开发配置的客户端会显示提取尚未配置，并允许明确选择使用原图。
+2026-10-19 接通服务器 IP 开发接口，2026-10-23 已迁移到下节的 HTTPS 接口，并通过开启域名校验后的模拟器上传/下载验证。正式配置仍保持 `unconfigured`；正式鉴权和手机发布链路尚待完成。没有显式开发配置的客户端会显示提取尚未配置，并允许明确选择使用原图。
 
 ## 服务器 HTTPS 开发联调（当前使用）
 
@@ -76,6 +76,8 @@ docker compose --env-file backend/.env --env-file backend/.env.development \
 2026-10-23 公网验收：系统信任链与主机名校验通过（TLS 1.3、Let's Encrypt YE1）；公开动物样例返回 938×454 RGBA PNG、alpha 0–255，首次模型加载在内全流程约 1.62 秒，上传和下载未携带凭证时均返回 401。该时间仅代表单个样例，不是并发或手机网络保证。报告保存在被忽略的 `artifacts/https-verification-20261023.json`。
 
 同日微信模拟器通过已编译适配器的真实 `wx.uploadFile` → 服务器推理 → `wx.downloadFile`，获得相同尺寸与透明度的 PNG、有效裁切坐标，以及“自然”自动分类，样例约 1.22 秒。模拟器服务配置已迁到 HTTPS；手机尚未重新连接。联调脚本统一使用与应用源码一致的不带扩展名模块路径，避免开发工具中两种模块引用读取不同的缓存版本。
+
+同日合法域名验收补充：用户确认 `request`、`uploadFile`、`downloadFile` 三项均已保存并刷新为 `https://api.jiejiezi.cn`。私有配置保持 `urlCheck: true`；刷新域名列表后，旧模拟器运行环境一度仍返回 `url not in domain list`，通过开发者工具的 `simulator_refresh` 重新编译/刷新后恢复。真实 `wx.request` 健康检查返回 200，未配置的 `https://example.com/` 仍被合法域名校验拦截；公开动物样例经真实上传、抠图、下载得到 938×454 RGBA PNG、alpha 0–255、“自然”分类及有效裁切坐标，样例全流程约 1.25 秒。验收前后核对本地记录、草稿及现存照片字节均未改变。报告为本机忽略文件 `artifacts/legal-domain-verification-20261023.json` 与 `artifacts/server-extraction-verification.json`；本次仅覆盖模拟器，手机 HTTPS 和正式发布鉴权继续待验收。
 
 回滚材料在服务器 `/home/ubuntu/felt-deployments/20261023-https/backup`。需要退回旧 IP 开发方式时，先用当前 HTTPS Compose 命令的相同参数执行 `stop https`，恢复备份 `.env.development`，再用下节的旧开发 Compose 命令启动。保留所有持久卷。本机/手机也需要同步恢复旧 IP 配置；正常运行无需回滚。
 
