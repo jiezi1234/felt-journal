@@ -45,15 +45,9 @@ async function collect(store) {
   }
 }
 async function sweepUnused(store) {
-  // Only run at app launch, before any photo task exists. Never traverse other
-  // user directories or remove a file referenced by a committed memory.
-  let names;
-  try { names = (await fsCall('readdir', { dirPath: root() })).files; } catch (_) { return; }
-  for (const name of names) {
-    if (!/^[a-z0-9]+_[a-z0-9]+_[a-z0-9]+_(original|subject)\.(png|jpg|jpeg|webp)$/.test(name)) continue;
-    const path = `${root()}/${name}`;
-    if (!activeFiles.has(path) && !store.referenced(path)) await unlink(path);
-  }
+  // A missing or incomplete record snapshot is not proof that a photo was
+  // deleted. At startup, only retry deletions explicitly queued by a committed
+  // record change. Keep untracked files available for recovery after a crash.
   await collect(store);
 }
 function releaseFiles(paths) { paths.forEach(path => activeFiles.delete(path)); }
