@@ -13,85 +13,25 @@ function gradient(ctx, x1, y1, x2, y2, stops) {
 function oval(ctx, x, y, rx, ry) {
   ctx.save(); ctx.translate(x, y); ctx.scale(rx, ry); ctx.beginPath(); ctx.arc(0, 0, 1, 0, Math.PI * 2); ctx.restore();
 }
-function clip(ctx, width, pixelScale) {
-  ctx.save(); ctx.translate(width / 2, -176); ctx.scale(1.8, 1.8); ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-  pixelScale *= 1.8;
-  // A round-handle steel bulldog clip: rear lever, spring, curved neck and
-  // rolled jaws are separate layers, lit from the upper left.
-  ctx.shadowColor = 'rgba(37,34,26,.27)'; ctx.shadowBlur = 16*pixelScale; ctx.shadowOffsetY = 9*pixelScale;
-  rounded(ctx,-183,130,366,51,12);
-  ctx.fillStyle = gradient(ctx,0,130,0,181,[[0,'#9EA5A3'],[.3,'#F0F1EC'],[.7,'#BEC2B9'],[1,'#727A76']]);ctx.fill();
-  ctx.shadowColor = 'transparent';
-  ctx.beginPath();ctx.moveTo(-32,129);ctx.lineTo(-10,65);
-  ctx.bezierCurveTo(1,30,39,20,65,35);ctx.bezierCurveTo(93,51,85,86,60,98);
-  ctx.lineTo(41,132);ctx.closePath();ctx.moveTo(73,62);ctx.arc(60,62,13,0,Math.PI*2,true);
-  ctx.fillStyle = gradient(ctx,-25,40,77,112,[[0,'#FCFDF8'],[.25,'#BCC2BE'],[.43,'#F4F5EF'],[.66,'#929A97'],[.81,'#E9EBE3'],[1,'#6E7672']]);ctx.fill();
-  ctx.strokeStyle = '#919B93';ctx.lineWidth = 1.4;ctx.stroke();
-  oval(ctx,60,62,13,13);
-  ctx.strokeStyle = '#F9FAEF';ctx.lineWidth = 2.5;ctx.stroke();
-  // Small hinge lugs and the spring remain visible beside the front lever.
-  for(const side of [-1,1]) {
-    ctx.save();ctx.scale(side,1);rounded(ctx,37,96,20,34,6);
-    ctx.fillStyle = gradient(ctx,37,0,57,0,[[0,'#63706C'],[.22,'#E5EAE3'],[.4,'#FFFFFF'],[.7,'#A5AEA7'],[1,'#727E76']]);ctx.fill();
-    oval(ctx,49,111,5.5,7);ctx.fillStyle='#758078';ctx.fill();
-    ctx.strokeStyle='#F3F5EC';ctx.lineWidth=1.5;ctx.stroke();ctx.restore();
-  }
-  // The neck broadens into the jaw. Narrow reflections follow the folded
-  // shoulders, while the middle retains a smooth pressed-metal surface.
-  const neck=()=>{
-    ctx.beginPath();ctx.moveTo(-41,39);ctx.bezierCurveTo(-33,61,-25,77,-35,97);
-    ctx.quadraticCurveTo(-42,111,-66,129);ctx.lineTo(66,129);
-    ctx.quadraticCurveTo(42,111,35,97);ctx.bezierCurveTo(25,77,33,61,41,39);ctx.closePath();
-  };
-  neck();ctx.fillStyle=gradient(ctx,-64,80,64,80,[[0,'#5D6763'],[.12,'#FCFDF8'],[.22,'#CFD3CA'],[.35,'#FAFBF4'],[.56,'#ECEDE5'],[.73,'#B2BAB3'],[.84,'#424F49'],[.91,'#FFFFFF'],[1,'#969F97']]);ctx.fill();
-  ctx.strokeStyle='#859188';ctx.lineWidth=1.2;ctx.stroke();
-  ctx.save();neck();ctx.clip();
-  ctx.fillStyle=gradient(ctx,-32,50,41,124,[[0,'rgba(255,255,255,.7)'],[.42,'rgba(255,255,255,0)'],[.66,'rgba(54,67,58,.15)'],[1,'rgba(255,255,245,.65)']]);ctx.fillRect(-66,39,132,90);
-  ctx.restore();
-  ctx.beginPath();ctx.moveTo(-35,51);ctx.bezierCurveTo(-28,78,-17,92,-51,119);
-  ctx.strokeStyle='rgba(255,255,255,.88)';ctx.lineWidth=2;ctx.stroke();
-  ctx.beginPath();ctx.moveTo(35,50);ctx.bezierCurveTo(28,79,19,96,53,121);
-  ctx.strokeStyle='rgba(54,69,61,.57)';ctx.lineWidth=2.2;ctx.stroke();
-  // Compound rings leave a real hole: the page shows through above the frame,
-  // and the wood remains visible through the lower half, without erasing it.
-  const ring=(rx,ry,hole)=>{
-    ctx.save();ctx.translate(0,5);ctx.scale(1,ry/rx);ctx.beginPath();ctx.arc(0,0,rx,0,Math.PI*2);
-    ctx.moveTo(hole,0);ctx.arc(0,0,hole,0,Math.PI*2,true);ctx.restore();
-  };
-  ctx.shadowColor='rgba(40,44,35,.25)';ctx.shadowBlur=8*pixelScale;ctx.shadowOffsetY=5*pixelScale;
-  ring(59,55,18);ctx.fillStyle=gradient(ctx,-49,-41,47,50,[[0,'#FFFFFF'],[.18,'#C9CFC9'],[.34,'#7A8780'],[.51,'#FAFBF6'],[.69,'#C5CCC2'],[.82,'#5B6961'],[1,'#EDF0E6']]);ctx.fill();
-  ctx.shadowColor='transparent';
-  ring(55,51,18);ctx.strokeStyle='#F8FBF3';ctx.lineWidth=1.4;ctx.stroke();
-  ring(51,47,18);ctx.fillStyle=gradient(ctx,-38,-33,36,43,[[0,'#6E7B73'],[.12,'#FCFDF7'],[.3,'#DEE3D9'],[.51,'#FBFCF6'],[.72,'#F9FAF1'],[.84,'#ABB7AC'],[1,'#67776A']]);ctx.fill();
-  ring(44,40,18);ctx.strokeStyle='rgba(106,124,108,.39)';ctx.lineWidth=1.1;ctx.stroke();
-  oval(ctx,0,5,19,17.5);ctx.strokeStyle=gradient(ctx,-14,-11,14,21,[[0,'#536259'],[.35,'#98A695'],[.65,'#E8EEDF'],[1,'#FFFFFF']]);ctx.lineWidth=3.5;ctx.stroke();
-  // Broken reflections around the rim describe stamped chrome without a
-  // bright cartoon outline or a flat grey disk.
-  ctx.save();ctx.translate(0,5);ctx.scale(1,55/59);
-  for(const [start,end,color,weight] of [[3.5,4.25,'#FFFFFF',3.3],[4.55,5.22,'#FFFFFF',2.1],[.15,.72,'#5E7261',2.6],[1.65,2.35,'#FFFFFF',2.2],[2.6,2.95,'#788A7A',3]]) {
-    ctx.beginPath();ctx.arc(0,0,55,start,end);ctx.strokeStyle=color;ctx.lineWidth=weight;ctx.stroke();
-  }
-  ctx.restore();oval(ctx,-26,-23,13,6);ctx.fillStyle='rgba(255,255,255,.72)';ctx.fill();
-  ctx.beginPath();ctx.moveTo(-46,-7);ctx.quadraticCurveTo(-48,5,-42,17);ctx.lineTo(-36,13);ctx.quadraticCurveTo(-41,3,-39,-5);ctx.closePath();ctx.fillStyle='rgba(60,72,64,.52)';ctx.fill();
-  // The front jaw is rolled sheet steel, with open curled ends and a thin
-  // dark gap over the lower blade rather than plastic end caps.
-  rounded(ctx,-179,141,358,33,10);ctx.fillStyle='#59625C';ctx.fill();
-  rounded(ctx,-180,122,360,43,10);
-  ctx.fillStyle=gradient(ctx,0,122,0,165,[[0,'#C9CECA'],[.13,'#FFFFFF'],[.3,'#F9FAF5'],[.36,'#808985'],[.44,'#343D38'],[.5,'#FAFBF7'],[.7,'#D9DDD6'],[.84,'#F8FAF3'],[.92,'#707C72'],[1,'#B8C0B3']]);ctx.fill();
-  ctx.strokeStyle='#8F9B8B';ctx.lineWidth=1.2;ctx.stroke();
-  ctx.save();rounded(ctx,-172,125,344,35,6);ctx.clip();
-  ctx.fillStyle=gradient(ctx,-172,151,172,128,[[0,'rgba(46,68,52,.14)'],[.26,'rgba(255,255,255,.34)'],[.52,'rgba(255,255,255,.65)'],[.69,'rgba(70,90,72,.18)'],[1,'rgba(255,255,255,.31)']]);ctx.fillRect(-172,125,344,35);
-  for(let n=0;n<11;n++) {
-    const y=128+n*2.7,x=-169+n*39.73%110;
-    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(Math.min(168,x+92+n*13%118),y);ctx.strokeStyle=n%3?'rgba(255,255,255,.2)':'rgba(91,111,91,.12)';ctx.lineWidth=.6;ctx.stroke();
-  }
-  ctx.restore();
-  ctx.beginPath();ctx.moveTo(-168,126);ctx.lineTo(168,126);ctx.strokeStyle='#FFFFFF';ctx.lineWidth=2;ctx.stroke();
-  ctx.beginPath();ctx.moveTo(-172,166);ctx.quadraticCurveTo(0,171,172,166);ctx.strokeStyle='#F9FBEF';ctx.lineWidth=3;ctx.stroke();
-  ctx.beginPath();ctx.moveTo(-170,170);ctx.quadraticCurveTo(0,174,170,170);ctx.strokeStyle='#6E7C69';ctx.lineWidth=1.4;ctx.stroke();
-  for(const x of [-178,178]) {
-    oval(ctx,x,151,5,12);ctx.fillStyle='#414D40';ctx.fill();ctx.strokeStyle='#EDF0E5';ctx.lineWidth=1.5;ctx.stroke();
-  }
+function clip(ctx, width) {
+  ctx.save(); ctx.translate(width / 2, -176); ctx.scale(1.8, 1.8);
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.setLineDash([]);
+  // A flat, illustrated bulldog clip: solid sage enamel and a single outline.
+  // Keep the existing silhouette and transparent handle hole in the headroom.
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+  ctx.fillStyle = '#D5DAC7'; ctx.strokeStyle = '#7F8873'; ctx.lineWidth = 3.5;
+  ctx.beginPath(); ctx.moveTo(-41,39);
+  ctx.bezierCurveTo(-33,61,-25,77,-35,97);
+  ctx.quadraticCurveTo(-42,111,-66,129); ctx.lineTo(66,129);
+  ctx.quadraticCurveTo(42,111,35,97);
+  ctx.bezierCurveTo(25,77,33,61,41,39); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(0,5,55,0,Math.PI*2);
+  ctx.moveTo(18,5); ctx.arc(0,5,18,0,Math.PI*2,true);
+  ctx.fill(); ctx.stroke();
+  rounded(ctx,-180,122,360,58,12); ctx.fill(); ctx.stroke();
+  // One quiet seam describes the jaw without reflections or a beveled edge.
+  ctx.beginPath(); ctx.moveTo(-162,154); ctx.lineTo(162,154);
+  ctx.strokeStyle = '#9CA68E'; ctx.lineWidth = 2.5; ctx.stroke();
   ctx.restore();
 }
 function paint(ctx, model, B) {
