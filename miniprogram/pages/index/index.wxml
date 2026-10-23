@@ -1,4 +1,4 @@
-<view class="page screen-page home-page">
+<view class="page screen-page home-page journal-motion-{{contentMotion}}">
   <view class="journal-heading">
     <button id="switch-mode" class="journal-mode" hover-class="journal-pressed" disabled="{{navigationBusy || loading || !!error || !!drawer || !!journalPicker}}" aria-label="{{mode === 'calendar' ? '当前为日历板，点击切换为主题板' : '当前为主题板，点击切换为日历板'}}" bindtap="switchMode"><text>{{mode === 'calendar' ? '日历板' : '主题板'}}</text><text class="journal-switch-mark" aria-hidden="true">⇄</text></button>
     <view class="journal-subtitle">{{modeSubtitle}}</view>

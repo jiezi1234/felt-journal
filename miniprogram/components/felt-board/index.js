@@ -6,21 +6,24 @@ const viewport = require('../../core/board-viewport');
 const snapshots = require('../../services/board-snapshot');
 const boardActions = require('../../core/board-actions');
 const swipe = require('../../services/board-swipe');
+const journalMotion = require('../../services/journal-board-motion');
 Component({
   properties: { model: { type: Object, value: null }, layout: String, editable: Boolean, canEdit: Boolean, selected: String, covered: Boolean, landingId: String, reportGestures: Boolean, floatingControls: Object, allowSwipe: Boolean, swipePrevious: Object, swipeNext: Object, showActions: Boolean, actionsDisabled: Boolean, canAdd: Boolean, canUndo: Boolean, canBringToFront: Boolean, interactive: { type: Boolean, value: true } },
-  data: { height: 210, width: 0, topSpace: 0, canvasHeight: 210, handles: [], actions: [], swipeActive: false, imageError: false, snapshot: '', snapshotA:'', snapshotB:'', snapshotSlot:'a', snapshotVisible:false, canvasHidden:false },
+  data: { height: 210, width: 0, topSpace: 0, canvasHeight: 210, handles: [], actions: [], swipeActive: false, navigationAnimating:false, imageError: false, snapshot: '', snapshotA:'', snapshotB:'', snapshotSlot:'a', snapshotVisible:false, canvasHidden:false },
   observers: { 'model, editable, selected, landingId, floatingControls': function () { this.refresh(); if (this.data.layout) wx.nextTick(() => this.measure()); },
     'covered, interactive': function () {
+      if (this.data.covered || !this.data.interactive) journalMotion.stop(this);
       if (this.data.covered || !this.data.interactive) swipe.cancel(this);
       snapshots.cover(this);
       if (!this.data.covered) { this.pickupReturn = null; this.pickupId = ''; this.finishPickupSnapshot(false); }
       if (this.data.covered || !this.data.interactive) this.touchCancel(); else this.refresh();
     }, 'swipePrevious, swipeNext, allowSwipe': function () { swipe.warm(this); },
     'showActions, actionsDisabled, canAdd, canUndo, canBringToFront': function () { this.refresh(); }, layout() { this.measure(); } },
-  lifetimes: { ready() { this.measure(); }, detached() { this.dead = true; swipe.dispose(this); snapshots.dispose(this); this.clearGesture(); this.finishPickupSnapshot(false); } },
-  pageLifetimes: { resize() { swipe.cancel(this); this.touchCancel(); this.measure(); }, hide() { swipe.cancel(this); this.touchCancel(); }, show() { if (this.canvas) this.refresh(); } },
+  lifetimes: { ready() { this.measure(); }, detached() { this.dead = true; journalMotion.dispose(this); swipe.dispose(this); snapshots.dispose(this); this.clearGesture(); this.finishPickupSnapshot(false); } },
+  pageLifetimes: { resize() { journalMotion.dispose(this); swipe.cancel(this); this.touchCancel(); this.measure(); }, hide() { journalMotion.dispose(this); swipe.cancel(this); this.touchCancel(); }, show() { if (this.canvas) this.refresh(); } },
   methods: {
     exportViewport() { return this.dimensions ? { width: this.dimensions.width, height: this.dimensions.height } : null; },
+    beginNavigationTransition() { journalMotion.begin(this); },
     stop() {},
     measure() {
       this.createSelectorQuery().select('#feltCanvas').fields({ node: true }).select('.board-viewport').boundingClientRect().exec(result => {
@@ -44,7 +47,7 @@ Component({
       });
     },
     async refresh() {
-      if (!this.canvas || !this.data.model || this.dead || swipe.hold(this)) return;
+      if (!this.canvas || !this.data.model || this.dead || this.journalMotion || swipe.hold(this)) return;
       const version = this.version = (this.version || 0) + 1, model = this.dragModel || this.data.model;
       try {
         this.images = await renderer.loadImages(this.canvas, model.items || [], this.images, false);
@@ -66,6 +69,7 @@ Component({
         const actions = this.actionLayout();
         boardActions.paint(ctx, actions, this.screenWidth, this.gesture && !this.gesture.moved && this.gesture.action, this.data.floatingControls && this.data.floatingControls.hint);
         this.setData({ handles, actions, imageError: (model.items || []).some(p => this.images[p.memory.subjectPath].missing) });
+        if (journalMotion.run(this)) return;
         snapshots.painted(this, version);
         if (!this.data.covered) swipe.warm(this);
         // Native canvas layers can pierce an overlay. Keep the same board visible
@@ -169,6 +173,7 @@ Component({
     actionLayout() { return boardActions.layout(this.screenWidth, this.data.height, { ...this.data, bottomInset:this.bottomInset || 0, compactFloating:this.compactFloating, dragging: !!this.dragModel || !!this.swipeMotion }); },
     actionAt(touch) { return boardActions.hit(this.actionLayout(), this.localPoint(touch)); },
     actionTap(e) {
+      if (this.data.navigationAnimating) return;
       const action = e.currentTarget.dataset.action;
       if (this.actionTapBlock && this.actionTapBlock.action === action && Date.now() < this.actionTapBlock.until) return;
       const target = this.actionLayout().find(a => a.action === action);
@@ -191,7 +196,7 @@ Component({
     },
     touchStart(e) { this.beginGesture(e); },
     canControl() {
-      return !this.dead && !this.data.covered && this.data.interactive && this.data.canEdit && this.data.editable && !!this.data.selected && !this.data.landingId;
+      return !this.dead && !this.data.navigationAnimating && !this.data.covered && this.data.interactive && this.data.canEdit && this.data.editable && !!this.data.selected && !this.data.landingId;
     },
     swipeOffset(g) {
       // A selected object, long press, handle or floating action owns its entire
@@ -205,7 +210,7 @@ Component({
     beginGesture(e, buttonOp) {
       if (this.swipeMotion) return;
       this.clearGesture(); this.controlTapBlock = null;
-      if (this.dead || this.data.covered || !this.data.interactive || !this.data.model || e.touches.length !== 1) return;
+      if (this.dead || this.data.navigationAnimating || this.data.covered || !this.data.interactive || !this.data.model || e.touches.length !== 1) return;
       if (buttonOp && !this.canControl()) return;
       const touch = e.touches[0], token = this.gestureToken;
       const g = this.gesture = { touch, lastTouch: touch, moved: false, long: false, pending: true, button: !!buttonOp, control: buttonOp, selection: this.data.selected };

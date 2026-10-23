@@ -62,6 +62,27 @@ test('theme thumbnail follows latest placement time, not image age, z-order or l
   store.unplace(a, first); p.refresh(); assert.equal(p.data.themeRail.find(t => t.id === first).latestId, b);
   store.unplace(b, first); p.refresh(); assert.equal(p.data.themeRail.find(t => t.id === first).latestPath, '');
 });
+
+test('calendar and theme pickers preview two recent board objects without duplicates or invented placeholders',t=>{
+  const {store}=fixture(t),{first}=themes(store);
+  const ids=['a','b','c'].map(id=>store.add(id,'2026-10-22',photo(id)));
+  ids.forEach(id=>store.place(id,first));
+  store.commit(state=>{for(const id of ['2026-10-22',first])state.boards[id].placements.forEach((p,i)=>{p.createdAt=i+1;p.z=3-i;});});
+  assert.deepEqual(navigation.themes(store.get()).find(b=>b.id===first).images.map(p=>p.id),[ids[2],ids[1]]);
+  assert.deepEqual(navigation.month(store.get(),2026,10,'2026-10-22').find(d=>d.date==='2026-10-22').images.map(p=>p.id),[ids[2],ids[1]]);
+  store.unplace(ids[2],first);store.unplace(ids[1],first);
+  assert.equal(navigation.themes(store.get()).find(b=>b.id===first).images.length,1);
+  store.unplace(ids[0],first);assert.deepEqual(navigation.themes(store.get()).find(b=>b.id===first).images,[]);
+});
+
+test('picker exit stays mounted until the animation ends and rejects duplicate selections',t=>{
+  const {page:p,store}=fixture(t);themes(store);p.openJournalPicker();
+  const oldWx=global.wx;global.wx={};t.after(()=>{global.wx=oldWx;});t.mock.timers.enable({apis:['setTimeout']});
+  p.closeJournalPicker();assert.equal(p.data.pickerClosing,true);assert.equal(p.data.journalPicker,'calendar');
+  p.switchMode();p.chooseDate(event({date:'2026-10-20'}));assert.equal(p.data.mode,'calendar');assert.equal(p.date,'2026-10-22');
+  t.mock.timers.tick(179);assert.equal(p.data.journalPicker,'calendar');t.mock.timers.tick(1);
+  assert.equal(p.data.journalPicker,'');assert.equal(p.data.pickerClosing,false);
+});
 test('busy operations and failed saves cannot switch the editor to a different board', t => {
   const f = fixture(t), p = f.page; themes(f.store);
   f.store.add('one', '2026-10-22', photo('one')); p.refresh(); p.edit();

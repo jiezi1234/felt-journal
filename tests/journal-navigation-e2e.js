@@ -11,6 +11,7 @@ const dragControl = require('./helpers/drag-control');
 const keys = ['felt-journal:v1','felt-journal:drafts:v1','felt-journal:memory-drafts:v1','felt-journal:dev-extraction:v1','felt-journal:active-theme:v1'];
 const output = path.resolve(__dirname, '../artifacts/journal-navigation');
 const captureScreenshots = !process.argv.includes('--no-screenshots');
+const pickerScreenshots = process.argv.includes('--picker-screenshots');
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 (async () => {
   let mini, backup;
@@ -20,8 +21,16 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     throw new Error('Timed out waiting for journal state');
   }
   async function call(method, value) { await mini.evaluate((method, value) => getCurrentPages().slice(-1)[0][method](value), method, value); await pause(180); }
-  async function tap(selector) { const page = await mini.currentPage(), element = await page.$(selector); assert.ok(element, `Missing ${selector}`); await element.tap(); await pause(180); }
+  async function settleBoard() {
+    for(let i=0;i<80;i++) {
+      const ready=await mini.evaluate(()=>{const b=getCurrentPages().slice(-1)[0].selectComponent('#today-board');return !b || !b.data.navigationAnimating && (b.data.covered || b.displayModel && b.data.model && b.displayModel.id===b.data.model.id);});
+      if(ready)return;await pause(40);
+    }
+    throw Error('Board transition did not settle');
+  }
+  async function tap(selector) { const page = await mini.currentPage(), element = await page.$(selector); assert.ok(element, `Missing ${selector}`); await element.tap(); await pause(180); if(selector==='#close-journal-picker')await wait(data=>!data.journalPicker); }
   async function tapCanvasAction(action) {
+    await settleBoard();
     const touch=await mini.evaluate(action=>new Promise(resolve=>{
       const board=getCurrentPages().slice(-1)[0].selectComponent('#today-board');
       board.createSelectorQuery().select('.board-shell').boundingClientRect(rect=>{
@@ -35,6 +44,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     await canvas.touchend({touches:[],changedTouches:[touch]}); await pause(180);
   }
   async function inspect(name) {
+    await settleBoard();
     const result = await mini.evaluate(() => new Promise(resolve => {
       const page = getCurrentPages().slice(-1)[0], info = wx.getSystemInfoSync();
       const selectors = ['#switch-mode','.journal-rail','.today-sheet','.today-stage','#record-today','.journal-picker-card'];
@@ -74,7 +84,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     });
     checks.push({ name, ...result });
     console.log('PASS layout:', name);
-    if (captureScreenshots) { await pause(250); await mini.screenshot({ path:path.join(output, `${checks.length}-${name}.png`) }); }
+    if (captureScreenshots && (!pickerScreenshots || name.endsWith('card') || name==='six-week-calendar')) { await pause(320); await mini.screenshot({ path:path.join(output, `${checks.length}-${name}.png`) }); }
     console.log('PASS:', name);
     return result;
   }
@@ -95,6 +105,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     const today=dates.key(), past=navigation.dateAt(today,-2), empty=navigation.dateAt(today,-3);
     const one=store.add('journal_one',today,fixture), two=store.add('journal_two',today,{...fixture,subjectPath:'/images/navigation/calendar-active.png'}), older=store.add('journal_older',past,fixture);
     const a=store.createTheme('journal_a','日常碎片',one), b=store.createTheme('journal_b','散步收集',two), c=store.createTheme('journal_c','旅行足迹',older), d=store.createTheme('journal_d','等待第一件记忆的长名称主题板');
+    store.place(older,a);
     store.commit(s=>{[a,b,c,d].forEach((id,i)=>{s.boards[id].createdAt=i+1;s.boards[id].updatedAt=i+1;});s.localNoticeSeen=true;});
     await mini.evaluate((keys,snapshot,active)=>{keys.forEach(k=>wx.removeStorageSync(k));wx.setStorageSync(keys[0],snapshot);wx.setStorageSync(keys[4],active);},keys,disk[keys[0]],b);
     console.log('Installed isolated fixtures');
@@ -102,6 +113,10 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     await wait(data=>!data.loading&&data.mode==='calendar');
     let page=await mini.currentPage(); assert.equal((await page.data()).date,today); console.log('Journal page ready');
     await inspect('calendar-board');
+    await mini.evaluate(()=>getCurrentPages().slice(-1)[0].switchMode());
+    let animating=false;for(let i=0;i<30;i++){animating=await mini.evaluate(()=>getCurrentPages().slice(-1)[0].selectComponent('#today-board').data.navigationAnimating);if(animating)break;await pause(10);}
+    assert.equal(animating,true,'A real native canvas transition runs when changing modes');await settleBoard();
+    await tap('#switch-mode');await settleBoard();
     await tap(`.journal-day[data-date="${past}"]`); await wait(data=>data.date===past);
     await tap('#switch-mode'); await wait(data=>data.mode==='themes'&&data.date===b);
     await tap(`.journal-theme[data-id="${c}"]`); await wait(data=>data.date===c);
@@ -109,10 +124,12 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     await tap('#switch-mode'); assert.equal((await (await mini.currentPage()).data()).date,c);
     await inspect('theme-board');
     await tap('#journal-more'); await inspect('all-themes-card');
+    const themePair=await (await mini.currentPage()).$(`.journal-theme-choice[data-id="${a}"]`);
+    assert.equal((await themePair.$$('image')).length,2,'Theme chooser displays two actual objects');
     await tap(`.journal-theme-choice[data-id="${a}"]`); await wait(data=>data.date===a&&!data.journalPicker);
     await tapCanvasAction('record'); await wait(data=>data.drawer==='source'); await tap('#source-library'); await wait(data=>data.drawer==='library');
     await call('toggleLibrary',{currentTarget:{dataset:{id:two}}}); await tap('#add-library-selection');
-    let data=await wait(data=>data.count===2&&!data.working); assert.equal(data.themeRail.find(t=>t.id===a).latestId,two); assert.equal(data.navigationBusy,false);
+    let data=await wait(data=>data.count===3&&!data.working); assert.equal(data.themeRail.find(t=>t.id===a).latestId,two); assert.equal(data.navigationBusy,false);
     await call('clearSelection'); const browsing = await inspect('theme-browsing');
     await call('editItem',{detail:{id:two}}); const arranging = await inspect('theme-arrangement');
     assert.equal(arranging.rects[3].height,browsing.rects[3].height,'Selection keeps the expanded board height');
@@ -130,6 +147,10 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     await call('exportToday'); await wait(data=>!!data.shareBoardId); await call('closeShareCard');
     await tap('#switch-mode'); await wait(data=>data.mode==='calendar');
     await tap('#journal-more'); await wait(data=>data.journalPicker==='calendar'); await inspect('calendar-card');
+    const datePair=await (await mini.currentPage()).$(`.journal-calendar-day[data-date="${today}"]`);
+    assert.equal((await datePair.$$('image')).length,2,'Month chooser displays two actual objects for the date');
+    const previews=await (await mini.currentPage()).data('previewReady');
+    assert.ok(Object.keys(previews).length>=2,'Loaded object previews fade into view');
     await call('chooseDate',{currentTarget:{dataset:{date:empty}}}); data=await wait(data=>data.date===empty&&!data.journalPicker);
     assert.equal(data.canEdit,true); assert.equal(data.count,0);
     await inspect('historical-day');

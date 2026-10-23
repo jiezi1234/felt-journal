@@ -4,13 +4,18 @@ function dateAt(value, offset = 0) {
   return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
 }
 function weekday(value) { const [y, m, d] = value.split('-').map(Number); return '日一二三四五六'[new Date(y, m - 1, d).getDay()]; }
+function previewImages(state, board) {
+  return (board ? board.placements : []).map((placement,index)=>({placement,index}))
+    .sort((a,b)=>b.placement.createdAt-a.placement.createdAt || b.index-a.index)
+    .map(({placement})=>state.memories[placement.memoryId]).filter(Boolean).slice(0,2)
+    .map(memory=>({ id:memory.id, path:memory.subjectPath, key:`${memory.id}:${memory.subjectPath}` }));
+}
 function themes(state) {
   return Object.values(state.boards).filter(board => board.type === 'theme')
     .sort((a, b) => b.createdAt - a.createdAt || a.id.localeCompare(b.id)).map(board => {
-      const latest = board.placements.reduce((best, placement) => !best || placement.createdAt >= best.createdAt ? placement : best, null);
-      const memory = latest && state.memories[latest.memoryId];
+      const images = previewImages(state,board), latest = images[0];
       return { id: board.id, title: board.title, count: board.placements.length, color: board.color,
-        latestPath: memory ? memory.subjectPath : '', latestId: memory ? memory.id : '', updatedAt: board.updatedAt };
+        images, latestPath: latest ? latest.path : '', latestId: latest ? latest.id : '', updatedAt: board.updatedAt };
     });
 }
 function defaultTheme(items, preferred) {
@@ -27,8 +32,8 @@ function recent(state, selected, today) {
 function month(state, year, monthNumber, today) {
   const previews = {};
   for (const board of Object.values(state.boards)) if (board.type !== 'theme') {
-    previews[board.id] = board.placements.slice(-2).map(p => ({ id: p.memoryId, path: state.memories[p.memoryId].subjectPath }));
+    previews[board.id] = previewImages(state,board);
   }
   return dates.monthCells(year, monthNumber, today, previews);
 }
-module.exports = { dateAt, weekday, themes, defaultTheme, recent, month };
+module.exports = { dateAt, weekday, themes, defaultTheme, recent, month, previewImages };
