@@ -1,0 +1,13 @@
+# Use with compose.yaml and --profile public. The service fails closed without WeChat credentials.
+services:
+  extractor:
+    image: ${FELT_PRODUCTION_IMAGE:?Set a verified production image}
+    environment:
+      FELT_REQUIRE_AUTH: '1'
+      FELT_WECHAT_APP_ID: ${FELT_WECHAT_APP_ID:?Set the mini-program AppID}
+      FELT_WECHAT_APP_SECRET: ${FELT_WECHAT_APP_SECRET:?Set the server-only AppSecret}
+      FELT_TRUST_PROXY: '1'
+      FELT_EXTRACT_PER_MINUTE: ${FELT_EXTRACT_PER_MINUTE:-6}
+      FELT_EXTRACT_PER_DAY: ${FELT_EXTRACT_PER_DAY:-60}
+      # Optional transition support for existing developer devices; never put this token in the app package.
+      FELT_DEVELOPMENT_TOKEN: ${FELT_DEVELOPMENT_TOKEN:-}

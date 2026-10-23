@@ -18,6 +18,7 @@ function validServerDevelopment(value) {
 }
 function resolve() {
   const base = Object.assign({}, config.extraction, { local: false });
+  if (base.auth === 'wechat' && /^https:\/\/[a-z0-9.-]+\/extract$/.test(base.endpoint)) base.origin = base.endpoint.slice(0, -8);
   // Explicit development overrides never apply to trial/release builds.
   try {
     const info = wx.getSystemInfoSync();
@@ -35,7 +36,7 @@ function resolve() {
 }
 function acceptsResult(url, service) {
   if (typeof url !== 'string') return false;
-  if (!service.local && !service.developmentServer) return /^https:\/\//.test(url);
+  if (!service.origin) return false;
   return url.startsWith(`${service.origin}/cutouts/`) && /^[a-f0-9]{32}\.png$/.test(url.slice(`${service.origin}/cutouts/`.length));
 }
 function supportsLocalStickers(health) {

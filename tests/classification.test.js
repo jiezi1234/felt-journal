@@ -72,11 +72,11 @@ test('new photo saves its category automatically; retry, missing service and fal
 test('remote adapter accepts optional classification without requiring another photo upload', async t => {
   const before = { ...config.extraction }, originalWx = global.wx;
   t.after(() => { Object.assign(config.extraction, before); global.wx = originalWx; });
-  Object.assign(config.extraction, { mode: 'remote', endpoint: 'https://felt.example/extract' });
+  Object.assign(config.extraction, { mode: 'remote', endpoint: 'https://felt.example/extract', auth: '', origin: 'https://felt.example' });
   for (const classification of [prediction('饮食'), undefined, { status: 'unavailable' }]) {
     let uploads = 0;
     global.wx = {
-      uploadFile(options) { uploads++; queueMicrotask(() => options.success({ statusCode: 200, data: JSON.stringify({ cutoutUrl: 'https://felt.example/cutouts/a.png', classification }) })); return { abort() {} }; },
+      uploadFile(options) { uploads++; queueMicrotask(() => options.success({ statusCode: 200, data: JSON.stringify({ cutoutUrl: 'https://felt.example/cutouts/' + 'a'.repeat(32) + '.png', classification }) })); return { abort() {} }; },
       downloadFile(options) { queueMicrotask(() => options.success({ statusCode: 200, tempFilePath: '/result.png' })); return { abort() {} }; }
     };
     const task = {};

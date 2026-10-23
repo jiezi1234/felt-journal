@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const extraction = require('../miniprogram/services/extraction');
 const config = require('../miniprogram/services/extraction-config');
+const session = require('../miniprogram/services/session');
 
 function setup(t, local = true) {
   const originalWx = global.wx, originalResolve = config.resolve;
@@ -63,4 +64,45 @@ test('server development authenticates both upload and download and keeps classi
   await assert.rejects(extraction.extract('/photo.jpg', {}, () => {}), /凭证已失效/);
   global.wx.uploadFile = options => { queueMicrotask(() => options.fail({ errMsg: 'connection refused' })); return { abort() {} }; };
   await assert.rejects(extraction.extract('/photo.jpg', {}, () => {}), /无法连接抠图服务器/);
+});
+
+function production(t) {
+  const origin = setup(t, false);
+  config.resolve = () => ({ mode: 'remote', endpoint: origin + '/extract', origin, auth: 'wechat' });
+  const previous = session.headers, invalidated = session.invalidate;
+  let logins = 0;
+  session.headers = async () => ({ Authorization: 'Bearer ' + String(++logins).repeat(43) });
+  session.invalidate = () => {};
+  t.after(() => { session.headers = previous; session.invalidate = invalidated; });
+  const result = { statusCode: 200, data: JSON.stringify({ cutoutUrl: origin + '/cutouts/' + 'a'.repeat(32) + '.png' }) };
+  return { result, logins: () => logins };
+}
+
+test('production refreshes expired upload/download sessions without repeating successful inference', async t => {
+  const p = production(t); let uploads = 0, downloads = 0;
+  global.wx.uploadFile = args => { uploads++; assert.match(args.header.Authorization, /^Bearer /); queueMicrotask(() => args.success(uploads === 1 ? { statusCode: 401 } : p.result)); return { abort() {} }; };
+  global.wx.downloadFile = args => { downloads++; assert.match(args.header.Authorization, /^Bearer /); queueMicrotask(() => args.success(downloads === 1 ? { statusCode: 401 } : { statusCode: 200, tempFilePath: '/subject.png' })); return { abort() {} }; };
+  assert.equal(await extraction.extract('/photo.jpg', {}, () => {}), '/subject.png');
+  assert.equal(uploads, 2); assert.equal(downloads, 2);
+});
+
+test('production never sends tokens to a returned foreign host', async t => {
+  production(t); let downloads = 0;
+  global.wx.uploadFile = args => { queueMicrotask(() => args.success({ statusCode: 200, data: JSON.stringify({ cutoutUrl: 'https://evil.example/subject.png' }) })); return { abort() {} }; };
+  global.wx.downloadFile = () => { downloads++; };
+  await assert.rejects(extraction.extract('/photo.jpg', {}, () => {}), /有效主体图片/); assert.equal(downloads, 0);
+});
+
+test('production limits auth retries, reports rate limits, and cancels while logging in', async t => {
+  production(t); let uploads = 0;
+  global.wx.uploadFile = args => { uploads++; queueMicrotask(() => args.success({ statusCode: 401 })); return { abort() {} }; };
+  await assert.rejects(extraction.extract('/photo.jpg', {}, () => {}), /登录已过期/); assert.equal(uploads, 2);
+  global.wx.uploadFile = args => { queueMicrotask(() => args.success({ statusCode: 429 })); return { abort() {} }; };
+  await assert.rejects(extraction.extract('/photo.jpg', {}, () => {}), /次数较多/);
+  let completeLogin;
+  session.headers = () => new Promise(resolve => { completeLogin = resolve; });
+  global.wx.uploadFile = () => { throw Error('Cancelled login must not upload'); };
+  const task = {}, request = extraction.extract('/photo.jpg', task, () => {});
+  task.cancelled = true; completeLogin({ Authorization: 'Bearer test' });
+  await assert.rejects(request, /已取消/);
 });

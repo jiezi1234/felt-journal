@@ -21,7 +21,7 @@ RUN case "$FELT_PRELOAD_MODEL" in \
       *) echo 'FELT_PRELOAD_MODEL must be 0 or 1' >&2; exit 1 ;; \
     esac
 RUN mkdir -p /app/backend/.runtime/cutouts /app/backend/.runtime/nosh /app/backend/.runtime/cache/numba && chown -R 10001:10001 /app/backend/.runtime
-COPY backend ./backend
+COPY --chown=10001:10001 backend ./backend
 USER 10001:10001
 EXPOSE 8787
 CMD ["python", "-m", "uvicorn", "backend.app:app", "--host", "0.0.0.0", "--port", "8787"]

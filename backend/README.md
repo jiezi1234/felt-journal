@@ -41,18 +41,44 @@ backend/.venv/Scripts/python.exe -m backend.verify_nosh path/to/photo.jpg
 ## 部署接通小程序
 
 1. 将服务部署到可达的 HTTPS 域名，设置环境变量 `FELT_PUBLIC_BASE_URL=https://你的域名`，由反向代理转发到 8787。代理上传限制设为 16 MB，并设置 60 秒以上处理超时。
-2. 为正式客户端实现用户会话鉴权，并设置适当的访问频率限制和资源额度。当前开发令牌只用于受限联调，不能写入公开小程序包；服务无账户、无记录数据库。
+2. 使用下节的生产配置启用微信登录和限流。AppSecret 只存服务器；开发令牌只用于受限联调，不能写入小程序包。生活记录仍保存在手机本地。
 3. 在微信小程序后台把同一服务域名加入 `request`、`uploadFile` 与 `downloadFile` 合法域名。
-4. 修改 `miniprogram/core/config.js` 的 `extraction`：`mode: 'remote'`，`endpoint: 'https://你的域名/extract'`。不要将供应商密钥写入小程序。
+4. `miniprogram/core/config.js` 已使用 `mode: 'remote'`、`endpoint: 'https://api.jiejiezi.cn/extract'`、`auth: 'wechat'`。更换部署域名时同步修改这里；不要将 AppSecret 写入小程序。
 5. 开发工具须开启 URL、TLS 和 HTTPS 证书校验；私有配置 `project.private.config.json` 中的 `setting.urlCheck` 会覆盖公共配置，验收时应为 `true`。开启后还须在手机上测试。localhost、局域网 HTTP 和本地测试通过都不能替代 HTTPS 真机接通。
 
-2026-10-19 接通服务器 IP 开发接口，2026-10-23 已迁移到下节的 HTTPS 接口，并通过开启域名校验后的模拟器上传/下载验证。正式配置仍保持 `unconfigured`；正式鉴权和手机发布链路尚待完成。没有显式开发配置的客户端会显示提取尚未配置，并允许明确选择使用原图。
+2026-10-19 接通服务器 IP 开发接口，2026-10-23 已迁移到 HTTPS。开发配置只影响开发版；没有开发覆盖配置时，以及体验版/正式版，均使用微信登录流程。服务器未配置或登录失败时明确提示错误，不会匿名上传。
 
-## 服务器 HTTPS 开发联调（当前使用）
+## 微信会话与生产部署（当前使用）
+
+客户端首次处理照片时调用 `wx.login`，把临时代码发送到 `POST /auth/session`。服务器通过微信 `code2Session` 验证后签发有效期 2 小时的随机会话；上传和下载携带 `Authorization: Bearer <会话>`。不需要昵称、头像或手机号，也不新增登录页面。
+
+AppSecret 和微信 `session_key` 不返回客户端。客户端会话只在内存缓存，过期或接口返回 401 时重新登录并重试一次。服务器 SQLite 位于持久卷 `cutouts/access.sqlite3`，保存令牌哈希、经过哈希的用户标识、限流计数和临时图片归属。重启容器不会清空限流或会话；长期生活记录不上传数据库。同一用户重新登录仍能读取自己尚未过期的图片，其他用户请求返回 404。
+
+默认每个用户每分钟 6 次、每 UTC 日 60 次上传尝试，全局每分钟 30 次；已进入限流检查的失败或忙碌请求也占额度。一次只接收并处理一张照片，繁忙返回 503，达到额度返回 429 和 `Retry-After`。每 IP 登录限制为每分钟 10 次、每天 100 次，全局每分钟 60 次；下载每用户每分钟 60 次。可通过 `FELT_EXTRACT_PER_MINUTE`、`FELT_EXTRACT_PER_DAY` 调整上传额度。Caddy 覆盖来源 IP 头，后端仅监听宿主机回环地址；不要在后端直接暴露公网时开启 `FELT_TRUST_PROXY`。
+
+在服务器的 `backend/.env.production` 填写 `FELT_WECHAT_APP_ID`、`FELT_WECHAT_APP_SECRET` 和 `FELT_PRODUCTION_IMAGE`，设置权限 `chmod 600`。实际值不得提交 Git；本仓库 `.env.example` 只列字段。生产 override 要求两项微信凭证齐全，后端启用 `FELT_REQUIRE_AUTH=1`，缺失时启动失败。
+
+```sh
+cd /opt/felt-journal
+docker compose --env-file backend/.env --env-file backend/.env.production \
+  -f backend/compose.yaml -f backend/compose.production.yaml --profile public \
+  up -d --no-build --wait
+docker exec backend-https-1 caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
+```
+
+`FELT_PRODUCTION_IMAGE` 必须是已构建并验证的镜像；新机器可先使用同一组参数执行 `docker compose ... build extractor`，再导入模型。当前部署使用 `felt-extractor-auth:20261023`，为兼容现有开发手机，启动命令还在 `.env.production` 之前加载 `--env-file backend/.env.development`，只将其中的开发令牌注入服务器。体验版/正式版始终走独立微信会话，不打包该令牌。移除这一可选 env-file 可关闭开发令牌入口。
+
+2026-10-23 已完成镜像构建、Caddy/Compose 校验和线上切换，保留原运行卷、证书卷及旧镜像回滚材料。隔离候选容器使用真实 `wx.login` 代码完成微信换取会话、真实模型提取及鉴权下载，公开动物样例为 938×454 RGBA，透明度 0–255，处理及下载约 0.87 秒；匿名上传/下载返回 401。此内部测试不代替手机体验版验收。
+
+正式适配器联网检查：在空闲的开发者工具中运行 `node scripts/verify-production-extraction.js path/to/public-test.jpg`。脚本使用真实登录和 HTTPS，暂时移除两个开发连接设置并在结束时恢复，不改生活记录或已有照片。先备份记录与实际照片；不要与手工编辑、重新编译并行。报告保存到忽略目录 `artifacts/production-extraction-verification.json`，记录实际平台与版本环境，不把开发版验证当作已发布体验版。
+
+线上切换后，已在 `devtools/develop` 实测正式适配器：真实微信登录、HTTPS 上传、模型推理和鉴权下载通过，938×454 RGBA PNG，样例全流程约 1.54 秒。匿名请求 401，未列入合法域名的请求被微信拦截；验证前后记录、草稿、偏好及所有现存照片字节保持一致。此前手机开发版 HTTPS 提取已由用户确认可用；新的手机体验版登录流程仍待扫码验证。
+
+## 服务器 HTTPS 开发联调（兼容入口）
 
 2026-10-23：用户确认 ICP 备案已通过；`api.jiejiezi.cn` 的 A 记录已指向 `82.157.170.254`。腾讯云防火墙已放通 TCP 443。当前提取地址为 `https://api.jiejiezi.cn/extract`，健康检查为 `https://api.jiejiezi.cn/health`。Caddy 已取得 Let's Encrypt 公有证书，当前证书到期时间为 2027-01-21 06:19:22 UTC，后续由 Caddy 自动续期；证书与账户数据保存在 `backend_caddy_data` 持久卷，勿删除该卷。HTTP 域名请求返回 308 跳转到 HTTPS。
 
-HTTPS 入口继续要求现有开发凭证，上传和下载均受保护。`extractor` 只发布宿主机回环端口 8787，Caddy 发布 80/443；服务随 Docker 启动。当前是已接通公网 HTTPS 的开发联调部署，正式版用户会话鉴权、限流和手机发布验收尚未完成。
+HTTPS 开发入口继续要求现有开发凭证，上传和下载均受保护。`extractor` 只发布宿主机回环端口 8787，Caddy 发布 80/443；服务随 Docker 启动。以下是兼容联调与回滚操作；当前生产服务按上一节启动，不能用这里的旧镜像启动命令覆盖生产部署。
 
 服务器 `/opt/felt-journal/backend/.env` 保持 `FELT_DOMAIN=api.jiejiezi.cn`。私有 `.env.development` 保持原令牌与已验证镜像，并把 `FELT_DEV_ORIGIN` 改成 `https://api.jiejiezi.cn`；本机同名忽略文件使用相同配置。令牌不写入源码、小程序包或 Git。
 
@@ -69,7 +95,7 @@ docker compose --env-file backend/.env --env-file backend/.env.development \
 
 本机执行 `npm run dev:server` 可将模拟器切换到 HTTPS；手机独立存储须执行 `npm run dev:phone`。尚未连接手机时扫描真机调试二维码；已经连接 iOS/Android 开发版时，脚本直接更新当前手机，无需再次扫码或启动另一轮真机调试。配置脚本只修改服务连接设置，不修改记录、草稿或当前页面；若探测期间手机断开，不写入配置。旧 IP HTTP 配置不再适用于当前部署，手机尚未重新配置时须执行上述手机连接命令。体验版/正式版继续忽略这些开发配置。
 
-微信公众平台的“开发管理 → 开发设置 → 服务器域名”中，`request`、`uploadFile`、`downloadFile` 三项均应添加 `https://api.jiejiezi.cn`（不带 `/extract` 等路径）。当前应用未使用 WebSocket，无需配置 `socket` 域名。后台保存后，在开发者工具“详情 → 项目配置 → 域名信息”刷新，核对三项域名与当前 AppID；开启域名校验并重新编译，再做手机实测。若出现 `url not in domain list`，先核对后台是否保存成功、是否配置在同一个小程序，以及开发者工具是否已刷新；保留域名校验，不通过关闭校验完成 HTTPS 验收。服务器 HTTPS 通过不能代替这些步骤。正式发布还需实现正式鉴权并配置发布接口，不能把开发令牌打进小程序包。
+微信公众平台的“开发管理 → 开发设置 → 服务器域名”中，`request`、`uploadFile`、`downloadFile` 三项均应添加 `https://api.jiejiezi.cn`（不带 `/extract` 等路径）。当前应用未使用 WebSocket，无需配置 `socket` 域名。后台保存后，在开发者工具“详情 → 项目配置 → 域名信息”刷新，核对三项域名与当前 AppID；开启域名校验并重新编译，再做手机实测。若出现 `url not in domain list`，先核对后台是否保存成功、是否配置在同一个小程序，以及开发者工具是否已刷新；保留域名校验，不通过关闭校验完成 HTTPS 验收。服务器 HTTPS 通过不能代替这些步骤，也不能把开发令牌打进小程序包。
 
 部署验证脚本支持从进程环境 `FELT_DEVELOPMENT_TOKEN` 读取令牌，拒绝跟随重定向，检查未授权上传/下载返回 401，然后执行真实照片推理和 HTTPS PNG 下载。令牌不得作为命令行参数或写进报告。`--internal-download` 仅可用于回环服务验收。
 
@@ -121,9 +147,9 @@ npm run test:server -- path/to/test-photo.jpg
 
 开发配置仅对 `envVersion=develop` 生效；体验版和正式版始终忽略它，下载仅允许返回到同一服务器 origin 的随机 PNG 路径。模拟器与手机的存储独立，`npm run dev:server` 配置模拟器后，普通扫码预览不会获得该配置。
 
-### 手机提示“主体提取服务尚未配置”
+### 旧开发包提示“主体提取服务尚未配置”
 
-这条提示发生在上传之前：正式地址尚未配置，而当前手机没有开发服务配置。服务器正常运行也不会自动把地址和开发凭证同步到手机。
+这条提示发生在上传之前：旧包没有正式地址，而手机也没有开发服务配置。请优先更新到已支持微信登录的新包；以下命令仅用于旧开发包联调。服务器更新不会自动更新已打开的小程序代码。
 
 保持开发者工具自动化端口开启。当前 HTTPS 接口应完成上节的合法域名配置，并取消勾选“不校验合法域名、TLS 版本以及 HTTPS 证书”；只有历史 HTTP IP 开发方式需要临时跳过校验。然后在项目根目录执行：
 

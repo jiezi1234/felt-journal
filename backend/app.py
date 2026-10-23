@@ -6,7 +6,9 @@ For a phone deployment set FELT_PUBLIC_BASE_URL=https://your-domain.example.
 from __future__ import annotations
 
 import io
+import asyncio
 import ipaddress
+import json
 import logging
 import os
 import re
@@ -26,6 +28,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 from starlette.concurrency import run_in_threadpool
 from backend.classification import PhotoClassifier
 from backend.sticker_texture import STICKER_STYLE, TEXTURES
+from backend.access import AccessStore, WeChatLogin, digest, positive_setting
 
 RUNTIME = Path(__file__).resolve().parent / '.runtime'
 os.environ.setdefault('U2NET_HOME', str(RUNTIME / 'models'))
@@ -112,7 +115,8 @@ def decode_photo(data: bytes) -> Image.Image:
         raise HTTPException(415, '请选择 24 百万像素以内的 JPEG、PNG 或 WEBP 照片') from error
 
 
-def create_app(extractor=None, output_dir=None, public_base=None, classifier=None, development_token=None):
+def create_app(extractor=None, output_dir=None, public_base=None, classifier=None, development_token=None,
+               login_exchange=None, access_store=None, require_auth=None, trust_proxy=None):
     service = FastAPI(title='毛毡手账主体提取', version='1.0.0')
     engine = extractor or SubjectExtractor()
     category_engine = classifier if classifier is not None else PhotoClassifier()
@@ -133,16 +137,81 @@ def create_app(extractor=None, output_dir=None, public_base=None, classifier=Non
     if not (valid_origin and valid_port and (parsed.scheme == 'https' or allowed_http)):
         raise ValueError('Use an HTTPS origin; HTTP IPv4 development requires FELT_DEVELOPMENT_TOKEN')
     lock = threading.Lock()
+    app_id, app_secret = os.getenv('FELT_WECHAT_APP_ID', ''), os.getenv('FELT_WECHAT_APP_SECRET', '')
+    if login_exchange is None and (app_id or app_secret):
+        login_exchange = WeChatLogin(app_id, app_secret)
+    required = os.getenv('FELT_REQUIRE_AUTH') == '1' if require_auth is None else require_auth
+    if required and login_exchange is None:
+        raise ValueError('Production requires configured server-side WeChat login')
+    if login_exchange is not None and parsed.scheme != 'https':
+        raise ValueError('WeChat session endpoints require HTTPS')
+    protected = bool(token or login_exchange)
+    access = access_store or (AccessStore(output / 'access.sqlite3') if protected else None)
+    trusted_proxy = os.getenv('FELT_TRUST_PROXY') == '1' if trust_proxy is None else trust_proxy
+    minute_limit = positive_setting('FELT_EXTRACT_PER_MINUTE', 6)
+    day_limit = positive_setting('FELT_EXTRACT_PER_DAY', 60)
+
+    def client_key(request):
+        # Caddy overwrites this header. Trust it only with the private loopback-only backend deployment.
+        raw = request.headers.get('x-felt-client-ip', '') if trusted_proxy else ''
+        if not raw:
+            raw = request.client.host if request.client else 'unknown'
+        try:
+            raw = str(ipaddress.ip_address(raw))
+        except ValueError:
+            raw = 'unknown'
+        return digest(raw)
+
+    async def limited_body(request, maximum, seconds=20):
+        async def read():
+            body = bytearray()
+            async for chunk in request.stream():
+                if len(body) + len(chunk) > maximum:
+                    raise HTTPException(413, '请求内容过大')
+                body.extend(chunk)
+            return bytes(body)
+        try:
+            return await asyncio.wait_for(read(), timeout=seconds)
+        except TimeoutError:
+            raise HTTPException(408, '上传超时，请重试') from None
 
     @service.middleware('http')
-    async def development_access(request: Request, call_next):
-        # A development token protects both inference and the temporary photos.
-        # Health stays public so Docker can probe without embedding credentials.
-        if token and request.url.path != '/health':
-            supplied = request.headers.get('authorization', '').encode()
-            if not secrets.compare_digest(supplied, f'Bearer {token}'.encode()):
-                return JSONResponse({'detail': '开发接口访问凭证无效'}, status_code=401)
+    async def authenticated_access(request: Request, call_next):
+        request.state.subject = 'local'
+        if protected and request.url.path not in ('/health', '/auth/session'):
+            supplied = request.headers.get('authorization', '')
+            subject = None
+            if token and secrets.compare_digest(supplied.encode(), f'Bearer {token}'.encode()):
+                subject = 'development'
+            elif login_exchange and supplied.startswith('Bearer ') and len(supplied) <= 135:
+                subject = await run_in_threadpool(access.identify, supplied[7:])
+            if not subject:
+                return JSONResponse({'detail': '登录已过期，请重试'}, status_code=401, headers={'Cache-Control': 'no-store'})
+            request.state.subject = subject
         return await call_next(request)
+
+    @service.post('/auth/session')
+    async def session(request: Request):
+        if login_exchange is None:
+            raise HTTPException(503, '登录服务暂未配置')
+        def admission():
+            key = client_key(request)
+            access.consume('login-global', 'all', 60, 60)
+            access.consume('login-minute', key, 10, 60)
+            access.consume('login-day', key, 100, 86400)
+        await run_in_threadpool(admission)
+        body = await limited_body(request, 4096, 10)
+        try:
+            payload = json.loads(body)
+        except (ValueError, UnicodeDecodeError):
+            raise HTTPException(400, '登录请求无效') from None
+        code = payload.get('code') if isinstance(payload, dict) else None
+        if not isinstance(code, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,256}', code):
+            raise HTTPException(400, '登录请求无效')
+        def exchange():
+            return access.issue(login_exchange(code))
+        result = await run_in_threadpool(exchange)
+        return JSONResponse(result, headers={'Cache-Control': 'no-store'})
 
     def prune():
         threshold = time.time() - TTL_SECONDS
@@ -156,7 +225,10 @@ def create_app(extractor=None, output_dir=None, public_base=None, classifier=Non
     @service.get('/health')
     def health():
         prune()
-        return {**({'developmentAccess': True} if token else {}), 'status': 'ok', 'model': getattr(engine, 'model_name', os.getenv('FELT_MODEL', DEFAULT_MODEL)), 'modelLoaded': getattr(engine, 'session', None) is not None,
+        if access:
+            access.prune()
+        return {**({'developmentAccess': True} if token else {}), 'loginEnabled': login_exchange is not None,
+                'status': 'ok', 'model': getattr(engine, 'model_name', os.getenv('FELT_MODEL', DEFAULT_MODEL)), 'modelLoaded': getattr(engine, 'session', None) is not None,
                 'stickerStyle': getattr(engine, 'sticker_style', None),
                 'stickerTextures': list(getattr(engine, 'sticker_textures', ())),
                 'alignmentVersion': getattr(engine, 'alignment_version', None),
@@ -174,30 +246,35 @@ def create_app(extractor=None, output_dir=None, public_base=None, classifier=Non
             raise HTTPException(400, '照片请求无效') from error
         if length > MAX_BYTES + 65536:
             raise HTTPException(413, '照片不能超过 15 MB')
-        body = bytearray()
-        async for chunk in request.stream():
-            body.extend(chunk)
-            if len(body) > MAX_BYTES + 65536:
-                raise HTTPException(413, '照片不能超过 15 MB')
-        parsed = BytesParser(policy=policy.default).parsebytes(('Content-Type: ' + content_type + '\r\nMIME-Version: 1.0\r\n\r\n').encode() + body)
-        if not parsed.is_multipart():
+        if length < 0 or len(content_type) > 1024:
             raise HTTPException(400, '照片请求无效')
-        photos = [part.get_payload(decode=True) for part in parsed.iter_parts() if part.get_param('name', header='content-disposition') == 'photo']
-        if len(photos) != 1 or not photos[0]:
-            raise HTTPException(400, '每次需要一张照片')
-        if len(photos[0]) > MAX_BYTES:
-            raise HTTPException(413, '照片不能超过 15 MB')
-        image = decode_photo(photos[0])
+        if access:
+            def admission():
+                access.consume('extract-minute', request.state.subject, minute_limit, 60)
+                access.consume('extract-day', request.state.subject, day_limit, 86400)
+                access.consume('extract-global', 'all', 30, 60)
+            await run_in_threadpool(admission)
+        # Admit only one upload/decode/inference at a time, before buffering photo bytes.
         if not lock.acquire(blocking=False):
-            image.close()
             raise HTTPException(503, '正在处理另一张照片，请稍后重试')
-
-        def process():
+        def process(body):
+            image = None
             try:
+                parsed = BytesParser(policy=policy.default).parsebytes(('Content-Type: ' + content_type + '\r\nMIME-Version: 1.0\r\n\r\n').encode() + body)
+                if not parsed.is_multipart():
+                    raise HTTPException(400, '照片请求无效')
+                photos = [part.get_payload(decode=True) for part in parsed.iter_parts() if part.get_param('name', header='content-disposition') == 'photo']
+                if len(photos) != 1 or not photos[0]:
+                    raise HTTPException(400, '每次需要一张照片')
+                if len(photos[0]) > MAX_BYTES:
+                    raise HTTPException(413, '照片不能超过 15 MB')
+                image = decode_photo(photos[0])
                 result = engine(image).convert('RGBA')
-                token = uuid.uuid4().hex
+                filename = uuid.uuid4().hex + '.png'
                 prune()
-                result.save(output / f'{token}.png', format='PNG')
+                result.save(output / filename, format='PNG')
+                if access:
+                    access.own(filename, request.state.subject, TTL_SECONDS)
                 try:
                     classification = category_engine(image) if category_engine else {'category': None, 'status': 'disabled'}
                 except Exception as error:
@@ -205,28 +282,37 @@ def create_app(extractor=None, output_dir=None, public_base=None, classifier=Non
                     # discard a successfully extracted photo or force a retry.
                     logging.getLogger(__name__).warning('Photo classification unavailable (%s)', type(error).__name__)
                     classification = {'category': None, 'status': 'unavailable'}
-                return {'cutoutUrl': f'{base}/cutouts/{token}.png', 'expiresIn': TTL_SECONDS, 'classification': classification,
+                return {'cutoutUrl': f'{base}/cutouts/{filename}', 'expiresIn': TTL_SECONDS, 'classification': classification,
                         **({'alignment': result.info['source_frame']} if result.info.get('source_frame') else {}),
                         **({'stickerTexture': result.info['sticker_texture']} if result.info.get('sticker_texture') else {})}
             finally:
-                image.close()
-                lock.release()
+                if image is not None:
+                    image.close()
 
         try:
-            return await run_in_threadpool(process)
+            body = await limited_body(request, MAX_BYTES + 65536)
+            return await run_in_threadpool(process, body)
+        except HTTPException:
+            raise
         except Exception as error:
             # No raw photo bytes, filesystem paths or credentials in responses.
             raise HTTPException(503, '主体提取暂时失败，请重试或使用原图') from error
+        finally:
+            lock.release()
 
     @service.get('/cutouts/{filename}')
-    def cutout(filename: str):
+    def cutout(filename: str, request: Request):
         if not re.fullmatch(r'[0-9a-f]{32}\.png', filename):
             raise HTTPException(404, '作品不存在')
+        if access:
+            access.consume('download-minute', request.state.subject, 60, 60)
+            if not access.permits(filename, request.state.subject):
+                raise HTTPException(404, '作品不存在或已过期')
         file = output / filename
         if not file.is_file() or file.stat().st_mtime < time.time() - TTL_SECONDS:
             prune()
             raise HTTPException(404, '临时主体已过期，请重新提取')
-        return FileResponse(file, media_type='image/png', headers={'Cache-Control': 'private, max-age=60'})
+        return FileResponse(file, media_type='image/png', headers={'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff'})
 
     return service
 

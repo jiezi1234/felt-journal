@@ -29,6 +29,20 @@ test('local preview rejects older extractors without textured sticker support', 
   assert.equal(service.supportsLocalStickers(null), false);
 });
 
+test('published clients use WeChat sessions and restrict downloads to the configured service', t => {
+  const original = global.wx; t.after(() => { global.wx = original; });
+  for (const envVersion of ['trial', 'release']) {
+    global.wx = { getSystemInfoSync: () => ({ platform: 'android' }), getAccountInfoSync: () => ({ miniProgram: { envVersion } }),
+      getStorageSync: () => { throw Error('Published versions must not read development tokens'); } };
+    const c = service.resolve();
+    assert.equal(c.auth, 'wechat'); assert.equal(c.mode, 'remote'); assert.equal(c.header, undefined);
+    assert.equal(c.origin, 'https://api.jiejiezi.cn');
+    assert.ok(service.acceptsResult(c.origin + '/cutouts/' + 'a'.repeat(32) + '.png', c));
+    for (const url of ['https://evil.example/cutouts/' + 'a'.repeat(32) + '.png', c.origin + '/cutouts/../secret',
+      c.origin + '/cutouts/' + 'a'.repeat(32) + '.png?redirect=evil']) assert.equal(service.acceptsResult(url, c), false);
+  }
+});
+
 test('server development requires explicit credentials and is ignored in trial/release', t => {
   const original = global.wx; t.after(() => { global.wx = original; });
   const value = { endpoint: 'http://192.0.2.10/extract', token: 'd'.repeat(43) };

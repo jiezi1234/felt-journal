@@ -34,9 +34,9 @@ npm run test:visual
 
 开发者工具自动化端口开启后，可依次运行 `npm run test:record`、`npm run test:e2e`、`npm run test:filters`、`npm run test:share`、`npm run test:themes`、`npm run test:navigation`。133 项自动测试、9 个页面路由检查通过。记录专项覆盖卡片生命周期、原页保留、抽屉与照片取消；原有专项继续覆盖导航、裁剪、导出、月历与跨日主题复用。这些模拟器测试会临时隔离并最终恢复存储，运行期间不要并行执行、编辑或重新编译小程序。分享专项使用接口替身，不实际向好友发送或写入相册。详细范围与真机待办见 [P1 开发与验收](docs/P1开发与验收.md)。
 
-开发者工具现已接通腾讯云 HTTPS 真实提取服务，手机预览已由用户确认拍照、编辑恢复、详情替换/删除及相册保存通过。2026-10-23 已完成 `api.jiejiezi.cn` 的解析、证书签发和公网真实抠图上传/下载验证；微信模拟器已开启域名校验，`request`、`uploadFile`、`downloadFile` 的真实 HTTPS 链路均通过，未配置的域名仍被拦截。当前保留开发凭证保护。正式版鉴权与接口配置、手机 HTTPS 链路以及复杂照片质量和部分系统异常场景仍待验收，不能宣称全部 P0 已验收或上线。当前启动命令见[后端 HTTPS 部署说明](backend/README.md#服务器-https-开发联调当前使用)。
+2026-10-23 已完成 `api.jiejiezi.cn` 的 DNS、证书和微信合法域名配置，用户已反馈手机照片服务可用。服务器现已启用微信登录会话、按用户限流和临时图片归属校验；小程序通过 `wx.login` 自动登录，体验版/正式版不依赖开发凭证。真实微信代码换取会话、模拟器 HTTPS 上传/抠图/下载均通过，开启域名校验后未配置的域名仍被拦截；已有记录、草稿和照片字节核对一致。346 项前端测试、43 项后端测试及官方模板/样式编译通过。手机体验版新登录流程、复杂照片质量和部分系统异常仍待验收，尚不代表审核发布完成。部署与限流说明见[微信会话与生产部署](backend/README.md#微信会话与生产部署当前使用)。
 
-本机 Python 服务运行后，使用 `npm run dev:extraction` 开启开发者工具专用连接；手机与发布版不会使用该回环调试开关。HTTPS 部署文件位于 `backend/compose.yaml` 和 `backend/Caddyfile`，填写服务器域名后再实际部署。
+本机 Python 服务运行后，使用 `npm run dev:extraction` 开启开发者工具专用连接；手机与发布版不会使用该回环调试开关。正式部署使用 `backend/compose.yaml`、`backend/compose.production.yaml` 和 `backend/Caddyfile`，服务端凭证置于被 Git 忽略的 `.env.production`。
 
 2026-10-15：腾讯云 2 核 4 GB Ubuntu 服务器已完成 Docker 内部部署，动物、食物、植物真实抠图和容器重启后的恢复均通过；修复了只读容器中 Numba 缓存不可写导致首次抠图 503 的问题。默认只开放服务器回环端口，公网 HTTPS 通过 `public` profile 单独启用。ICP备案尚未提交，域名解析、证书、微信合法域名及手机正式提取仍待完成；详见后端文档的服务器验收记录。
 

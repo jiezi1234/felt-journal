@@ -3,6 +3,8 @@
         max_size 16MB
     }
     reverse_proxy extractor:8787 {
+        # Overwrite, rather than trust, any client-supplied value.
+        header_up X-Felt-Client-IP {remote_host}
         transport http {
             dial_timeout 5s
             response_header_timeout 90s

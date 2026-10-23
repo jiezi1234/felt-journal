@@ -50,7 +50,7 @@ test('task cancellation, idempotency, save retries and replacement safety', asyn
 test('remote adapter validates HTTP, JSON and cutout URL, cancels network', async t => {
   const before = { ...config.extraction }; const wxBefore = global.wx;
   t.after(() => { Object.assign(config.extraction, before); global.wx = wxBefore; });
-  Object.assign(config.extraction, { mode: 'remote', endpoint: 'https://felt.example/extract' });
+  Object.assign(config.extraction, { mode: 'remote', endpoint: 'https://felt.example/extract', auth: '', origin: 'https://felt.example' });
   const results = [{ statusCode: 500 }, { statusCode: 200, data: 'broken' }, { statusCode: 200, data: '{"cutoutUrl":"http://unsafe"}' }];
   for (const response of results) { global.wx = { uploadFile(o) { queueMicrotask(() => o.success(response)); return { abort() {} }; } }; await assert.rejects(extraction.extract('/photo', {}, () => {})); }
   let aborted = false; global.wx = { uploadFile() { return { abort() { aborted = true; } }; } }; const task = {}, promise = extraction.extract('/photo', task, () => {}); task.cancelled = true; task.abort(); await assert.rejects(promise, /取消/); assert.ok(aborted);

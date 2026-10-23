@@ -21,5 +21,5 @@ module.exports = {
   categories: ['未分类', '饮食', '自然', '出行', '日常', '心情'],
   exportWidth: 1800,
   // Supply a trusted HTTPS image-processing backend, never a vendor secret.
-  extraction: { mode: 'unconfigured', endpoint: '', timeout: 60000 }
+  extraction: { mode: 'remote', endpoint: 'https://api.jiejiezi.cn/extract', auth: 'wechat', timeout: 60000 }
 };
