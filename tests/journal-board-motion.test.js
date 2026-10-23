@@ -29,7 +29,8 @@ test('rapid board changes cancel the previous frame loop and settle on the lates
 test('a picker holds the transition until its exit is complete, and disposal releases all frames',t=>{
   const {host}=fixture(t);motion.begin(host);host.data.model={id:'second'};host.data.covered=true;
   assert.equal(motion.run(host),false);assert.ok(host.journalSource);
-  host.data.covered=false;motion.run(host);host.dead=true;motion.dispose(host);t.mock.timers.tick(1000);
+  host.data.covered=false;host.data.occluded=true;assert.equal(motion.run(host),false);assert.ok(host.journalSource);
+  host.data.occluded=false;motion.run(host);host.dead=true;motion.dispose(host);t.mock.timers.tick(1000);
   assert.equal(host.journalMotion,null);assert.equal(host.journalSource,null);assert.equal(host.refreshCount,undefined);
 });
 test('same-board selection and unsupported bitmap runtimes keep the normal render path',t=>{

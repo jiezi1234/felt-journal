@@ -29,7 +29,7 @@ function begin(host) {
 }
 function run(host) {
   const source = host.journalSource;
-  if (!source || host.data.covered || host.data.landingId) return false;
+  if (!source || host.data.covered || host.data.occluded || host.data.landingId) return false;
   host.journalSource = null;
   if (host.dead || !host.data.model || source.id === host.data.model.id) return false;
   let target;
@@ -40,7 +40,7 @@ function run(host) {
   const tick = () => {
     motion.frame = null;
     if (host.dead || host.journalMotion !== motion) return;
-    if (host.data.covered || host.canvas !== motion.canvas) { stop(host); return; }
+    if (host.data.covered || host.data.occluded || host.canvas !== motion.canvas) { stop(host); return; }
     const t = Math.min(1,(Date.now()-motion.started)/240), ease = t*t*(3-2*t);
     const ctx = host.canvas.getContext('2d'), width = host.canvas.width, height = host.canvas.height;
     ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,width,height);

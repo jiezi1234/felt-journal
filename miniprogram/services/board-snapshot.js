@@ -19,21 +19,24 @@ function finish(host, ok) {
 }
 function cover(host) {
   const s = state(host), release = ++s.release;
-  if (!host.data.covered) {
+  if (!host.data.covered && !host.data.occluded) {
     // The decoded raster stays above the canvas during its first live paint.
     if (host.data.canvasHidden) host.setData({ canvasHidden:false });
     return;
   }
+  // Picker entry must never wait for native canvas animation frames. Its
+  // decoded raster is preloaded before the picker is mounted.
+  if (host.data.occluded) { host.setData({canvasHidden:true,snapshotVisible:!!host.data.snapshot}); return; }
   if (!host.data.snapshot) return;
   host.setData({ snapshotVisible:true }, () => settle(host, () => {
     if (!host.dead && host.data.covered && s.release === release) host.setData({ canvasHidden:true });
   }));
 }
 function painted(host, version) {
-  if (host.data.covered || !host.data.snapshotVisible) return;
+  if (host.data.covered || host.data.occluded || !host.data.snapshotVisible) return;
   const s = state(host), release = ++s.release;
   settle(host, () => {
-    if (!host.dead && !host.data.covered && s.release === release && host.version === version) host.setData({ snapshotVisible:false });
+    if (!host.dead && !host.data.covered && !host.data.occluded && s.release === release && host.version === version) host.setData({ snapshotVisible:false });
   });
 }
 function stage(host, path, valid, deferred = false) {
@@ -60,7 +63,7 @@ function commit(host, prepared) {
   if (!p || s.prepared !== p || host.dead || !p.valid()) return Promise.resolve(false);
   return new Promise(resolve => {
     // Both decoded buffers stay mounted; only their active slot changes.
-    host.setData({ snapshot:p.path, snapshotSlot:p.slot, snapshotVisible:!!host.data.covered || !!host.data.snapshotVisible }, () => {
+    host.setData({ snapshot:p.path, snapshotSlot:p.slot, snapshotVisible:!!host.data.covered || !!host.data.occluded || !!host.data.snapshotVisible }, () => {
       if (s.prepared !== p || host.dead) { resolve(false); return; }
       s.prepared = null; cover(host); resolve(true);
     });

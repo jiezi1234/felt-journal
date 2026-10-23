@@ -8,7 +8,7 @@ const editor = createBoardEditor();
 const theme = createThemeBoardPage();
 Page({
   ...editor, ...theme,
-  data: { ...theme.data, inlineTheme: false, mode: 'calendar', dailyDate: '', recentDays: [], themeRail: [], journalThemes: [], journalPicker: '', pickerClosing:false, previewReady:{}, previewErrors:{}, contentMotion:'',
+  data: { ...theme.data, inlineTheme: false, mode: 'calendar', dailyDate: '', recentDays: [], themeRail: [], journalThemes: [], journalPicker: '', pickerClosing:false, pickerPreparing:false, previewReady:{}, previewErrors:{}, contentMotion:'',
     journalYear: 0, journalMonth: 0, calendarCells: [], canNextMonth: false, weekdays: ['一', '二', '三', '四', '五', '六', '日'],
     navigationBusy: false, editorOpen: false, editorDate: '' },
   syncNavigation() { this.setData({ navigationBusy: this.busy() }); platform.syncTab(this, 'today', true); },
@@ -19,8 +19,8 @@ Page({
     clearInterval(this.timer);
     this.timer = setInterval(() => { if (!this.busy() && dates.key() !== this.lastToday) this.refresh(); }, 30000);
   },
-  onHide() { clearInterval(this.timer); clearTimeout(this.journalCloseTimer); this.setData({journalPicker:'',pickerClosing:false}); editor.onHide.call(this); if (this.data.drawer === 'selection') this.setData({ drawer: '' }); },
-  onUnload() { clearInterval(this.timer); clearTimeout(this.journalCloseTimer); editor.onUnload.call(this); },
+  onHide() { clearInterval(this.timer); clearTimeout(this.journalCloseTimer); clearTimeout(this.journalPrepareTimer); this.pickerRequest=(this.pickerRequest||0)+1; this.setData({journalPicker:'',pickerClosing:false,pickerPreparing:false}); editor.onHide.call(this); if (this.data.drawer === 'selection') this.setData({ drawer: '' }); },
+  onUnload() { clearInterval(this.timer); clearTimeout(this.journalCloseTimer); clearTimeout(this.journalPrepareTimer); this.pickerRequest=(this.pickerRequest||0)+1; editor.onUnload.call(this); },
   refresh() {
     if (this.disposed) return;
     try {
@@ -45,7 +45,7 @@ Page({
       this.refreshNavigation();
     } catch (e) { this.setData({ loading: false, error: platform.message(e, '本地记录读取失败，请重试') }); }
   },
-  busy() { return !!(this.data.editorOpen || this.data.placing || this.data.memoryCardId || this.data.shareBoardId || this.data.task || this.data.recovering || this.data.formOpen || this.data.working || this.data.dragging || this.data.swiping || this.data.openingLibrary || this.photoTask || this.memoryOpening || this.mutating); },
+  busy() { return !!(this.data.pickerPreparing || this.data.editorOpen || this.data.placing || this.data.memoryCardId || this.data.shareBoardId || this.data.task || this.data.recovering || this.data.formOpen || this.data.working || this.data.dragging || this.data.swiping || this.data.openingLibrary || this.photoTask || this.memoryOpening || this.mutating); },
   refreshNavigation() {
     const state = this.store.get(), items = navigation.themes(state), mode = this.data.mode;
     const selected = items.findIndex(item => item.id === this.activeThemeId);
@@ -93,11 +93,26 @@ Page({
     if (!this.prepareBoardChange()) return;
     const mode = this.data.mode;
     if (mode === 'calendar') { const [y, m] = this.dailyDate.split('-').map(Number); this.journalYear = y; this.journalMonth = m; }
-    this.setData({ journalPicker: mode === 'calendar' ? 'calendar' : 'themes', pickerClosing:false, previewReady:{}, previewErrors:{} }); this.refreshNavigation();
+    const token=this.pickerRequest=(this.pickerRequest||0)+1;
+    let opened=false;
+    const open=()=>{
+      if (opened || this.disposed || token!==this.pickerRequest) return;
+      opened=true;clearTimeout(this.journalPrepareTimer);this.journalPrepareTimer=null;
+      this.setData({ journalPicker: mode === 'calendar' ? 'calendar' : 'themes', pickerClosing:false, pickerPreparing:false, previewReady:{}, previewErrors:{} }); this.refreshNavigation();
+    };
+    const board=this.selectComponent && this.selectComponent('#today-board');
+    if (!board || !board.prepareOverlay) { open(); return; }
+    this.setData({pickerPreparing:true,navigationBusy:true});
+    this.journalPrepareTimer=setTimeout(open,900);
+    // A failed capture still opens the picker with its native canvas suppressed.
+    return Promise.resolve(board.prepareOverlay()).then(open,open);
   },
   closeJournalPicker(done) {
     const after=typeof done === 'function' ? done : null;
-    if (!this.data.journalPicker) { if (after) after(); return; }
+    if (!this.data.journalPicker) {
+      if(this.data.pickerPreparing){clearTimeout(this.journalPrepareTimer);this.pickerRequest=(this.pickerRequest||0)+1;this.setData({pickerPreparing:false});this.syncNavigation();}
+      if (after) after(); return;
+    }
     if (this.data.pickerClosing) return;
     const finish=()=>{ this.journalCloseTimer=null; if (this.disposed) return; this.setData({journalPicker:'',pickerClosing:false}); if (after) after(); };
     this.setData({pickerClosing:true});

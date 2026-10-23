@@ -28,7 +28,20 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     }
     throw Error('Board transition did not settle');
   }
-  async function tap(selector) { const page = await mini.currentPage(), element = await page.$(selector); assert.ok(element, `Missing ${selector}`); await element.tap(); await pause(180); if(selector==='#close-journal-picker')await wait(data=>!data.journalPicker); }
+  async function assertPickerOccluded() {
+    await mini.evaluate(()=>new Promise(resolve=>wx.nextTick(resolve)));
+    const state=await mini.evaluate(()=>{const p=getCurrentPages().slice(-1)[0],b=p.selectComponent('#today-board');return {picker:p.data.journalPicker,closing:p.data.pickerClosing,occluded:b.data.occluded,hidden:b.data.canvasHidden,snapshot:b.data.snapshotVisible,ready:!!b.data.snapshot};});
+    assert.ok(state.picker && state.occluded && state.hidden,'Picker always suppresses native canvas, including its first frame');
+    assert.ok(state.snapshot && state.ready,'A decoded board raster is ready before picker entry');
+    const board=await (await mini.currentPage()).$('#today-board'),canvas=await board.$('#feltCanvas');
+    assert.equal(await canvas.style('display'),'none','Native canvas is actually removed from the compositor');
+  }
+  async function tap(selector) {
+    const page=await mini.currentPage(),element=await page.$(selector);assert.ok(element,`Missing ${selector}`);await element.tap();
+    if(selector==='#journal-more'){await wait(data=>!!data.journalPicker&&!data.pickerPreparing);await assertPickerOccluded();}
+    if(selector==='#close-journal-picker')await assertPickerOccluded();
+    await pause(180);if(selector==='#close-journal-picker')await wait(data=>!data.journalPicker);
+  }
   async function tapCanvasAction(action) {
     await settleBoard();
     const touch=await mini.evaluate(action=>new Promise(resolve=>{
@@ -120,7 +133,8 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     await inspect('calendar-board');
     await mini.evaluate(()=>getCurrentPages().slice(-1)[0].switchMode());
     let animating=false;for(let i=0;i<30;i++){animating=await mini.evaluate(()=>getCurrentPages().slice(-1)[0].selectComponent('#today-board').data.navigationAnimating);if(animating)break;await pause(10);}
-    assert.equal(animating,true,'A real native canvas transition runs when changing modes');await settleBoard();
+    assert.equal(animating,true,'A real native canvas transition runs when changing modes');
+    await tap('#journal-more');await tap('#close-journal-picker');await settleBoard();
     await tap('#switch-mode');await settleBoard();
     await tap(`.journal-day[data-date="${past}"]`); await wait(data=>data.date===past);
     await tap('#switch-mode'); await wait(data=>data.mode==='themes'&&data.date===b);

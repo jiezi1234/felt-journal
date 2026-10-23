@@ -8,15 +8,15 @@ const boardActions = require('../../core/board-actions');
 const swipe = require('../../services/board-swipe');
 const journalMotion = require('../../services/journal-board-motion');
 Component({
-  properties: { model: { type: Object, value: null }, layout: String, editable: Boolean, canEdit: Boolean, selected: String, covered: Boolean, landingId: String, reportGestures: Boolean, floatingControls: Object, allowSwipe: Boolean, swipePrevious: Object, swipeNext: Object, showActions: Boolean, actionsDisabled: Boolean, canAdd: Boolean, canUndo: Boolean, canBringToFront: Boolean, interactive: { type: Boolean, value: true } },
+  properties: { model: { type: Object, value: null }, layout: String, editable: Boolean, canEdit: Boolean, selected: String, covered: Boolean, occluded: Boolean, landingId: String, reportGestures: Boolean, floatingControls: Object, allowSwipe: Boolean, swipePrevious: Object, swipeNext: Object, showActions: Boolean, actionsDisabled: Boolean, canAdd: Boolean, canUndo: Boolean, canBringToFront: Boolean, interactive: { type: Boolean, value: true } },
   data: { height: 210, width: 0, topSpace: 0, canvasHeight: 210, handles: [], actions: [], swipeActive: false, navigationAnimating:false, imageError: false, snapshot: '', snapshotA:'', snapshotB:'', snapshotSlot:'a', snapshotVisible:false, canvasHidden:false },
   observers: { 'model, editable, selected, landingId, floatingControls': function () { this.refresh(); if (this.data.layout) wx.nextTick(() => this.measure()); },
-    'covered, interactive': function () {
-      if (this.data.covered || !this.data.interactive) journalMotion.stop(this);
-      if (this.data.covered || !this.data.interactive) swipe.cancel(this);
+    'covered, interactive, occluded': function () {
+      if (this.data.covered || this.data.occluded || !this.data.interactive) journalMotion.stop(this);
+      if (this.data.covered || this.data.occluded || !this.data.interactive) swipe.cancel(this);
       snapshots.cover(this);
       if (!this.data.covered) { this.pickupReturn = null; this.pickupId = ''; this.finishPickupSnapshot(false); }
-      if (this.data.covered || !this.data.interactive) this.touchCancel(); else this.refresh();
+      if (this.data.covered || this.data.occluded || !this.data.interactive) this.touchCancel(); else this.refresh();
     }, 'swipePrevious, swipeNext, allowSwipe': function () { swipe.warm(this); },
     'showActions, actionsDisabled, canAdd, canUndo, canBringToFront': function () { this.refresh(); }, layout() { this.measure(); } },
   lifetimes: { ready() { this.measure(); }, detached() { this.dead = true; journalMotion.dispose(this); swipe.dispose(this); snapshots.dispose(this); this.clearGesture(); this.finishPickupSnapshot(false); } },
@@ -24,6 +24,20 @@ Component({
   methods: {
     exportViewport() { return this.dimensions ? { width: this.dimensions.width, height: this.dimensions.height } : null; },
     beginNavigationTransition() { journalMotion.begin(this); },
+    async prepareOverlay() {
+      journalMotion.dispose(this);
+      await this.refresh();
+      if (this.dead || !this.canvas || !this.data.model || this.data.covered) return false;
+      const id=this.data.model.id;
+      const path=await new Promise(resolve=>{
+        let finished=false;
+        const done=value=>{if(!finished){finished=true;clearTimeout(timer);resolve(value);}};
+        const timer=setTimeout(()=>done(null),600);
+        wx.canvasToTempFilePath({canvas:this.canvas,fileType:'png',success:r=>done(r.tempFilePath),fail:()=>done(null)});
+      });
+      if (!path || this.dead || this.data.covered || !this.data.model || this.data.model.id!==id) return false;
+      return snapshots.stage(this,path,()=>!this.dead && !this.data.covered && !!this.data.model && this.data.model.id===id);
+    },
     stop() {},
     measure() {
       this.createSelectorQuery().select('#feltCanvas').fields({ node: true }).select('.board-viewport').boundingClientRect().exec(result => {

@@ -34,6 +34,25 @@ test('covered boards do not respond to pointer input underneath a card', () => {
   board.touchStart({ touches: [{ clientX: 10, clientY: 10 }] }); assert.equal(board.gesture, null);
 });
 
+test('picker preparation cancels pending motion and preloads a decoded raster before native occlusion',async t=>{
+  const snapshots=require('../miniprogram/services/board-snapshot'),previous=global.wx;let staged=false;
+  t.after(()=>{global.wx=previous;});
+  global.wx={canvasToTempFilePath:r=>r.success({tempFilePath:'/picker.png'})};
+  t.mock.method(snapshots,'stage',async(host,path,valid)=>{assert.equal(path,'/picker.png');assert.equal(valid(),true);staged=true;return true;});
+  const board={...definition.methods,canvas:{},data:{model:{id:'today'},covered:false},journalSource:{id:'previous'},
+    async refresh(){assert.equal(this.journalSource,null,'A pending switch cannot start while preparing the picker');}};
+  assert.equal(await board.prepareOverlay(),true);assert.equal(staged,true);
+});
+
+test('picker capture timeout is bounded and a late result cannot start a preload',async t=>{
+  t.mock.timers.enable({apis:['setTimeout']});const previous=global.wx;let request,staged=false;
+  t.after(()=>{global.wx=previous;});global.wx={canvasToTempFilePath:r=>{request=r;}};
+  t.mock.method(require('../miniprogram/services/board-snapshot'),'stage',async()=>{staged=true;return true;});
+  const board={...definition.methods,canvas:{},data:{model:{id:'today'},covered:false},async refresh(){}};
+  const preparing=board.prepareOverlay();await Promise.resolve();t.mock.timers.tick(600);
+  assert.equal(await preparing,false);request.success({tempFilePath:'/late.png'});assert.equal(staged,false);
+});
+
 test('pickup hides only its transient photo and waits for the decoded snapshot before handing off', async t => {
   const oldWx=global.wx,oldRenderer={...renderer},requests=[],paints=[];
   t.after(()=>{global.wx=oldWx;Object.assign(renderer,oldRenderer);});
@@ -260,7 +279,7 @@ test('dragging works after long press and on a subsequent gesture of the selecte
 
 test('cancellation, covering, backgrounding, multitouch and detaching suppress pending long presses', t => {
   const f = gestureFixture(t);
-  const cancel = [() => f.board.touchCancel(), () => { f.board.data.covered = true; definition.observers['covered, interactive'].call(f.board); },
+  const cancel = [() => f.board.touchCancel(), () => { f.board.data.covered = true; definition.observers['covered, interactive, occluded'].call(f.board); },
     () => definition.pageLifetimes.hide.call(f.board), () => f.board.touchMove({ touches: [{}, {}] }), () => definition.lifetimes.detached.call(f.board)];
   for (const stop of cancel) {
     f.board.dead = false; f.board.data.covered = false; f.start(); stop(); t.mock.timers.tick(1000); f.board.touchEnd(); assert.deepEqual(f.events, []);

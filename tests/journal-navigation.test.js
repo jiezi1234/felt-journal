@@ -83,6 +83,24 @@ test('picker exit stays mounted until the animation ends and rejects duplicate s
   t.mock.timers.tick(179);assert.equal(p.data.journalPicker,'calendar');t.mock.timers.tick(1);
   assert.equal(p.data.journalPicker,'');assert.equal(p.data.pickerClosing,false);
 });
+
+test('more waits for the decoded board before opening and closing cancels a pending opening',async t=>{
+  const {page:p}=fixture(t);let ready;
+  p.selectComponent=()=>({touchCancel(){},prepareOverlay:()=>new Promise(resolve=>{ready=resolve;})});
+  const opening=p.openJournalPicker();assert.equal(p.data.pickerPreparing,true);assert.equal(p.data.journalPicker,'');
+  p.switchMode();assert.equal(p.data.mode,'calendar');
+  ready(true);await opening;assert.equal(p.data.journalPicker,'calendar');assert.equal(p.data.pickerPreparing,false);
+  p.closeJournalPicker();const cancelled=p.openJournalPicker();p.closeJournalPicker();ready(true);await cancelled;
+  assert.equal(p.data.journalPicker,'');assert.equal(p.data.pickerPreparing,false);assert.equal(p.data.navigationBusy,false);
+});
+
+test('failed or stalled board preparation still opens a picker with native occlusion enabled',async t=>{
+  const {page:p}=fixture(t);t.mock.timers.enable({apis:['setTimeout']});
+  p.selectComponent=()=>({touchCancel(){},prepareOverlay:()=>Promise.reject(Error('capture failed'))});
+  await p.openJournalPicker();assert.equal(p.data.journalPicker,'calendar');p.closeJournalPicker();
+  p.selectComponent=()=>({touchCancel(){},prepareOverlay:()=>new Promise(()=>{})});
+  p.openJournalPicker();t.mock.timers.tick(900);assert.equal(p.data.journalPicker,'calendar');assert.equal(p.data.pickerPreparing,false);
+});
 test('busy operations and failed saves cannot switch the editor to a different board', t => {
   const f = fixture(t), p = f.page; themes(f.store);
   f.store.add('one', '2026-10-22', photo('one')); p.refresh(); p.edit();

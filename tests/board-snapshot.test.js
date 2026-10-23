@@ -60,6 +60,24 @@ test('detaching during presentation never schedules another frame on the destroy
   snapshots.cover(h);h.dead=true;snapshots.dispose(h);frame();frame();assert.equal(h.data.canvasHidden,false);
 });
 
+test('picker occlusion hides native canvas before any animation frame and keeps the decoded board visible',async t=>{
+  const {host:h,frame,load}=fixture(t);
+  const ready=snapshots.stage(h,'/picker.png',()=>true);load('/picker.png','b');assert.equal(await ready,true);
+  Object.assign(h.data,{covered:true,occluded:true});snapshots.cover(h);
+  assert.equal(h.data.canvasHidden,true);assert.equal(h.data.snapshotVisible,true);
+  snapshots.painted(h,1);frame();frame();assert.equal(h.data.canvasHidden,true);assert.equal(h.data.snapshotVisible,true);
+  Object.assign(h.data,{covered:false,occluded:false});snapshots.cover(h);snapshots.painted(h,1);frame();frame();
+  assert.equal(h.data.canvasHidden,false);assert.equal(h.data.snapshotVisible,false);
+});
+
+test('a failed first snapshot cannot put native canvas above a picker',t=>{
+  const {host:h,frame}=fixture(t);Object.assign(h.data,{covered:true,occluded:true});snapshots.cover(h);
+  assert.equal(h.data.canvasHidden,true);assert.equal(h.data.snapshotVisible,false);
+  frame();frame();assert.equal(h.data.canvasHidden,true);
+  h.data.covered=false;snapshots.cover(h);assert.equal(h.data.canvasHidden,true,'Occlusion alone also blocks a stale uncovered callback');
+  h.data.occluded=false;snapshots.cover(h);assert.equal(h.data.canvasHidden,false);
+});
+
 test('return preload decodes without exposing a duplicate object and commits only on landing',async t=>{
   const {host:h,load}=fixture(t);
   Object.assign(h.data,{covered:true,snapshot:'/lift.png',snapshotA:'/lift.png',snapshotVisible:true,canvasHidden:true});
