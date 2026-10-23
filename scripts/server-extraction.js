@@ -32,9 +32,15 @@ async function configure(mini, { value, off = false, phone = false, waitMillisec
       wx.request({ url: server.endpoint, method: 'POST', data: '', timeout: 10000,
         header: { Authorization: `Bearer ${server.token}`, 'content-type': 'application/octet-stream' },
         success: result => resolve({ status: result.statusCode }),
-        fail: () => resolve({ networkError: true }) });
+        fail: error => resolve({ networkError: true, domainRejected: /url not in domain list/i.test(error.errMsg || '') }) });
     }), value);
-    if (probe.networkError) throw new Error('当前设备无法连接开发服务；请检查网络，并确认正在使用真机调试且已关闭开发环境的域名校验。配置尚未写入');
+    if (probe.networkError) {
+      if (value.endpoint.startsWith('https://')) {
+        const reason = probe.domainRejected ? '当前域名未通过微信合法域名校验' : '当前设备无法连接 HTTPS 开发服务';
+        throw new Error(`${reason}；请检查网络、HTTPS 证书及公众平台的 request、uploadFile、downloadFile 服务器域名，保存后刷新开发者工具的域名信息。配置尚未写入`);
+      }
+      throw new Error('当前设备无法连接开发服务；请检查网络。HTTP IP 仅供开发调试，需要在开发环境跳过域名校验；正式使用请配置 HTTPS 合法域名。配置尚未写入');
+    }
     if (probe.status !== 415) throw new Error('当前设备的开发接口鉴权未通过，配置尚未写入');
   }
   const result = await mini.evaluate((serverKey, localKey, value, phone) => {

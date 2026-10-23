@@ -42,9 +42,9 @@ backend/.venv/Scripts/python.exe -m backend.verify_nosh path/to/photo.jpg
 
 1. 将服务部署到可达的 HTTPS 域名，设置环境变量 `FELT_PUBLIC_BASE_URL=https://你的域名`，由反向代理转发到 8787。代理上传限制设为 16 MB，并设置 60 秒以上处理超时。
 2. 为正式客户端实现用户会话鉴权，并设置适当的访问频率限制和资源额度。当前开发令牌只用于受限联调，不能写入公开小程序包；服务无账户、无记录数据库。
-3. 在微信小程序后台把同一服务域名加入 `uploadFile` 与 `downloadFile` 合法域名。
+3. 在微信小程序后台把同一服务域名加入 `request`、`uploadFile` 与 `downloadFile` 合法域名。
 4. 修改 `miniprogram/core/config.js` 的 `extraction`：`mode: 'remote'`，`endpoint: 'https://你的域名/extract'`。不要将供应商密钥写入小程序。
-5. 开发工具当前私有配置关闭了 URL 校验；正式验收须重新开启校验后在手机上测试。localhost、局域网 HTTP 和本地测试通过都不能替代 HTTPS 真机接通。
+5. 开发工具须开启 URL、TLS 和 HTTPS 证书校验；私有配置 `project.private.config.json` 中的 `setting.urlCheck` 会覆盖公共配置，验收时应为 `true`。开启后还须在手机上测试。localhost、局域网 HTTP 和本地测试通过都不能替代 HTTPS 真机接通。
 
 2026-10-19 接通服务器 IP 开发接口，2026-10-23 已迁移到下节的 HTTPS 接口。正式配置仍保持 `unconfigured`；微信合法域名、正式鉴权和手机发布链路尚待完成。没有显式开发配置的客户端会显示提取尚未配置，并允许明确选择使用原图。
 
@@ -69,7 +69,7 @@ docker compose --env-file backend/.env --env-file backend/.env.development \
 
 本机执行 `npm run dev:server` 可将模拟器切换到 HTTPS；手机独立存储须执行 `npm run dev:phone` 并扫描真机调试二维码。配置脚本只修改服务连接设置，不修改记录、草稿或当前页面。旧 IP HTTP 配置不再适用于当前部署，手机尚未重新配置时须执行上述手机连接命令。体验版/正式版继续忽略这些开发配置。
 
-微信公众平台的“开发管理 → 开发设置 → 服务器域名”中，`request`、`uploadFile`、`downloadFile` 三项均应添加 `https://api.jiejiezi.cn`（不带 `/extract` 等路径）。当前应用未使用 WebSocket，无需配置 `socket` 域名。后台保存后重新编译并开启域名校验，再做手机实测；服务器 HTTPS 通过不能代替这些步骤。正式发布还需实现正式鉴权并配置发布接口，不能把开发令牌打进小程序包。
+微信公众平台的“开发管理 → 开发设置 → 服务器域名”中，`request`、`uploadFile`、`downloadFile` 三项均应添加 `https://api.jiejiezi.cn`（不带 `/extract` 等路径）。当前应用未使用 WebSocket，无需配置 `socket` 域名。后台保存后，在开发者工具“详情 → 项目配置 → 域名信息”刷新，核对三项域名与当前 AppID；开启域名校验并重新编译，再做手机实测。若出现 `url not in domain list`，先核对后台是否保存成功、是否配置在同一个小程序，以及开发者工具是否已刷新；保留域名校验，不通过关闭校验完成 HTTPS 验收。服务器 HTTPS 通过不能代替这些步骤。正式发布还需实现正式鉴权并配置发布接口，不能把开发令牌打进小程序包。
 
 部署验证脚本支持从进程环境 `FELT_DEVELOPMENT_TOKEN` 读取令牌，拒绝跟随重定向，检查未授权上传/下载返回 401，然后执行真实照片推理和 HTTPS PNG 下载。令牌不得作为命令行参数或写进报告。`--internal-download` 仅可用于回环服务验收。
 
@@ -121,7 +121,7 @@ npm run test:server -- path/to/test-photo.jpg
 
 这条提示发生在上传之前：正式地址尚未配置，而当前手机没有开发服务配置。服务器正常运行也不会自动把地址和开发凭证同步到手机。
 
-保持开发者工具自动化端口开启、开发环境“不校验合法域名、TLS 版本以及 HTTPS 证书”已勾选，然后在项目根目录执行：
+保持开发者工具自动化端口开启。当前 HTTPS 接口应完成上节的合法域名配置，并取消勾选“不校验合法域名、TLS 版本以及 HTTPS 证书”；只有历史 HTTP IP 开发方式需要临时跳过校验。然后在项目根目录执行：
 
 ```powershell
 npm run dev:phone

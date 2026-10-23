@@ -22,7 +22,7 @@ function device(options = {}) {
       state.requests++;
       assert.equal(args.header.Authorization, `Bearer ${value.token}`);
       assert.equal(args.data, '');
-      if (state.networkError) args.fail({ errMsg: 'network failure' });
+      if (state.networkError) args.fail({ errMsg: state.networkMessage || 'network failure' });
       else args.success({ statusCode: state.status || 415 });
       if (state.disconnectAfterProbe) state.platform = 'devtools';
     }
@@ -66,6 +66,23 @@ test('HTTPS setup probes and saves the protected domain without changing journal
   assert.deepEqual(d.storage.get(SERVER_DEVELOPMENT_KEY), secure);
   assert.equal(d.storage.get('felt-journal:v1'), 'keep-journal');
   assert.ok(!JSON.stringify(d.logs).includes(secure.token));
+});
+
+test('HTTPS network failures keep domain validation enabled and leave configuration untouched', async () => {
+  for (const message of ['network failure', 'request:fail url not in domain list']) {
+    const d = device({ networkError: true, networkMessage: message });
+    const before = [...d.storage];
+    await assert.rejects(d.run({ value: { ...value, endpoint: 'https://api.felt.example/extract' } }), error => {
+      assert.match(error.message, /request、uploadFile、downloadFile/);
+      assert.match(error.message, /刷新开发者工具的域名信息/);
+      assert.doesNotMatch(error.message, /关闭|跳过/);
+      if (message.includes('domain list')) assert.match(error.message, /未通过微信合法域名校验/);
+      assert.ok(!error.message.includes(value.token));
+      return true;
+    });
+    assert.equal(d.state.writes, 0);
+    assert.deepEqual([...d.storage], before);
+  }
 });
 
 test('phone setup never writes to a simulator, trial, release, or disconnected runtime', async () => {
