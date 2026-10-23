@@ -1,5 +1,5 @@
 @import "../board-tab/index.wxss";
-.page.home-page { padding:8px 10px 6px; gap:8px; }
+.page.home-page { padding:8px 10px 6px; gap:8px; background:radial-gradient(ellipse at 12% 4%,#FFFCF4 0%,transparent 60%),linear-gradient(155deg,#F4F0E8,#ECE8E0); }
 .journal-heading { flex-shrink:0; padding:0 12px; min-height:64px; }
 button.journal-mode { display:inline-flex; align-items:center; gap:12px; width:auto; min-height:44px; margin:0 0 0 -5px; padding:0 12px 0 8px; background:#FFFCF6; border:1px solid #E7DED0; border-radius:17px; font-family:"Songti SC",SimSun,serif; font-size:23px; line-height:1.5; font-weight:500; color:#5A4B3C; }
 .journal-switch-mark { font-family:system-ui,sans-serif; font-size:21px; color:#8C7A65; }
@@ -21,7 +21,9 @@ button.journal-theme-active { background:#FFFCF7; border-color:#E7C780; box-shad
 button.journal-first-theme { grid-column:span 3; width:100%; min-height:80px; padding:10px; background:transparent; border:1px dashed #DCCDB8; border-radius:20px; font-size:13px; }
 button.journal-more { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; width:44px; min-width:44px; height:68px; margin:0; padding:0; background:transparent; border:0; border-left:1px solid #E6DED1; border-radius:0; font-size:11px; line-height:1.4; color:#857562; }
 .journal-more-dots { font-size:25px; line-height:24px; }
-.today-sheet { position:relative; flex:1; min-height:0; display:flex; flex-direction:column; gap:8px; padding:6px 8px 3px 23px; background:linear-gradient(140deg,#FFFFFF,#FEFDFB); border:1px solid #FFFFFF; border-radius:8px 26px 26px 8px; box-shadow:0 5px 17px rgba(65,48,36,.06); }
+.today-sheet { position:relative; flex:1; min-height:0; display:flex; flex-direction:column; gap:8px; padding:6px 8px 3px 23px; background:repeating-linear-gradient(0deg,transparent 0,transparent 31px,rgba(170,150,116,.08) 31px,rgba(170,150,116,.08) 32px),linear-gradient(110deg,#F8F3E9 0%,#FFFEFA 9%,#FFFCF5 80%,#F6EFE3 100%); border:1px solid #FFFEFA; border-radius:8px 26px 26px 8px; box-shadow:inset 3px 0 6px rgba(112,88,53,.04),0 2px 0 #E6DCCC,0 5px 0 -1px #F9F5EC,0 7px 0 -2px #DED4C5,0 10px 23px rgba(65,48,36,.09); }
+.today-sheet .sheet-binding { border-right:1px solid rgba(180,143,107,.16); width:10px; }
+.today-sheet .sheet-binding view { background:#EDE7DA; border-color:#D8CEBC; box-shadow:inset 0 1px 2px rgba(89,68,40,.17),0 1px 0 #FFFDF7; }
 /* Reserve the same 44px action row in both modes, including empty dates. */
 .home-meta { flex-shrink:0; height:48px; min-height:48px; padding:0 0 3px; gap:4px; border-bottom:1px dashed #E9E2D9; }
 .sheet-date { flex:1; min-width:0; color:#766457; font-size:12px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }

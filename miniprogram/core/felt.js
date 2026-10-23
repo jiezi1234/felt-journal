@@ -47,11 +47,17 @@ function paintTexture(ctx, texture, x, y, width, height) {
   }
   ctx.restore();
 }
+function paintLight(ctx, x, y, width, height) {
+  const light = ctx.createRadialGradient(x+width*.28,y+height*.22,0,x+width*.28,y+height*.22,Math.max(width,height)*.85);
+  light.addColorStop(0,'rgba(255,253,239,.18)'); light.addColorStop(1,'rgba(255,253,239,0)');
+  ctx.fillStyle = light; ctx.fillRect(x,y,width,height);
+}
 function paintSample(ctx, width, height, color, texture) {
   ctx.save(); ctx.beginPath(); ctx.rect(0, 0, width, height); ctx.clip();
   ctx.fillStyle = color || config.colors[0].value; ctx.fillRect(0, 0, width, height);
   // A close view of the same material, without a second approximation in CSS.
   const scale = width / 260; ctx.scale(scale, scale); ctx.translate(-240, -260);
-  paintTexture(ctx, texture, B.inset, B.inset, B.width - 2 * B.inset, B.height - 2 * B.inset); ctx.restore();
+  paintTexture(ctx, texture, B.inset, B.inset, B.width - 2 * B.inset, B.height - 2 * B.inset);
+  paintLight(ctx, B.inset, B.inset, B.width - 2 * B.inset, B.height - 2 * B.inset); ctx.restore();
 }
-module.exports = { textureOf, withTexture, paintTexture, paintSample };
+module.exports = { textureOf, withTexture, paintTexture, paintLight, paintSample };

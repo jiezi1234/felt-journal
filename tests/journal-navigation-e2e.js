@@ -12,6 +12,7 @@ const keys = ['felt-journal:v1','felt-journal:drafts:v1','felt-journal:memory-dr
 const output = path.resolve(__dirname, '../artifacts/journal-navigation');
 const captureScreenshots = !process.argv.includes('--no-screenshots');
 const pickerScreenshots = process.argv.includes('--picker-screenshots');
+const guideScreenshots = process.argv.includes('--guide-screenshots');
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 (async () => {
   let mini, backup;
@@ -102,7 +103,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     });
     checks.push({ name, ...result });
     console.log('PASS layout:', name);
-    if (captureScreenshots && (!pickerScreenshots || name.endsWith('card') || name==='six-week-calendar')) { await pause(320); await mini.screenshot({ path:path.join(output, `${checks.length}-${name}.png`) }); }
+    if (captureScreenshots && (guideScreenshots ? ['empty-theme-board','historical-day'].includes(name) : !pickerScreenshots || name.endsWith('card') || name==='six-week-calendar')) { await pause(320); await mini.screenshot({ path:path.join(output, `${checks.length}-${name}.png`) }); }
     console.log('PASS:', name);
     return result;
   }

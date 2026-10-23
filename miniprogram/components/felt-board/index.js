@@ -5,6 +5,7 @@ const stickerMotion = require('../../core/sticker-motion');
 const viewport = require('../../core/board-viewport');
 const snapshots = require('../../services/board-snapshot');
 const boardActions = require('../../core/board-actions');
+const boardGuide = require('../../core/board-guide');
 const swipe = require('../../services/board-swipe');
 const journalMotion = require('../../services/journal-board-motion');
 Component({
@@ -81,7 +82,9 @@ Component({
         renderer.paint(ctx, visible, this.images, this.data.editable && !this.data.landingId && !this.pickupId ? this.data.selected : '', dimensions, this.surface && this.surface.canvas, this.canvas.width / dimensions.width);
         renderer.paintControls(ctx, handles, this.screenWidth);
         const actions = this.actionLayout();
-        boardActions.paint(ctx, actions, this.screenWidth, this.gesture && !this.gesture.moved && this.gesture.action, this.data.floatingControls && this.data.floatingControls.hint);
+        const guide = boardGuide.layout(model, this.screenWidth, this.data.height, actions);
+        boardGuide.paint(ctx, guide, this.screenWidth);
+        boardActions.paint(ctx, actions, this.screenWidth, this.gesture && !this.gesture.moved && this.gesture.action, !guide && this.data.floatingControls && this.data.floatingControls.hint);
         this.setData({ handles, actions, imageError: (model.items || []).some(p => this.images[p.memory.subjectPath].missing) });
         if (journalMotion.run(this)) return;
         snapshots.painted(this, version);

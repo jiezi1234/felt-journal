@@ -117,6 +117,10 @@ function paint(ctx, model, B) {
   rounded(ctx, i, i, w, h, B.innerRadius); ctx.fillStyle = model.color || config.colors[0].value; ctx.fill();
   ctx.save(); rounded(ctx, i, i, w, h, B.innerRadius); ctx.clip();
   felt.paintTexture(ctx, felt.textureOf(model), i, i, w, h);
+  // Broad daylight keeps the felt soft without replacing its chosen color.
+  felt.paintLight(ctx,i,i,w,h);
+  rounded(ctx,i+25,i+25,w-50,h-50,Math.max(8,B.innerRadius-12));
+  ctx.setLineDash([8,12]); ctx.lineWidth = 2.4; ctx.strokeStyle = 'rgba(255,251,231,.38)'; ctx.stroke(); ctx.setLineDash([]);
   // The perimeter is compressed against the frame; the center keeps its color.
   ctx.fillStyle = gradient(ctx, 0, i, 0, i+h, [[0,'rgba(45,38,25,.18)'],[.035,'rgba(45,38,25,0)'],[.94,'rgba(255,253,230,0)'],[1,'rgba(255,253,230,.16)']]); ctx.fillRect(i,i,w,h);
   ctx.fillStyle = gradient(ctx, i, 0, i+w, 0, [[0,'rgba(45,38,25,.13)'],[.024,'rgba(45,38,25,0)'],[.976,'rgba(45,38,25,0)'],[1,'rgba(45,38,25,.1)']]); ctx.fillRect(i,i,w,h);
