@@ -58,6 +58,32 @@ test('simulator setup clearly identifies its scope and does not claim a phone co
   assert.ok(d.logs.some(line => line.includes('仅保存在模拟器')));
 });
 
+test('already connected phones migrate to HTTPS without another remote-debug session', async () => {
+  for (const platform of ['ios', 'android']) {
+    const d = device({ platform });
+    d.storage.set(SERVER_DEVELOPMENT_KEY, value);
+    const secure = { ...value, endpoint: 'https://api.felt.example/extract' };
+    const result = await d.run({ phone: true, value: secure });
+    assert.equal(result.platform, platform);
+    assert.equal(d.state.remoteCalls, 0);
+    assert.equal(d.state.requests, 1);
+    assert.deepEqual(d.storage.get(SERVER_DEVELOPMENT_KEY), secure);
+    assert.equal(d.storage.get('felt-journal:v1'), 'keep-journal');
+    assert.ok(d.logs.some(line => line.includes('无需再次扫码')));
+    assert.ok(!JSON.stringify(d.logs).includes(secure.token));
+  }
+});
+
+test('connected phones that disconnect during migration keep their previous configuration', async () => {
+  const d = device({ platform: 'android', disconnectAfterProbe: true });
+  d.storage.set(SERVER_DEVELOPMENT_KEY, value);
+  const before = [...d.storage];
+  await assert.rejects(d.run({ phone: true, value: { ...value, endpoint: 'https://api.felt.example/extract' } }), /调试目标已改变/);
+  assert.equal(d.state.remoteCalls, 0);
+  assert.equal(d.state.writes, 0);
+  assert.deepEqual([...d.storage], before);
+});
+
 test('HTTPS setup probes and saves the protected domain without changing journal records', async () => {
   const d = device();
   const secure = { ...value, endpoint: 'https://api.felt.example/extract' };

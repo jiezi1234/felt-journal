@@ -67,7 +67,7 @@ docker compose --env-file backend/.env --env-file backend/.env.development \
 
 该命令继续使用私有环境指定的 `FELT_DEV_IMAGE=felt-extractor-reveal:20261021`。后续后端代码改动须先构建并验证新镜像，再更新此变量；不要误用旧的默认镜像。不要叠加 `compose.development.yaml`，其 80 端口会与 Caddy 冲突；也不要省略 HTTPS 开发覆盖文件，否则会丢失开发访问保护。
 
-本机执行 `npm run dev:server` 可将模拟器切换到 HTTPS；手机独立存储须执行 `npm run dev:phone` 并扫描真机调试二维码。配置脚本只修改服务连接设置，不修改记录、草稿或当前页面。旧 IP HTTP 配置不再适用于当前部署，手机尚未重新配置时须执行上述手机连接命令。体验版/正式版继续忽略这些开发配置。
+本机执行 `npm run dev:server` 可将模拟器切换到 HTTPS；手机独立存储须执行 `npm run dev:phone`。尚未连接手机时扫描真机调试二维码；已经连接 iOS/Android 开发版时，脚本直接更新当前手机，无需再次扫码或启动另一轮真机调试。配置脚本只修改服务连接设置，不修改记录、草稿或当前页面；若探测期间手机断开，不写入配置。旧 IP HTTP 配置不再适用于当前部署，手机尚未重新配置时须执行上述手机连接命令。体验版/正式版继续忽略这些开发配置。
 
 微信公众平台的“开发管理 → 开发设置 → 服务器域名”中，`request`、`uploadFile`、`downloadFile` 三项均应添加 `https://api.jiejiezi.cn`（不带 `/extract` 等路径）。当前应用未使用 WebSocket，无需配置 `socket` 域名。后台保存后，在开发者工具“详情 → 项目配置 → 域名信息”刷新，核对三项域名与当前 AppID；开启域名校验并重新编译，再做手机实测。若出现 `url not in domain list`，先核对后台是否保存成功、是否配置在同一个小程序，以及开发者工具是否已刷新；保留域名校验，不通过关闭校验完成 HTTPS 验收。服务器 HTTPS 通过不能代替这些步骤。正式发布还需实现正式鉴权并配置发布接口，不能把开发令牌打进小程序包。
 
@@ -80,6 +80,8 @@ docker compose --env-file backend/.env --env-file backend/.env.development \
 同日合法域名验收补充：用户确认 `request`、`uploadFile`、`downloadFile` 三项均已保存并刷新为 `https://api.jiejiezi.cn`。私有配置保持 `urlCheck: true`；刷新域名列表后，旧模拟器运行环境一度仍返回 `url not in domain list`，通过开发者工具的 `simulator_refresh` 重新编译/刷新后恢复。真实 `wx.request` 健康检查返回 200，未配置的 `https://example.com/` 仍被合法域名校验拦截；公开动物样例经真实上传、抠图、下载得到 938×454 RGBA PNG、alpha 0–255、“自然”分类及有效裁切坐标，样例全流程约 1.25 秒。验收前后核对本地记录、草稿及现存照片字节均未改变。报告为本机忽略文件 `artifacts/legal-domain-verification-20261023.json` 与 `artifacts/server-extraction-verification.json`；本次仅覆盖模拟器，手机 HTTPS 和正式发布鉴权继续待验收。
 
 回滚材料在服务器 `/home/ubuntu/felt-deployments/20261023-https/backup`。需要退回旧 IP 开发方式时，先用当前 HTTPS Compose 命令的相同参数执行 `stop https`，恢复备份 `.env.development`，再用下节的旧开发 Compose 命令启动。保留所有持久卷。本机/手机也需要同步恢复旧 IP 配置；正常运行无需回滚。
+
+2026-10-23 手机连接补充：安卓开发版出现“照片处理服务暂时不可用”时，实测手机仍持有旧的 `http://82.157.170.254/extract`，模拟器的 HTTPS 配置不会自动同步到手机。已在现有真机调试连接中切换到 `https://api.jiejiezi.cn/extract`，从安卓手机发送不含照片的鉴权探测并核对配置读取通过；迁移前后 6 条记录、板面及其他业务存储保持一致。`npm run dev:phone` 复验成功复用当前手机连接。后续自动照片验证遇到真机调试响应超时/连接断开，不能据此认定手机完整上传、抠图和下载已验收，仍待手机重新选图确认。
 
 ## 服务器 IP 开发调试（历史方式，仅回滚使用）
 

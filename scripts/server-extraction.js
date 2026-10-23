@@ -15,8 +15,17 @@ async function withTimeout(promise, milliseconds, message) {
 async function configure(mini, { value, off = false, phone = false, waitMilliseconds = 180000, log = console.log }) {
   if (!off && !validServerDevelopment(value)) throw new Error('开发接口地址或凭证无效');
   if (phone) {
-    log('请用手机微信扫描真机调试二维码，保持手机小程序打开；连接后将自动配置服务（最多等待 3 分钟）。');
-    await withTimeout(mini.remote(), waitMilliseconds, '等待手机连接超时，配置尚未写入；请重新运行 npm run dev:phone 并扫码');
+    const current = await mini.evaluate(() => ({
+      platform: wx.getSystemInfoSync().platform,
+      environment: wx.getAccountInfoSync().miniProgram.envVersion
+    }));
+    if (current.environment !== 'develop') throw new Error('只允许在开发版启用服务器调试');
+    if (['ios', 'android'].includes(current.platform)) {
+      log('已连接手机真机调试，正在更新当前手机的服务配置，无需再次扫码。');
+    } else {
+      log('请用手机微信扫描真机调试二维码，保持手机小程序打开；连接后将自动配置服务（最多等待 3 分钟）。');
+      await withTimeout(mini.remote(), waitMilliseconds, '等待手机连接超时，配置尚未写入；请重新运行 npm run dev:phone 并扫码');
+    }
   }
   // Check in the target runtime, not the simulator that existed before remote().
   const target = await mini.evaluate(() => ({
