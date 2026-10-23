@@ -48,7 +48,7 @@ async function configure(mini, { value, off = false, phone = false, waitMillisec
       if (value) {
         wx.setStorageSync(serverKey, value);
         wx.removeStorageSync(localKey);
-        const active = require('services/extraction-config.js').resolve();
+        const active = require('services/extraction-config').resolve();
         if (!active.developmentServer || active.endpoint !== value.endpoint || active.header.Authorization !== `Bearer ${value.token}`) {
           throw new Error('服务配置未生效，已恢复之前的配置');
         }

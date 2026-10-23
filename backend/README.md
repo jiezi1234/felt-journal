@@ -41,16 +41,47 @@ backend/.venv/Scripts/python.exe -m backend.verify_nosh path/to/photo.jpg
 ## 部署接通小程序
 
 1. 将服务部署到可达的 HTTPS 域名，设置环境变量 `FELT_PUBLIC_BASE_URL=https://你的域名`，由反向代理转发到 8787。代理上传限制设为 16 MB，并设置 60 秒以上处理超时。
-2. 为处理服务设置适当的访问频率限制和资源额度。该服务无账户、无记录数据库，不能把公开推理接口当作无限资源使用。
+2. 为正式客户端实现用户会话鉴权，并设置适当的访问频率限制和资源额度。当前开发令牌只用于受限联调，不能写入公开小程序包；服务无账户、无记录数据库。
 3. 在微信小程序后台把同一服务域名加入 `uploadFile` 与 `downloadFile` 合法域名。
 4. 修改 `miniprogram/core/config.js` 的 `extraction`：`mode: 'remote'`，`endpoint: 'https://你的域名/extract'`。不要将供应商密钥写入小程序。
 5. 开发工具当前私有配置关闭了 URL 校验；正式验收须重新开启校验后在手机上测试。localhost、局域网 HTTP 和本地测试通过都不能替代 HTTPS 真机接通。
 
-2026-10-19 已接通下面的服务器 IP 开发接口，当前开发者工具使用服务器处理照片。正式配置仍保持 `unconfigured`；域名解析、ICP备案、HTTPS 签发及微信合法域名的上线验收尚未完成。没有显式开发配置的客户端会显示提取尚未配置，并允许明确选择使用原图。
+2026-10-19 接通服务器 IP 开发接口，2026-10-23 已迁移到下节的 HTTPS 接口。正式配置仍保持 `unconfigured`；微信合法域名、正式鉴权和手机发布链路尚待完成。没有显式开发配置的客户端会显示提取尚未配置，并允许明确选择使用原图。
 
-## 服务器 IP 开发调试（当前使用）
+## 服务器 HTTPS 开发联调（当前使用）
 
-当前接口为 `http://82.157.170.254/extract`，运行在腾讯云 Ubuntu 服务器；本机 Python 已停止，开发者工具仍可真实上传、抠图和下载。Docker 随服务器启动，容器配置 `restart: unless-stopped`；手动停止容器后应使用以下命令恢复，不要只运行基础 Compose 而遗漏开发覆盖文件。
+2026-10-23：用户确认 ICP 备案已通过；`api.jiejiezi.cn` 的 A 记录已指向 `82.157.170.254`。腾讯云防火墙已放通 TCP 443。当前提取地址为 `https://api.jiejiezi.cn/extract`，健康检查为 `https://api.jiejiezi.cn/health`。Caddy 已取得 Let's Encrypt 公有证书，当前证书到期时间为 2027-01-21 06:19:22 UTC，后续由 Caddy 自动续期；证书与账户数据保存在 `backend_caddy_data` 持久卷，勿删除该卷。HTTP 域名请求返回 308 跳转到 HTTPS。
+
+HTTPS 入口继续要求现有开发凭证，上传和下载均受保护。`extractor` 只发布宿主机回环端口 8787，Caddy 发布 80/443；服务随 Docker 启动。当前是已接通公网 HTTPS 的开发联调部署，正式版用户会话鉴权、限流和手机发布验收尚未完成。
+
+服务器 `/opt/felt-journal/backend/.env` 保持 `FELT_DOMAIN=api.jiejiezi.cn`。私有 `.env.development` 保持原令牌与已验证镜像，并把 `FELT_DEV_ORIGIN` 改成 `https://api.jiejiezi.cn`；本机同名忽略文件使用相同配置。令牌不写入源码、小程序包或 Git。
+
+当前服务器启动/更新命令：
+
+```sh
+cd /opt/felt-journal
+docker compose --env-file backend/.env --env-file backend/.env.development \
+  -f backend/compose.yaml -f backend/compose.https-development.yaml \
+  --profile public up -d --no-build --wait
+```
+
+该命令继续使用私有环境指定的 `FELT_DEV_IMAGE=felt-extractor-reveal:20261021`。后续后端代码改动须先构建并验证新镜像，再更新此变量；不要误用旧的默认镜像。不要叠加 `compose.development.yaml`，其 80 端口会与 Caddy 冲突；也不要省略 HTTPS 开发覆盖文件，否则会丢失开发访问保护。
+
+本机执行 `npm run dev:server` 可将模拟器切换到 HTTPS；手机独立存储须执行 `npm run dev:phone` 并扫描真机调试二维码。配置脚本只修改服务连接设置，不修改记录、草稿或当前页面。旧 IP HTTP 配置不再适用于当前部署，手机尚未重新配置时须执行上述手机连接命令。体验版/正式版继续忽略这些开发配置。
+
+微信公众平台的“开发管理 → 开发设置 → 服务器域名”中，`request`、`uploadFile`、`downloadFile` 三项均应添加 `https://api.jiejiezi.cn`（不带 `/extract` 等路径）。当前应用未使用 WebSocket，无需配置 `socket` 域名。后台保存后重新编译并开启域名校验，再做手机实测；服务器 HTTPS 通过不能代替这些步骤。正式发布还需实现正式鉴权并配置发布接口，不能把开发令牌打进小程序包。
+
+部署验证脚本支持从进程环境 `FELT_DEVELOPMENT_TOKEN` 读取令牌，拒绝跟随重定向，检查未授权上传/下载返回 401，然后执行真实照片推理和 HTTPS PNG 下载。令牌不得作为命令行参数或写进报告。`--internal-download` 仅可用于回环服务验收。
+
+2026-10-23 公网验收：系统信任链与主机名校验通过（TLS 1.3、Let's Encrypt YE1）；公开动物样例返回 938×454 RGBA PNG、alpha 0–255，首次模型加载在内全流程约 1.62 秒，上传和下载未携带凭证时均返回 401。该时间仅代表单个样例，不是并发或手机网络保证。报告保存在被忽略的 `artifacts/https-verification-20261023.json`。
+
+同日微信模拟器通过已编译适配器的真实 `wx.uploadFile` → 服务器推理 → `wx.downloadFile`，获得相同尺寸与透明度的 PNG、有效裁切坐标，以及“自然”自动分类，样例约 1.22 秒。模拟器服务配置已迁到 HTTPS；手机尚未重新连接。联调脚本统一使用与应用源码一致的不带扩展名模块路径，避免开发工具中两种模块引用读取不同的缓存版本。
+
+回滚材料在服务器 `/home/ubuntu/felt-deployments/20261023-https/backup`。需要退回旧 IP 开发方式时，先用当前 HTTPS Compose 命令的相同参数执行 `stop https`，恢复备份 `.env.development`，再用下节的旧开发 Compose 命令启动。保留所有持久卷。本机/手机也需要同步恢复旧 IP 配置；正常运行无需回滚。
+
+## 服务器 IP 开发调试（历史方式，仅回滚使用）
+
+2026-10-19 至 2026-10-23 切换 HTTPS 前，接口为 `http://82.157.170.254/extract`，运行在腾讯云 Ubuntu 服务器。本机 Python 已停止。以下配置供回滚参考，当前部署请使用上一节 HTTPS 命令。Docker 随服务器启动，容器配置 `restart: unless-stopped`。
 
 服务器 `/opt/felt-journal/backend/.env.development` 保存开发环境变量，权限为 600，不进入 Git：
 
@@ -70,7 +101,7 @@ docker compose --env-file backend/.env --env-file backend/.env.development \
   -f backend/compose.yaml -f backend/compose.development.yaml up -d --build --wait extractor
 ```
 
-已有已验证镜像时，用 `--no-build` 替换 `--build`。如未来启用 HTTPS，先停止开发部署，再仅使用基础 Compose 的 `public` profile；开发接口与 HTTPS 网关都会占用 80 端口，不能同时启动。基础配置恢复后不携带开发令牌，也不开放 IP HTTP 入口。
+已有已验证镜像时，用 `--no-build` 替换 `--build`。迁移到 HTTPS 时应改用上一节的 `compose.https-development.yaml` 覆盖文件及 `public` profile，保留开发令牌，同时移除 IP HTTP 映射。不能同时使用两份开发覆盖文件。
 
 开发接口要求上传和下载都带 `Authorization: Bearer <开发令牌>`；未授权返回 401，`/health` 保留无凭证健康检查。只有设置有效随机令牌时，后端才允许公开 IPv4 HTTP 地址。令牌只用于有限范围的开发联调；HTTP 不加密照片与令牌，正式使用须切换 HTTPS 及正式鉴权。
 
@@ -191,10 +222,11 @@ docker compose --env-file backend/.env -f backend/compose.yaml exec -T --interac
 
 `--internal-download` 会校验返回的正式 HTTPS 地址，再通过回环地址下载同一个临时文件；报告明确标注为内部 HTTP 验收，不代替公网 HTTPS 和微信真机验收。脚本还会检查 PNG 格式、RGBA 透明通道和推理后的模型状态，不输出带令牌的下载链接。
 
-域名解析、备案等上线条件就绪后，显式开启 `public` profile 才会启动 HTTPS 网关：
+域名解析、备案等上线条件就绪后，显式开启 `public` profile 才会启动 HTTPS 网关。当前受凭证保护的部署使用下列命令（完整说明见前文 HTTPS 开发联调）：
 
 ```sh
-docker compose --env-file backend/.env -f backend/compose.yaml --profile public up -d --build
+docker compose --env-file backend/.env --env-file backend/.env.development \
+  -f backend/compose.yaml -f backend/compose.https-development.yaml --profile public up -d --no-build --wait
 ```
 
 只有 Caddy 的 80/443 端口对外发布；配置使用 [Caddy 自动 HTTPS](https://caddyserver.com/docs/automatic-https) 和 [反向代理](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy)，代理限制 16 MB 上传、90 秒响应头等待。服务器 DNS、防火墙、证书申请和微信合法域名仍须实际配置验证。模型缓存及临时结果放在命名卷中，健康检查每分钟触发过期结果清理；Docker 构建上下文排除了本机虚拟环境、运行图片和本地验收产物。

@@ -58,6 +58,16 @@ test('simulator setup clearly identifies its scope and does not claim a phone co
   assert.ok(d.logs.some(line => line.includes('仅保存在模拟器')));
 });
 
+test('HTTPS setup probes and saves the protected domain without changing journal records', async () => {
+  const d = device();
+  const secure = { ...value, endpoint: 'https://api.felt.example/extract' };
+  await d.run({ value: secure });
+  assert.equal(d.state.requests, 1);
+  assert.deepEqual(d.storage.get(SERVER_DEVELOPMENT_KEY), secure);
+  assert.equal(d.storage.get('felt-journal:v1'), 'keep-journal');
+  assert.ok(!JSON.stringify(d.logs).includes(secure.token));
+});
+
 test('phone setup never writes to a simulator, trial, release, or disconnected runtime', async () => {
   for (const options of [{ remotePlatform: 'devtools' }, { environment: 'trial' }, { environment: 'release' }, { disconnectAfterProbe: true }]) {
     const d = device(options);

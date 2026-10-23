@@ -5,6 +5,7 @@ import argparse
 import io
 import json
 import mimetypes
+import os
 import re
 import time
 import urllib.error
@@ -16,10 +17,26 @@ from pathlib import Path
 from PIL import Image
 
 
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        # Never forward a private bearer credential to a redirect destination.
+        return None
+
+
 def fetch(url, *, data=None, headers=None, timeout=90):
     request = urllib.request.Request(url, data=data, headers=headers or {})
-    with urllib.request.urlopen(request, timeout=timeout) as response:
+    with urllib.request.build_opener(NoRedirect()).open(request, timeout=timeout) as response:
         return response.read(), response.headers.get_content_type()
+
+
+def expect_unauthorized(url, *, data=None):
+    try:
+        fetch(url, data=data)
+    except urllib.error.HTTPError as error:
+        if error.code == 401:
+            return
+        raise
+    raise ValueError('Private endpoint allowed unauthenticated access')
 
 
 def verify(args):
@@ -29,10 +46,23 @@ def verify(args):
         raise ValueError('--expected-public-base must be an HTTPS origin without a path')
     if args.internal_download and urllib.parse.urlsplit(service_url).hostname not in {'127.0.0.1', 'localhost', '::1'}:
         raise ValueError('--internal-download is only allowed for a loopback service URL')
+    token = os.environ.get('FELT_DEVELOPMENT_TOKEN', '')
+    auth = {}
+    if token:
+        if not re.fullmatch(r'[A-Za-z0-9_-]{32,128}', token):
+            raise ValueError('Invalid development credential in environment')
+        service = urllib.parse.urlsplit(service_url)
+        if service.scheme != 'https' and service.hostname not in {'127.0.0.1', 'localhost', '::1'}:
+            raise ValueError('Authenticated verification requires HTTPS or loopback')
+        auth['Authorization'] = 'Bearer ' + token
 
     before = json.loads(fetch(service_url + '/health')[0])
     if before.get('status') != 'ok':
         raise ValueError('Service health check failed')
+    if token:
+        if not before.get('developmentAccess'):
+            raise ValueError('The development access guard is not enabled')
+        expect_unauthorized(service_url + '/extract', data=b'')
 
     photo = Path(args.photo)
     data = photo.read_bytes()
@@ -47,6 +77,7 @@ def verify(args):
 
     started = time.perf_counter()
     response, _ = fetch(service_url + '/extract', data=body, headers={
+        **auth,
         'Content-Type': 'multipart/form-data; boundary=' + boundary,
     })
     result = json.loads(response)
@@ -61,7 +92,9 @@ def verify(args):
     # Internal acceptance can run before DNS/ICP is ready. It deliberately does
     # not claim that the returned public HTTPS URL has been reached.
     download_url = service_url + cutout.path if args.internal_download else result['cutoutUrl']
-    png, content_type = fetch(download_url)
+    if token:
+        expect_unauthorized(download_url)
+    png, content_type = fetch(download_url, headers=auth)
     if content_type != 'image/png':
         raise ValueError('The download is not served as image/png')
     with Image.open(io.BytesIO(png)) as image:
@@ -82,6 +115,8 @@ def verify(args):
         'model': after.get('model'),
         'modelLoadedBefore': before.get('modelLoaded'),
         'modelLoadedAfter': after.get('modelLoaded'),
+        'authenticated': bool(token),
+        'unauthorizedUploadAndDownloadDenied': bool(token),
         'seconds': round(time.perf_counter() - started, 2),
         'width': size[0], 'height': size[1],
         'mode': 'RGBA', 'alphaMinMax': [alpha_min, alpha_max],

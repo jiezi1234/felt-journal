@@ -12,7 +12,7 @@ const { createCanvas, loadImage } = require('@napi-rs/canvas');
   try {
     mini = await automator.connect({ wsEndpoint: process.env.WECHAT_AUTOMATION_URL || 'ws://127.0.0.1:9420' });
     const connection = await mini.evaluate(() => {
-      const config = require('services/extraction-config.js').resolve();
+      const config = require('services/extraction-config').resolve();
       return { server: config.developmentServer, endpoint: config.endpoint, local: config.local };
     });
     assert.equal(connection.server, true); assert.equal(connection.local, false);
@@ -23,7 +23,7 @@ const { createCanvas, loadImage } = require('@napi-rs/canvas');
     const started = Date.now();
     const result = await mini.evaluate(file => {
       const stages = [], task = { id: 'server-network-probe' };
-      return require('services/extraction.js').extract(file, task, stage => stages.push(stage))
+      return require('services/extraction').extract(file, task, stage => stages.push(stage))
         .then(filePath => ({ filePath, classification: task.classification, alignment:task.alignment, stages }));
     }, source);
     downloaded = result.filePath;

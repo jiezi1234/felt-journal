@@ -3,6 +3,15 @@ const DEVELOPMENT_KEY = 'felt-journal:dev-extraction:v1';
 const SERVER_DEVELOPMENT_KEY = 'felt-journal:server-extraction:v1';
 function validServerDevelopment(value) {
   if (!value || typeof value !== 'object' || !/^[A-Za-z0-9_-]{32,128}$/.test(value.token || '')) return false;
+  // This HTTPS deployment uses a DNS name and the default TLS port.
+  // Keep the old explicit IP override available for rollback during development.
+  const secure = /^https:\/\/([a-z0-9.-]+)\/extract$/.exec(value.endpoint || '');
+  if (secure) {
+    const labels = secure[1].split('.');
+    return secure[1].length <= 253 && labels.length >= 2
+      && labels.every(label => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label))
+      && /^[a-z]/.test(labels[labels.length - 1]);
+  }
   const match = /^http:\/\/((?:\d{1,3}\.){3}\d{1,3})(?::([1-9]\d{0,4}))?\/extract$/.exec(value.endpoint || '');
   return !!match && match[1].split('.').every(part => Number(part) <= 255 && String(Number(part)) === part)
     && !match[1].startsWith('127.') && match[1] !== '0.0.0.0' && (!match[2] || Number(match[2]) <= 65535);

@@ -1,0 +1,7 @@
+# Protected HTTPS for developer devices. Combine with compose.yaml and profile public.
+# Do not include compose.development.yaml: its IP HTTP listener conflicts with Caddy.
+services:
+  extractor:
+    image: ${FELT_DEV_IMAGE:-backend-extractor}
+    environment:
+      FELT_DEVELOPMENT_TOKEN: ${FELT_DEVELOPMENT_TOKEN:?Set a random development access token}

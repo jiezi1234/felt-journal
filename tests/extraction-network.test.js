@@ -44,7 +44,7 @@ test('HTTPS failures preserve their original reason without local-service instru
 
 test('server development authenticates both upload and download and keeps classification', async t => {
   setup(t, false);
-  const origin = 'http://192.0.2.10', header = { Authorization: 'Bearer ' + 'd'.repeat(43) };
+  const origin = 'https://api.felt.example', header = { Authorization: 'Bearer ' + 'd'.repeat(43) };
   config.resolve = () => ({ mode: 'remote', endpoint: origin + '/extract', origin, developmentServer: true, header });
   const classification = { category: 'food', status: 'classified' };
   const alignment = { sourceWidth:800,sourceHeight:600,x:100,y:50,width:240,height:320 };
