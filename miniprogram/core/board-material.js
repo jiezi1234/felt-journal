@@ -13,25 +13,50 @@ function gradient(ctx, x1, y1, x2, y2, stops) {
 function oval(ctx, x, y, rx, ry) {
   ctx.save(); ctx.translate(x, y); ctx.scale(rx, ry); ctx.beginPath(); ctx.arc(0, 0, 1, 0, Math.PI * 2); ctx.restore();
 }
-function clip(ctx, width) {
+function clip(ctx, width, pixelScale = 1) {
   ctx.save(); ctx.translate(width / 2, -176); ctx.scale(1.8, 1.8);
   ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.setLineDash([]);
-  // A flat, illustrated bulldog clip: solid sage enamel and a single outline.
-  // Keep the existing silhouette and transparent handle hole in the headroom.
-  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
-  ctx.fillStyle = '#D5DAC7'; ctx.strokeStyle = '#7F8873'; ctx.lineWidth = 3.5;
-  ctx.beginPath(); ctx.moveTo(-41,39);
-  ctx.bezierCurveTo(-33,61,-25,77,-35,97);
-  ctx.quadraticCurveTo(-42,111,-66,129); ctx.lineTo(66,129);
-  ctx.quadraticCurveTo(42,111,35,97);
-  ctx.bezierCurveTo(25,77,33,61,41,39); ctx.closePath(); ctx.fill(); ctx.stroke();
-  ctx.beginPath(); ctx.arc(0,5,55,0,Math.PI*2);
-  ctx.moveTo(18,5); ctx.arc(0,5,18,0,Math.PI*2,true);
-  ctx.fill(); ctx.stroke();
-  rounded(ctx,-180,122,360,58,12); ctx.fill(); ctx.stroke();
-  // One quiet seam describes the jaw without reflections or a beveled edge.
-  ctx.beginPath(); ctx.moveTo(-162,154); ctx.lineTo(162,154);
-  ctx.strokeStyle = '#9CA68E'; ctx.lineWidth = 2.5; ctx.stroke();
+  // Orthographic overhead view: circular handle, centered neck, parallel jaw.
+  // Surface reflections and a tight contact shadow give depth without showing
+  // a side wall, a second lever, or any perspective/foreshortening.
+  const joinY=37, joinX=Math.sqrt(55*55-joinY*joinY), angle=Math.atan2(joinY,joinX);
+  const body=()=>{
+    ctx.beginPath(); ctx.moveTo(-joinX,5+joinY);
+    ctx.bezierCurveTo(-33,65,-25,77,-35,97);
+    ctx.quadraticCurveTo(-42,111,-66,129); ctx.lineTo(66,129);
+    ctx.quadraticCurveTo(42,111,35,97);
+    ctx.bezierCurveTo(25,77,33,65,joinX,5+joinY);
+    ctx.arc(0,5,55,angle,Math.PI-angle,true); ctx.closePath();
+    ctx.moveTo(18,5); ctx.arc(0,5,18,0,Math.PI*2); ctx.closePath();
+  };
+  ctx.shadowColor = 'rgba(48,57,43,.2)'; ctx.shadowBlur = 7*pixelScale*1.8;
+  ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+  body();
+  ctx.fillStyle = gradient(ctx,-66,0,66,0,[[0,'#A5B0A3'],[.18,'#D8DFD2'],[.44,'#F3F6EC'],[.65,'#E5EBDF'],[.85,'#C4CEBE'],[1,'#A2AF9C']]);
+  ctx.fill(); ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
+  ctx.strokeStyle = '#8F9C89'; ctx.lineWidth = 1.8; ctx.stroke();
+  // Broad face illumination follows the circular handle, with no offset rim.
+  ctx.save(); body(); ctx.clip();
+  const light=ctx.createRadialGradient(0,-15,6,0,5,62);
+  light.addColorStop(0,'rgba(255,255,250,.55)'); light.addColorStop(.7,'rgba(255,255,250,.08)'); light.addColorStop(1,'rgba(78,99,73,.13)');
+  ctx.fillStyle=light; ctx.fillRect(-56,-51,112,112); ctx.restore();
+  ctx.beginPath(); ctx.arc(0,5,52,Math.PI*1.04,Math.PI*1.96);
+  ctx.strokeStyle='rgba(255,255,249,.8)'; ctx.lineWidth=2; ctx.stroke();
+  ctx.beginPath(); ctx.arc(0,5,18,Math.PI,Math.PI*2);
+  ctx.strokeStyle='#88977F'; ctx.lineWidth=2.4; ctx.stroke();
+  ctx.beginPath(); ctx.arc(0,5,18,0,Math.PI);
+  ctx.strokeStyle='#F8FAF0'; ctx.lineWidth=2.4; ctx.stroke();
+  // The jaw is a shallow, straight plate viewed squarely from above.
+  ctx.shadowColor='rgba(48,57,43,.18)'; ctx.shadowBlur=6*pixelScale*1.8;
+  rounded(ctx,-180,122,360,58,12);
+  ctx.fillStyle=gradient(ctx,0,122,0,180,[[0,'#F5F7EF'],[.25,'#DFE6D9'],[.55,'#CBD5C4'],[.82,'#DCE4D4'],[1,'#B3C0AA']]); ctx.fill();
+  ctx.shadowColor='transparent'; ctx.shadowBlur=0;
+  ctx.strokeStyle='#8F9C89'; ctx.lineWidth=1.8; ctx.stroke();
+  rounded(ctx,-176,126,352,50,9); ctx.strokeStyle='rgba(255,255,247,.65)'; ctx.lineWidth=1.2; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-162,153); ctx.lineTo(162,153);
+  ctx.strokeStyle='rgba(99,117,87,.38)'; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-162,155); ctx.lineTo(162,155);
+  ctx.strokeStyle='rgba(255,255,247,.65)'; ctx.lineWidth=1.2; ctx.stroke();
   ctx.restore();
 }
 function paint(ctx, model, B) {

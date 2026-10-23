@@ -5,6 +5,19 @@ const renderer = require('../miniprogram/core/renderer');
 const material = require('../miniprogram/core/board-material');
 const B = require('../miniprogram/core/config').board;
 
+test('overhead clip has a centered circular handle and round transparent hole', () => {
+  const canvas=createCanvas(1500,600),ctx=canvas.getContext('2d');ctx.translate(0,B.overhang);
+  material.clip(ctx,B.width,1);
+  const center={x:750,y:B.overhang-176+5*1.8};
+  const alpha=(x,y)=>ctx.getImageData(Math.round(center.x+x),Math.round(center.y+y),1,1).data[3];
+  for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+    assert.ok(alpha(dx*24,dy*24)<64,'The page shows through the circular hole in every direction');
+    assert.ok(alpha(dx*40,dy*40)>240,'The rim surrounds the hole without foreshortening');
+    assert.ok(alpha(dx*90,dy*90)>240,'The handle retains equal horizontal and vertical radii');
+  }
+  for(const x of [-80,80])for(const y of [-80,80])assert.ok(alpha(x,y)<64,'The handle keeps a circular overhead silhouette');
+});
+
 test('pin anchors land on visible alpha instead of the empty center or transparent padding', () => {
   const image=createCanvas(200,200),ctx=image.getContext('2d');ctx.fillStyle='#A97F50';ctx.fillRect(130,100,30,70);
   const before=image.toBuffer('image/png');let samples=0;

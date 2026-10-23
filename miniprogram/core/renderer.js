@@ -34,7 +34,7 @@ function paint(ctx, model, images, selection, dimensions = B, surface, pixelScal
   ctx.restore();
   // The clip presses down on every sticker and pin, outside the felt's crop.
   // Keep it out of the cached background and below the editing overlays.
-  material.clip(ctx, B.width);
+  material.clip(ctx, B.width, pixelScale);
   if (selection) {
     const p = (model.items || []).find(item => item.memoryId === selection);
     if (p) { ctx.save(); ctx.translate(i + p.x, i + p.y); ctx.rotate(p.angle * Math.PI / 180); ctx.strokeStyle = '#D9AD52'; ctx.lineWidth = 6; ctx.setLineDash([15, 12]); ctx.strokeRect(-p.width / 2 - 5, -p.height / 2 - 5, p.width + 10, p.height + 10); ctx.restore(); }
