@@ -190,5 +190,6 @@ Page({
   closeDrawer() { return this.data.mode === 'themes' ? theme.closeDrawer.call(this) : editor.closeDrawer.call(this); },
   gestureState(e) { this.setData({ dragging: !!e.detail.active }); this.setData({ navigationBusy: this.busy() }); },
   async cancelPhoto(e) { await editor.cancelPhoto.call(this, e); if (!this.disposed) this.refreshNavigation(); },
+  async continuePhoto(e) { await editor.continuePhoto.call(this, e); if (!this.disposed) this.refreshNavigation(); },
   async remove() { await editor.remove.call(this); if (!this.disposed) { if (!this.data.selected) this.setData({ drawer: '' }); this.refreshNavigation(); } }
 });

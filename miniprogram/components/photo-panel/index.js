@@ -12,7 +12,8 @@ Component({
     keyboard(visible) {
       if (visible || !this.pendingContinue) return;
       const task = this.pendingContinue; this.pendingContinue = null;
-      wx.nextTick(() => { if (!this.dead && this.data.task === task) this.cancel(); });
+      const cancellation = this.cancellation;
+      wx.nextTick(() => { if (!this.dead && this.cancellation === cancellation && this.data.task === task) this.continueLayout(); });
     },
     task(task) {
       const state = task && task.state || '', original = task && task.original || '';
@@ -41,8 +42,13 @@ Component({
     openNote() { this.triggerEvent('noteopen'); }, noteInput(e) { this.triggerEvent('noteinput', { value: e.detail.value }); },
     retry() { this.triggerEvent('retry'); }, original() { this.triggerEvent('original'); },
     cancel() {
+      this.pendingContinue = null; this.continuing = null;
+      this.cancellation = (this.cancellation || 0) + 1;
+      if (!this.dead && !this.data.adjusting && !this.data.lifting) this.triggerEvent('cancel');
+    },
+    continueLayout() {
       if (this.data.adjusting || this.data.lifting || this.data.revealBusy || this.data.revealError) return;
-      if (!this.data.done) { this.triggerEvent('cancel'); return; }
+      if (!this.data.done || this.dead) return;
       const task = this.data.task;
       // Inline keyboard layout hides the photo. Wait for its restored bounds
       // before measuring the source of the peel animation.
@@ -58,7 +64,7 @@ Component({
         if (this.continuing !== task) return;
         this.continuing = null;
         if (this.dead || this.data.task !== task) return;
-        this.triggerEvent('cancel', { rect });
+        this.triggerEvent('continue', { rect });
       }).exec();
       // The board receives the saved subject even when the user was comparing
       // the original. Measure that same subject's 92% container after reflow.

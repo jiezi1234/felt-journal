@@ -60,7 +60,7 @@ class PhotoTask {
       const info = await platform.call('getImageInfo', { src: this.subjectPath }); this.check();
       const photos = Object.assign({ originalPath: this.originalPath, subjectPath: this.subjectPath, width: info.width, height: info.height, kind: this.kind }, classification.fields(this.classification));
       // Synchronous commit makes cancellation and duplicate callbacks unambiguous.
-      const id = this.memoryId ? this.store.replace(this.id, this.memoryId, photos) : this.store.add(this.id, this.date, photos, this.targetBoardId);
+      const id = this.memoryId ? this.store.replace(this.id, this.memoryId, photos) : this.store.add(this.id, this.date, photos, this.targetBoardId, { deferPlacement: this.deferPlacement });
       this.savedCategory = this.store.get().memories[id].category;
       this.committed = true; platform.releaseFiles(this.owned); this.owned = []; this.stage('done'); this.onDone(id);
       platform.collect(this.store).catch(() => {});

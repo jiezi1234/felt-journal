@@ -75,7 +75,7 @@ function createStore(storage) {
     if (isThemeId(id)) return !!get().boards[id];
     return dates.valid(id) && id <= dates.key();
   }
-  function add(taskId, date, photos, targetBoardId = date) {
+  function add(taskId, date, photos, targetBoardId = date, options = {}) {
     assert(dates.valid(date) && date <= dates.key(), '不能向未来或无效日期添加记忆');
     assert(targetBoardId === date || isThemeId(targetBoardId), '照片只能添加到原日期或主题板');
     const current = get();
@@ -89,10 +89,14 @@ function createStore(storage) {
       assert(b.placements.length < config.maxItems, `每块板最多 ${config.maxItems} 件记忆`);
       const now = Date.now();
       s.memories[id] = Object.assign({ id, boardId: date, date, text: '', category: '未分类', createdAt: now, updatedAt: now }, photos);
-      const z = Math.max(0, ...b.placements.map(p => p.z)) + 1;
-      b.placements.push(geometry.create(id, photos.width, photos.height, z, now, b.placements));
-      touchMembers(b);
-      s.boards[targetBoardId] = b; s.operations[taskId] = id;
+      // Saving a photo result does not accept its placement. Keep it in the
+      // library until the user explicitly continues from the result card.
+      if (!options.deferPlacement) {
+        const z = Math.max(0, ...b.placements.map(p => p.z)) + 1;
+        b.placements.push(geometry.create(id, photos.width, photos.height, z, now, b.placements));
+        touchMembers(b); s.boards[targetBoardId] = b;
+      }
+      s.operations[taskId] = id;
     });
     return id;
   }

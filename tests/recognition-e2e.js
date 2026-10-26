@@ -66,7 +66,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     if ((await card.data()).task.state !== 'done') {
       await capture('03-processing-a'); await pause(220); await capture('03-processing-b');
     }
-    const result = await wait(card, data => data.task && data.task.state === 'done' && data.count === 1, 90000);
+    const result = await wait(card, data => data.task && data.task.state === 'done' && data.count === 0, 90000);
     const resultSize = await (await card.$('.record-card')).size();
     assert.ok(Math.abs(sourceSize.height - resultSize.height) < 2, 'Selection and processing remain in the same sized card');
     assert.equal(await card.$('#board'), null, 'Photo card never contains another felt board');
@@ -75,7 +75,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     assert.equal(states.includes('preview'), false);
     checks.push('selecting a photo starts processing automatically in the same card without a start button');
     assert.equal(result.task.committed, true); assert.equal(result.task.kind, 'extracted');
-    const id = result.selected, saved = (await readState()).memories[id];
+    const id = await mini.evaluate(() => getCurrentPages().at(-1).selectComponent('#record-card').photoNoteId), saved = (await readState()).memories[id];
     assert.ok(id && saved); assert.equal(saved.kind, 'extracted');
     assert.notEqual(saved.subjectPath, saved.originalPath);
     const imageBytes = Buffer.from(await mini.evaluate(file => wx.getFileSystemManager().readFileSync(file, 'base64'), saved.subjectPath), 'base64');

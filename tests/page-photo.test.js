@@ -187,15 +187,16 @@ test('unloading cancels pending work and ignores late results; committed picture
   assert.equal(second.data.task, null); assert.equal(f.removed.length, count); assert.equal(Object.keys(f.store.get().memories).length, 1);
 });
 
-test('closing a completed board card skips cancellation and keeps the refreshed draft', async t => {
+test('closing a completed board card keeps the photo in the library without placing it', async t => {
   const f = fixture(t), controller = createBoardEditor({ embedded: true }), events = [];
   const p = Object.assign({}, controller, { data: clone(controller.data), store: f.store, date: f.date, wantEdit: true,
     setData(update) { Object.assign(this.data, update); }, triggerEvent(event) { events.push(event); }, selectComponent() { return { touchCancel() {} }; } });
-  p.refresh(); await photo.begin(p, 'album', { date: f.date }); await photo.retry(p);
-  assert.equal(p.data.task.state, 'done'); assert.equal(p.draft.placements.length, 1); assert.equal(p.data.count, 1);
+  p.refresh(); await p.album(); await photo.retry(p);
+  assert.equal(p.data.task.state, 'done'); assert.equal(p.draft.placements.length, 0); assert.equal(p.data.count, 0);
   platform.call = async () => { throw new Error('A committed result must not show a cancellation prompt'); };
   await p.back(); p.onUnload();
-  assert.equal(p.photoTask, null); assert.ok(events.includes('close')); assert.equal(f.store.board(f.date).placements.length, 1);
+  assert.equal(p.photoTask, null); assert.ok(events.includes('close')); assert.equal(f.store.board(f.date).placements.length, 0);
+  assert.equal(Object.keys(f.store.get().memories).length, 1); assert.equal(f.store.get().boards[f.date], undefined);
 });
 
 test('memory close handles completion during confirmation and does not cancel the saved replacement', async t => {
@@ -240,12 +241,14 @@ test('post-extraction caption is optional and saves on Continue without changing
 test('caption save failure blocks completion and board flight; retry saves without duplicating the photo', async t => {
   const f = fixture(t), controller = createBoardEditor(), p = { ...controller, data: clone(controller.data), store: f.store, date: f.date, wantEdit: true,
     setData(update) { Object.assign(this.data, update); }, selectComponent() { return { touchCancel() {} }; } };
-  p.refresh(); await photo.begin(p, 'album', { date: f.date }); const id = p.photoNoteId;
+  p.refresh(); await p.album(); const id = p.photoNoteId;
   photo.openNote(p); photo.inputNote(p, { detail: { value: '稍后重试' } }); f.failSave(true);
-  assert.equal(photo.finish(p, false), false); await p.cancelPhoto();
+  assert.equal(photo.finish(p, false), false); await p.continuePhoto();
   assert.equal(p.data.task.state, 'done'); assert.equal(!!p.data.placing, false); assert.ok(p.data.photoNoteError);
   assert.equal(f.store.getMemoryDraft(id).text, '稍后重试'); assert.equal(Object.keys(f.store.get().memories).length, 1);
-  f.failSave(false); assert.equal(photo.finish(p, false), true); assert.equal(f.store.get().memories[id].text, '稍后重试');
+  assert.equal(f.store.board(f.date).placements.length, 0);
+  f.failSave(false); await p.continuePhoto(); assert.equal(f.store.get().memories[id].text, '稍后重试');
+  assert.equal(f.store.board(f.date).placements.length, 1);
   assert.equal(p.data.task, null); assert.equal(f.store.getMemoryDraft(id), undefined);
 });
 

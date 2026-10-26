@@ -23,7 +23,7 @@
     <view class="task-actions">
       <view wx:if="{{adjustmentError}}" class="error">{{adjustmentError}}</view>
       <view wx:if="{{done}}" class="result-tools"><button hover-class="ui-pressed" id="adjust-photo" class="adjust-photo" disabled="{{lifting || adjusting || revealBusy}}" loading="{{adjusting}}" bindtap="adjust">调整图片</button><button hover-class="ui-pressed" wx:if="{{!noteOpen}}" id="add-photo-note" class="note-action" disabled="{{lifting || adjusting || revealBusy}}" bindtap="openNote">{{noteText ? '编辑说明' : '添加说明 · 选填'}}</button></view>
-      <button hover-class="ui-pressed" wx:if="{{done}}" id="continue-layout" class="primary" disabled="{{lifting || adjusting || revealBusy || revealError}}" bindtap="cancel">{{continueLabel}}</button>
+      <button hover-class="ui-pressed" wx:if="{{done}}" id="continue-layout" class="primary" disabled="{{lifting || adjusting || revealBusy || revealError}}" bindtap="continueLayout">{{continueLabel}}</button>
       <button hover-class="ui-pressed" wx:if="{{task.state === 'extractError'}}" id="retry-extraction" class="primary" bindtap="retry">重新提取</button>
       <button hover-class="ui-pressed" wx:if="{{task.state === 'saveError'}}" id="retry-photo-save" class="primary" bindtap="retry">重试保存</button>
       <button hover-class="ui-pressed" wx:if="{{task.state === 'sourceError'}}" id="reselect-photo" class="primary" bindtap="retry">重新选图</button>

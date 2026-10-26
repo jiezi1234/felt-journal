@@ -16,12 +16,10 @@ Component({
   pageLifetimes: { hide() { controller.onHide.call(this); }, show() { if (this.store) controller.onShow.call(this); }, resize() { controller.onResize.call(this); } },
   methods: { ...methods,
     closeCard() { modal.close(this, () => controller.closeCard.call(this)); },
-    cancelPhoto(e) {
-      if (this.data.lifting || this.handingOff || this.data.photoAdjusting) return;
-      if (!this.photoTask || !this.photoTask.committed) return controller.cancelPhoto.call(this, e);
-      if (!photo.saveNote(this)) return;
+    continuePhoto(e) {
+      const id = photo.confirmPlacement(this); if (!id) return;
       this.handingOff = true;
-      this.triggerEvent('place', { id: this.data.selected, rect: e && e.detail && e.detail.rect });
+      this.triggerEvent('place', { id, rect: e && e.detail && e.detail.rect });
     }
   }
 });

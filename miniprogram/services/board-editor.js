@@ -148,17 +148,19 @@ function createBoardEditor(options = {}) { return {
     this.cancelGesture();
     if (this.draft.placements.length >= config.maxItems) { platform.toast(`每块板最多 ${config.maxItems} 件记忆`); return; }
     if (this.dirty && !this.persist()) { platform.toast('请先保存当前布局'); return; }
-    this.setData({ drawer: '' }); return photo.begin(this, source, { date: isThemeId(this.date) ? dates.key() : this.date, targetBoardId: this.date });
+    this.setData({ drawer: '' }); return photo.begin(this, source, { date: isThemeId(this.date) ? dates.key() : this.date, targetBoardId: this.date, deferPlacement: true });
   },
   photoDone(id) { this.draft = this.store.board(this.date); this.history.reset(this.draft); this.setData({ selected: id, editable: true, canEdit: true, sourceStage: false }); this.display(); this.notifyChange(); },
   retryPhoto() { return photo.retry(this); }, originalPhoto() { return photo.original(this); },
   adjustPhoto() { return photo.adjustResult(this); },
   openPhotoNote() { photo.openNote(this); }, photoNoteInput(e) { photo.inputNote(this, e); },
-  cancelPhoto(e) {
+  cancelPhoto() {
     if (this.data.placing || this.data.photoAdjusting) return;
-    if (!photo.saveNote(this)) return;
-    const task = this.photoTask, id = this.data.selected;
-    const memory = task && task.committed && this.store.get().memories[id];
+    return photo.cancel(this);
+  },
+  continuePhoto(e) {
+    const id = photo.confirmPlacement(this); if (!id) return;
+    const memory = this.store.get().memories[id];
     const source = memory && stickerMotion.imageRect(e && e.detail && e.detail.rect, memory);
     if (!source) return photo.cancel(this);
     const token = (this.placementToken || 0) + 1; this.placementToken = token;

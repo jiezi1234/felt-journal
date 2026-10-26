@@ -56,6 +56,7 @@ Page({
   },
   photoDone() { this.setData({ originalMissing: false, subjectMissing: false }); this.refresh(); },
   retryPhoto() { photo.retry(this); }, originalPhoto() { photo.original(this); }, cancelPhoto() { photo.cancel(this); },
+  continuePhoto() { photo.finish(this); },
   adjustPhoto() { return photo.adjustResult(this); },
   openPhotoNote() { photo.openNote(this); }, photoNoteInput(e) { photo.inputNote(this, e); },
   async remove() {

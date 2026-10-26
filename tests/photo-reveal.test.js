@@ -32,7 +32,7 @@ test('waits for decoding, reveals at the original coordinates, then settles once
   update({...task,state:'saving',subject:'/temporary-cutout',kind:'extracted',alignment});
   assert.equal(p.data.subjectSrc,'');assert.equal(p.data.originalSrc,'/chosen-original');
   update({...task,state:'done',subject:'/saved-cutout',kind:'extracted',alignment});
-  p.cancel();assert.deepEqual(p.events,[]);assert.equal(p.data.originalHidden,false);
+  p.continueLayout();assert.deepEqual(p.events,[]);assert.equal(p.data.originalHidden,false);
   t.mock.timers.tick(2000);assert.equal(p.data.revealPhase,'loading');
   load('subject','/temporary-cutout',300,300);assert.equal(p.data.revealPhase,'loading');
   load('subject','/saved-cutout',300,300);assert.equal(p.data.revealPhase,'aligned');assert.match(p.data.subjectStyle,/left:20%;/);
@@ -52,7 +52,7 @@ test('a failed preview retains the original, retries only preview and ignores ol
   const {p,update,load,task}=fixture(t);update(task);load('original','/chosen-original',1000,600);
   update({...task,state:'done',subject:'/cutout',kind:'extracted',alignment});
   t.mock.timers.tick(7000);assert.ok(p.data.revealError);assert.equal(p.data.originalHidden,false);
-  p.cancel();assert.deepEqual(p.events,[]);
+  p.continueLayout();assert.deepEqual(p.events,[]);
   p.retryPreview();load('subject','/cutout',300,300);assert.equal(p.data.revealPhase,'aligned');
   update({...task,id:'two',original:'/second',previewOriginal:'/second',state:'uploading'});
   load('subject','/cutout',300,300);t.mock.timers.tick(2000);

@@ -39,7 +39,7 @@ function retry(page) {
   const task = page.photoTask; if (!task || page.disposed || task.committed) return;
   if (task.state === 'saveError') return task.save();
   if (task.state === 'sourceError') {
-    const options = { date: task.date, memoryId: task.memoryId, targetBoardId: task.targetBoardId }, source = page.photoSource;
+    const options = { date: task.date, memoryId: task.memoryId, targetBoardId: task.targetBoardId, deferPlacement: task.deferPlacement }, source = page.photoSource;
     const previous = task.previousResult; task.previousResult = null;
     return task.cancel().then(() => begin(page, source, options, previous));
   }
@@ -50,6 +50,20 @@ function finish(page, showNotice = true) {
   page.photoTask = null; page.setData({ task: null }); guard(page);
   if (showNotice) platform.localNotice(page.store).catch(() => {});
   return true;
+}
+function confirmPlacement(page) {
+  const task = page.photoTask;
+  if (!task || !task.committed || page.disposed || page.closing || page.data.modalClosing || page.handingOff || page.data.placing || page.data.lifting || page.data.photoAdjusting || !saveNote(page)) return false;
+  const id = task.savedId || page.photoNoteId || page.data.selected;
+  try {
+    if (task.deferPlacement) page.store.place(id, task.targetBoardId || task.date);
+    if (!page.store.get().memories[id]) throw new Error('这条记忆已被删除');
+    page.photoDone(id);
+    return id;
+  } catch (error) {
+    task.stage('done', platform.message(error, '放入失败，照片已保留，请重试'));
+    return false;
+  }
 }
 function openNote(page) {
   if (!page.photoTask || !page.photoTask.committed || !page.photoNoteId || page.data.placing || page.data.photoAdjusting || page.disposed) return;
@@ -108,7 +122,7 @@ async function adjustResult(page) {
       const source = await platform.call('showActionSheet', { itemList: ['从相册重选', '重新拍照'] });
       if (!current(page, task) || ![0, 1].includes(source.tapIndex)) return;
       page.photoTask = null; page.setData({ photoAdjusting: false });
-      await begin(page, source.tapIndex === 0 ? 'album' : 'camera', { date: task.date, memoryId: id, targetBoardId: task.targetBoardId }, task);
+      await begin(page, source.tapIndex === 0 ? 'album' : 'camera', { date: task.date, memoryId: id, targetBoardId: task.targetBoardId, deferPlacement: task.deferPlacement }, task);
     }
   } catch (error) {
     if (current(page, task) && !/cancel/i.test(error.errMsg || error.message || '')) page.setData({ photoAdjustmentError: platform.message(error, '调整未完成，原结果已保留，请重试') });
@@ -123,4 +137,4 @@ function dispose(page) {
   if (page.resultEditTask) page.resultEditTask.cancel();
   if (task && !task.committed) return task.cancel();
 }
-module.exports = { begin, retry, cancel, original, finish, dispose, openNote, inputNote, saveNote, refreshResult, adjustResult };
+module.exports = { begin, retry, cancel, original, finish, confirmPlacement, dispose, openNote, inputNote, saveNote, refreshResult, adjustResult };

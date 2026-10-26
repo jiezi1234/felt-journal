@@ -71,8 +71,8 @@ const realService = process.env.WECHAT_EXTRACTION_ENDPOINT || '';
       await wait(board, d => d.task && d.task.state === 'extractError');
       assert.equal((await board.data()).count, 0); await board.callMethod('originalPhoto');
     }
-    await wait(board, d => d.count === 1 && d.task && d.task.state === 'done', realService ? 90000 : 15000);
-    await board.callMethod('cancelPhoto'); await wait(board, d => !d.task);
+    await wait(board, d => d.count === 0 && d.task && d.task.state === 'done', realService ? 90000 : 15000);
+    await board.callMethod('continuePhoto'); await wait(board, d => !d.task && d.count === 1);
     let data = await board.data(), id = data.selected;
     assert.ok(id); assert.equal(data.editable, true); assert.equal(data.model.items[0].memory.kind, realService ? 'extracted' : 'original');
     assert.notEqual(data.model.items[0].memory.originalPath, data.model.items[0].memory.subjectPath);
@@ -95,8 +95,8 @@ const realService = process.env.WECHAT_EXTRACTION_ENDPOINT || '';
     console.log('STEP: color saved, adding overlapping second item');
     await board.callMethod('album');
     if (!realService) { await wait(board, d => d.task && d.task.state === 'extractError'); await board.callMethod('originalPhoto'); }
-    await wait(board, d => d.count === 2 && d.task && d.task.state === 'done', realService ? 90000 : 15000);
-    await board.callMethod('cancelPhoto'); await wait(board, d => !d.task);
+    await wait(board, d => d.count === 1 && d.task && d.task.state === 'done', realService ? 90000 : 15000);
+    await board.callMethod('continuePhoto'); await wait(board, d => !d.task && d.count === 2);
     data = await board.data(); const secondId = data.selected;
     assert.notEqual(secondId, id); assert.equal(data.canUndo, false, 'Adding starts a new layout history');
     const firstGeometry = data.model.placements.find(p => p.memoryId === id);

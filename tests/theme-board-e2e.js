@@ -117,20 +117,21 @@ const keys = ['felt-journal:v1', 'felt-journal:drafts:v1', 'felt-journal:memory-
       await call('sourceSheet'); s = await call(source); assert.equal(s.data.task.state, 'extractError');
       await inspect(source + ' extraction fallback', ['.photo-task-sheet', '#keep-original', '#cancel-photo'], false, '#theme-photo');
       s = await call('originalPhoto'); assert.equal(s.data.task.state, 'done'); assert.equal(s.data.task.kind, 'original');
-      assert.equal(s.data.date, first); assert.equal(s.data.count, ++count);
+      assert.equal(s.data.date, first); assert.equal(s.data.count, count);
       await inspect(source + ' saved photo', ['.photo-task-sheet', '#continue-layout'], false, '#theme-photo');
       if (source === 'album') {
         await mini.evaluate(() => getCurrentPages().slice(-1)[0].selectComponent('#theme-photo').openNote()); await pause(150);
         await mini.evaluate(() => getCurrentPages().slice(-1)[0].selectComponent('#theme-photo').noteInput({ detail: { value: '相册里的小小美好' } }));
         await inspect('optional photo caption', ['#photo-note-input', '#continue-layout'], false, '#theme-photo');
       }
-      await mini.evaluate(() => getCurrentPages().slice(-1)[0].selectComponent('#theme-photo').cancel());
+      await mini.evaluate(() => getCurrentPages().slice(-1)[0].selectComponent('#theme-photo').continueLayout());
       let landed = false, seenPlacement = false;
       for (let i = 0; i < 40; i++) {
         await pause(200); s = await state(); seenPlacement = seenPlacement || !!s.data.placing;
         if (!s.data.task && !s.data.placing) { landed = true; break; }
       }
       assert.ok(seenPlacement && landed, source + ' landing feedback completes');
+      assert.equal(s.data.count, ++count);
       assert.equal(s.nav, true); assert.equal(s.depth, 1); assert.equal(s.marker, 'same-theme-page'); assert.equal(s.data.editable, true);
       const current = JSON.parse((await snapshot())[0].value), memory = current.memories[s.data.selected];
       assert.equal(memory.text, source === 'album' ? '相册里的小小美好' : '');

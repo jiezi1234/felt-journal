@@ -35,7 +35,7 @@ test('placement locks gestures, keeps one saved record and ignores stale complet
   page.refresh(); page.photoDone(id); page.photoTask = { committed: true }; page.data.task = { state: 'done' };
   t.after(() => clearTimeout(page.placementTimer));
   const saved = JSON.stringify(store.get());
-  page.cancelPhoto({ detail: { rect: { left: 30, top: 150, width: 300, height: 300 } } });
+  page.continuePhoto({ detail: { rect: { left: 30, top: 150, width: 300, height: 300 } } });
   const flight = page.data.placing;
   assert.ok(flight); assert.equal(flight.id, id); assert.ok(page.photoTask.committed); assert.equal(page.data.task.state, 'done'); assert.equal(page.canAdjust(), false);
   page.stickerLifted({ detail: { token: flight.token - 1 } }); assert.ok(page.photoTask);

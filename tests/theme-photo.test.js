@@ -34,11 +34,13 @@ test('camera and album create photos directly on a theme, without daily placemen
   for (const source of ['camera', 'album']) {
     await p.sourceSheet(); assert.equal(p.data.drawer, 'source'); assert.equal(f.tab.data.hidden, true);
     await p[source](); assert.equal(p.data.task.state, 'done'); assert.equal(p.data.task.kind, 'extracted');
-    assert.equal(p.data.editable, true); assert.equal(p.data.selected, p.data.model.items.at(-1).memoryId);
-    const id = p.data.selected; assert.notEqual(id, dailyId);
+    assert.equal(p.data.editable, true); assert.equal(p.data.selected, '');
+    const id = p.photoNoteId; assert.notEqual(id, dailyId);
     assert.equal(f.store.get().memories[id].date, dates.key()); assert.equal(f.store.get().memories[id].category, '饮食');
+    assert.deepEqual(f.store.boardsForMemory(id), []);
+    assert.equal(f.tab.data.hidden, true); await p.continuePhoto(); assert.equal(f.tab.data.hidden, false);
+    assert.equal(p.data.selected, id);
     assert.deepEqual(f.store.boardsForMemory(id).map(b => b.id), [f.theme]);
-    assert.equal(f.tab.data.hidden, true); await p.cancelPhoto(); assert.equal(f.tab.data.hidden, false);
   }
   assert.deepEqual(f.sources, ['camera', 'album']); assert.equal(p.data.count, 2);
   assert.deepEqual(f.store.board(dates.key()), daily); assert.deepEqual(f.store.board(f.other), other); assert.deepEqual(f.navigation, []);
@@ -49,8 +51,9 @@ test('permission retry preserves the original theme target and restores navigati
   platform.choose = async () => { if (!attempts++) throw { errMsg: 'chooseMedia:fail auth denied' }; return { path: '/tmp/photo.jpg' }; };
   await p.sourceSheet(); await p.camera(); assert.equal(p.data.task.state, 'sourceError'); assert.equal(p.data.task.permission, true);
   p.open(event(f.other)); assert.equal(p.date, f.theme);
-  await p.retryPhoto(); assert.equal(p.data.task.state, 'done'); assert.equal(f.store.board(f.theme).placements.length, 1);
-  assert.equal(f.store.get().boards[dates.key()], undefined); await p.cancelPhoto();
+  await p.retryPhoto(); assert.equal(p.data.task.state, 'done'); assert.equal(f.store.board(f.theme).placements.length, 0);
+  assert.equal(f.store.get().boards[dates.key()], undefined); await p.continuePhoto();
+  assert.equal(f.store.board(f.theme).placements.length, 1);
   platform.choose = async () => { throw { errMsg: 'chooseMedia:fail cancel' }; };
   await p.sourceSheet(); await p.album(); assert.equal(p.data.task, null); assert.equal(f.tab.data.hidden, false);
   assert.equal(Object.keys(f.store.get().memories).length, 1);
@@ -72,16 +75,18 @@ test('failed extraction allows explicit original fallback and save retry commits
   await p.sourceSheet(); await p.album(); assert.equal(p.data.task.state, 'extractError'); assert.equal(f.disk[KEY], before);
   f.fail(true); await p.originalPhoto(); assert.equal(p.data.task.state, 'saveError'); assert.equal(f.disk[KEY], before);
   f.fail(false); await p.retryPhoto(); await p.retryPhoto();
-  assert.equal(p.data.task.kind, 'original'); assert.equal(p.data.count, 1); assert.equal(Object.keys(f.store.get().memories).length, 1);
-  assert.equal(f.store.get().boards[dates.key()], undefined); await p.cancelPhoto(); assert.equal(f.tab.data.hidden, false);
+  assert.equal(p.data.task.kind, 'original'); assert.equal(p.data.count, 0); assert.equal(Object.keys(f.store.get().memories).length, 1);
+  assert.equal(f.store.get().boards[dates.key()], undefined); await p.continuePhoto(); assert.equal(f.tab.data.hidden, false);
+  assert.equal(p.data.count, 1);
 });
 
 test('theme upload pins its date at start and landing feedback never duplicates a memory', async t => {
   const f = fixture(t), p = f.page, started = dates.key(); let finish;
   extraction.extract = () => new Promise(resolve => { finish = resolve; });
   await p.sourceSheet(); const running = p.camera(); await tick(); dates.key = () => '2099-01-02'; finish('/tmp/cutout.png'); await running;
-  assert.equal(f.store.get().memories[p.data.selected].date, started);
-  const before = f.disk[KEY]; p.cancelPhoto({ detail: { rect: { left: 20, top: 100, width: 280, height: 220 } } });
+  assert.equal(f.store.get().memories[p.photoNoteId].date, started);
+  p.continuePhoto({ detail: { rect: { left: 20, top: 100, width: 280, height: 220 } } });
+  const before = f.disk[KEY];
   t.after(() => clearTimeout(p.placementTimer));
   const token = p.data.placing.token; p.stickerLifted({ detail: { token } });
   assert.equal(p.data.task, null); assert.equal(f.tab.data.hidden, true);
