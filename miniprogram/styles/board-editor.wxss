@@ -50,7 +50,7 @@ button.board-share-button[disabled] { background:transparent; opacity:.4; }
 .board-options-drawer .drawer-sheet { display:flex; flex-direction:column; max-height:80vh; }
 .board-options-drawer .drawer-heading,.board-options-drawer .drawer-handle { flex-shrink:0; }
 .board-options-drawer .drawer-scroll,.board-options-scroll { min-height:0; max-height:64vh; flex:0 1 auto; }
-.board-options-scroll { height:min(calc(var(--option-count, 5) * 82px + 34px),64vh); }
+.board-options-scroll { height:min(362px,64vh); }
 .board-options-menu { display:flex; flex-direction:column; gap:8px; }
 .board-options-menu button { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; min-height:70px; margin:0; padding:14px 16px; border:1px solid #E5DFD2; border-radius:17px; background:#FCFAF3; color:#625A49; text-align:left; font-size:15px; line-height:1.5; }
 .board-options-menu button>view { flex:1; min-width:0; }

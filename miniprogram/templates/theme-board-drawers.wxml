@@ -12,11 +12,11 @@
         <button id="new-theme" class="theme-preview theme-new-preview" bindtap="create"><view class="theme-thumbnail theme-new-thumbnail"><text>＋</text><text>新建主题板</text></view></button>
       </view></scroll-view>
     </block>
-    <scroll-view wx:elif="{{drawer === 'theme'}}" class="board-options-scroll" style="--option-count:{{mode === 'themes' ? 5 : 4}};" scroll-y>
+    <scroll-view wx:elif="{{drawer === 'theme'}}" class="board-options-scroll" scroll-y>
       <view class="drawer-content"><view class="board-options-menu">
         <button id="theme-appearance" hover-class="ui-pressed" bindtap="openAppearance"><view><text>版面和纹理</text><text class="muted">选择喜欢的颜色与毡面质感</text></view><text>›</text></button>
         <button wx:if="{{mode === 'themes'}}" id="open-memory-libraries" hover-class="ui-pressed" bindtap="openMemoryLibrary"><view><text>记忆库</text><text class="muted">分门别类，收好喜欢的物体</text></view><text>›</text></button>
-        <button id="share-theme" hover-class="ui-pressed" disabled="{{!count}}" bindtap="shareTheme"><view><text>分享这块板</text><text class="muted">把这一板的记忆分享给朋友</text></view><text>›</text></button>
+        <button wx:if="{{mode !== 'themes'}}" id="share-theme" hover-class="ui-pressed" disabled="{{!count}}" bindtap="shareTheme"><view><text>分享这块板</text><text class="muted">把这一板的记忆分享给朋友</text></view><text>›</text></button>
         <button id="rename-theme" hover-class="ui-pressed" bindtap="rename"><view><text>重命名</text><text class="muted">为这块主题板换个名字</text></view><text>›</text></button>
         <button id="delete-theme" hover-class="ui-pressed" class="danger" bindtap="removeTheme"><view><text>删除主题板</text><text class="muted">物体和文字仍会保留</text></view><text>›</text></button>
       </view></view>

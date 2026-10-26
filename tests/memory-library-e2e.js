@@ -41,7 +41,8 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms || 120));
     await canvas.touchend({ touches: [], changedTouches: [touch] });
     await wait(home, d => d.drawer === (themeMode ? 'theme' : 'calendar-options'));
     if (themeMode) {
-      for (const selector of ['#theme-appearance', '#open-memory-libraries', '#rename-theme', '#delete-theme', '#share-theme']) assert.ok(await home.$(selector), selector);
+      for (const selector of ['#theme-appearance', '#open-memory-libraries', '#rename-theme', '#delete-theme']) assert.ok(await home.$(selector), selector);
+      assert.equal(await home.$('#share-theme'), null, 'Sharing stays in the board header, without a duplicate menu entry');
     } else assert.equal((await home.$$('.calendar-options-menu button')).length, 2);
     const board = await home.$('#today-board'); await wait(board, d => d.canvasHidden && d.occluded);
   }
