@@ -27,6 +27,37 @@ function themes(store) {
   store.commit(state => { state.boards[first].createdAt = 1; state.boards[first].updatedAt = 2; state.boards[second].createdAt = 3; state.boards[second].updatedAt = 4; });
   return { first, second };
 }
+
+test('canvas header hits open the same share card in calendar and theme modes without changing the board', t => {
+  const f = fixture(t), p = f.page, id = f.store.add('share', '2026-10-22', photo('share'));
+  const themeId = f.store.createTheme('share', '分享测试', id); p.refresh();
+  const rects = [{ left: 300, right: 344, top: 180, bottom: 224 }, null];
+  p.createSelectorQuery = () => ({ select() { return this; }, boundingClientRect() { return this; }, exec(cb) { cb(rects); } });
+  const tap = { detail: { start: { x: 322, y: 202 }, end: { x: 322, y: 202 } } };
+  for (const mode of ['calendar', 'themes']) {
+    if (mode === 'themes') { p.switchMode(); p.chooseTheme(event({ id: themeId })); }
+    const before = f.disk[KEY], date = p.date;
+    p.overhangTap(tap); assert.equal(p.data.shareBoardId, date); assert.equal(p.data.navigationBusy, true);
+    p.overhangTap(tap); assert.equal(p.data.shareBoardId, date);
+    p.closeShareCard(); assert.equal(p.data.navigationBusy, false); assert.equal(f.disk[KEY], before);
+  }
+});
+
+test('header hits distinguish theme options and ignore blank space, blocked states and stale measurements', t => {
+  const f = fixture(t), p = f.page; themes(f.store); p.switchMode();
+  const rects = [{ left: 256, right: 300, top: 180, bottom: 224 }, { left: 300, right: 344, top: 180, bottom: 224 }];
+  let complete, shares = 0, options = 0;
+  p.exportToday = () => { shares++; }; p.openSelection = () => { options++; };
+  p.createSelectorQuery = () => ({ select() { return this; }, boundingClientRect() { return this; }, exec(cb) { complete = cb; } });
+  const tap = (x, endX = x) => p.overhangTap({ detail: { start: { x, y: 202 }, end: { x: endX, y: 202 } } });
+  tap(322); complete(rects); assert.equal(options, 1);
+  tap(200); complete(rects); tap(299, 302); complete(rects); assert.equal(shares, 0); assert.equal(options, 1);
+  for (const key of ['journalPicker', 'drawer', 'loading', 'error', 'dragging', 'shareBoardId']) {
+    tap(278); p.data[key] = true; complete(rects); p.data[key] = ''; assert.equal(shares, 0, key);
+  }
+  tap(278); const originalDate = p.date; p.date = 'changed'; complete(rects); p.date = originalDate;
+  tap(278); p.disposed = true; complete(rects); assert.equal(shares, 0);
+});
 test('recent date rail crosses month/year/leap boundaries and only includes past dates', () => {
   const state = { boards: {} };
   assert.deepEqual(navigation.recent(state, '2024-03-01', '2024-03-01').map(d => d.date), ['2024-02-26','2024-02-27','2024-02-28','2024-02-29','2024-03-01']);

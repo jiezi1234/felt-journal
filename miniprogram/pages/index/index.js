@@ -181,6 +181,19 @@ Page({
   },
   openMemory(e) { if (!this.busy() && !this.data.drawer && !this.data.journalPicker) return this.memory(e); },
   exportToday() { if (!this.busy() && !this.data.journalPicker) this.exportBoard(); },
+  overhangTap(e) {
+    const { start, end } = e.detail || {}, date = this.date, mode = this.data.mode;
+    if (!start || !end || ![start.x, start.y, end.x, end.y].every(Number.isFinite)) return;
+    // Resolve the actual button bounds, including narrow screens and theme mode.
+    // Never let a delayed measurement target a newly selected board or overlay.
+    this.createSelectorQuery().select('#export-today').boundingClientRect().select('#theme-options').boundingClientRect().exec(rects => {
+      if (this.disposed || this.date !== date || this.data.mode !== mode || this.busy() || this.data.journalPicker || this.data.drawer || this.data.loading || this.data.error) return;
+      const inside = (r, p) => r && p.x >= r.left && p.x <= r.right && p.y >= r.top && p.y <= r.bottom;
+      const hit = r => inside(r, start) && inside(r, end);
+      if (hit(rects[0])) this.exportToday();
+      else if (hit(rects[1])) this.openSelection();
+    });
+  },
   openSelection() { if (this.data.mode === 'themes') return theme.openSelection.call(this); if (this.canAdjust()) { this.cancelGesture(); this.setData({ drawer: 'selection' }); } },
   openSelectedTools() { if (this.canAdjust()) { this.cancelGesture(); this.setData({ drawer: 'selection' }); } },
   floatingAction(e) { const action = e.detail.action; if (action === 'record') this.primary(); else if (action === 'tools') this.openSelectedTools(); else if (action === 'today') this.returnToday(); },

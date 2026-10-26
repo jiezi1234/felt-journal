@@ -9,7 +9,7 @@ const boardGuide = require('../../core/board-guide');
 const swipe = require('../../services/board-swipe');
 const journalMotion = require('../../services/journal-board-motion');
 Component({
-  properties: { model: { type: Object, value: null }, layout: String, editable: Boolean, canEdit: Boolean, selected: String, covered: Boolean, occluded: Boolean, landingId: String, reportGestures: Boolean, floatingControls: Object, allowSwipe: Boolean, swipePrevious: Object, swipeNext: Object, showActions: Boolean, actionsDisabled: Boolean, canAdd: Boolean, canUndo: Boolean, canBringToFront: Boolean, interactive: { type: Boolean, value: true } },
+  properties: { model: { type: Object, value: null }, layout: String, editable: Boolean, canEdit: Boolean, selected: String, covered: Boolean, occluded: Boolean, landingId: String, reportGestures: Boolean, forwardOverhangTaps: Boolean, floatingControls: Object, allowSwipe: Boolean, swipePrevious: Object, swipeNext: Object, showActions: Boolean, actionsDisabled: Boolean, canAdd: Boolean, canUndo: Boolean, canBringToFront: Boolean, interactive: { type: Boolean, value: true } },
   data: { height: 210, width: 0, topSpace: 0, canvasHeight: 210, handles: [], actions: [], swipeActive: false, navigationAnimating:false, imageError: false, snapshot: '', snapshotA:'', snapshotB:'', snapshotSlot:'a', snapshotVisible:false, canvasHidden:false },
   observers: { 'model, editable, selected, landingId, floatingControls': function () { this.refresh(); if (this.data.layout) wx.nextTick(() => this.measure()); },
     'covered, interactive, occluded': function () {
@@ -218,7 +218,7 @@ Component({
     swipeOffset(g) {
       // A selected object, long press, handle or floating action owns its entire
       // gesture. Only a horizontal browse gesture may turn the theme board.
-      if (!this.data.allowSwipe || this.data.landingId || !g || !g.moved || g.long || g.draggable || g.next || g.control || g.action || g.axis !== 'x') return 0;
+      if (!this.data.allowSwipe || this.data.landingId || !g || !g.moved || g.long || g.draggable || g.next || g.control || g.action || g.overhang || g.axis !== 'x') return 0;
       const start = this.localPoint(g.touch), end = this.localPoint(g.lastTouch);
       if (!start || !end) return 0;
       const dx = end.x - start.x, dy = end.y - start.y;
@@ -252,6 +252,13 @@ Component({
           Object.assign(g, { control: control.op, item, displayItem, pending: false,
             center: { x: (B.inset + displayItem.x) * s, y: (B.inset + displayItem.y) * s } });
           if (g.lastTouch !== touch) this.touchMove({ touches: [g.lastTouch] });
+          if (g.ended) this.touchEnd(g.endEvent);
+          return;
+        }
+        // A raised canvas includes transparent clamp headroom over the page's
+        // action row. Native layers may receive those taps ahead of DOM buttons.
+        if (this.data.forwardOverhangTaps && this.localPoint(touch).y < 0) {
+          Object.assign(g, { overhang: true, pending: false });
           if (g.ended) this.touchEnd(g.endEvent);
           return;
         }
@@ -325,7 +332,13 @@ Component({
       this.clearGesture();
       if (!g || this.dead || this.data.covered || !this.data.interactive) return;
       if (swipe.release(this, this.swipeOffset(g))) return;
-      if (g.action) {
+      if (g.overhang) {
+        const start = this.localPoint(g.touch), end = this.localPoint(e && e.changedTouches && e.changedTouches[0] || g.lastTouch);
+        if (!g.moved && start && end && end.y < 0 && Math.hypot(end.x - start.x, end.y - start.y) <= 6) {
+          const screen = p => ({ x: this.rect.left + p.x, y: this.rect.top + p.y });
+          this.triggerEvent('overhangtap', { start: screen(start), end: screen(end) });
+        }
+      } else if (g.action) {
         const target = this.actionAt(e && e.changedTouches && e.changedTouches[0] || g.lastTouch);
         if (!g.moved && target && target.action === g.action && !target.disabled) this.triggerEvent('boardaction', { action: g.action });
       } else if (g.control) {

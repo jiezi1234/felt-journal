@@ -122,6 +122,28 @@ function gestureFixture(t, data = {}, delayed = false) {
     move: dx => board.touchMove({ touches: [{ ...touch, clientX: touch.clientX + dx }] }) };
 }
 
+test('raised canvas forwards header taps in screen coordinates instead of selecting or editing the board', t => {
+  const f = gestureFixture(t, { forwardOverhangTaps: true, topSpace: 72 });
+  // The header button center is 64px above the board but inside its canvas.
+  for (const touch of [{ clientX: 350, clientY: -24 }, { x: 330, y: 8 }]) {
+    f.board.touchStart({ touches: [touch] }); f.board.touchEnd({ changedTouches: [touch] });
+    assert.deepEqual(f.events.pop(), { name: 'overhangtap', detail: { start: { x: 350, y: -24 }, end: { x: 350, y: -24 } } });
+    assert.equal(f.events.length, 0); assert.equal(f.board.data.editable, false);
+  }
+});
+
+test('header forwarding handles delayed measurements and rejects slides, canceled touches and covered boards', t => {
+  const f = gestureFixture(t, { forwardOverhangTaps: true, topSpace: 72 }, true), touch = { x: 330, y: 8 };
+  f.board.touchStart({ touches: [touch] }); f.board.touchEnd({ changedTouches: [touch] });
+  assert.equal(f.events.length, 0); f.measure(); assert.equal(f.events[0].name, 'overhangtap'); f.events.length = 0;
+  f.board.touchStart({ touches: [touch] }); f.measure();
+  f.board.touchMove({ touches: [{ x: 300, y: 8 }] }); f.board.touchEnd({ changedTouches: [touch] });
+  f.board.touchStart({ touches: [touch] }); f.measure(); f.board.touchCancel(); f.board.touchEnd({ changedTouches: [touch] });
+  f.board.touchStart({ touches: [touch] }); f.measure(); f.board.touchEnd({ changedTouches: [{ x: 350, y: 8 }] });
+  f.board.data.covered = true; f.board.touchStart({ touches: [touch] }); f.board.touchEnd({ changedTouches: [touch] });
+  assert.deepEqual(f.events, []);
+});
+
 test('a swipe already moving during measurement starts tracking without waiting for release', t => {
   const swipe = require('../miniprogram/services/board-swipe'), updates = [];
   t.mock.method(swipe, 'update', (host, dx) => { updates.push(dx); return true; });
