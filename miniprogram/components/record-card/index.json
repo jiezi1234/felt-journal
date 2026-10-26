@@ -1,6 +1,7 @@
 {
   "component": true,
   "usingComponents": {
-    "photo-panel": "/components/photo-panel/index"
+    "photo-panel": "/components/photo-panel/index",
+    "memory-library": "/components/memory-library/index"
   }
 }

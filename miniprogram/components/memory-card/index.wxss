@@ -101,6 +101,8 @@
 .card-theme-picker .primary { font-size:14px; padding:10px; }
 @media (max-width:350px) { .card-face { padding-left:18px; padding-right:18px; }.card-caption-line { font-size:17px; }.material-polaroid .card-caption-line { font-size:19px; }.material-ticket .card-face { padding-left:20px; padding-right:20px; }.card-ticket-stub { gap:10px; margin-left:-20px; margin-right:-20px; padding-left:20px; padding-right:20px; }.card-ticket-title { font-size:17px; }.card-ticket-day { font-size:32px; }.card-note-meta { font-size:11px; gap:4px; }.card-note-title { font-size:20px; } }
 @media (max-height:570px) { .memory-card-dialog { height:86vh; gap:12px; }.card-face { padding-top:16px; padding-bottom:16px; gap:8px; }.card-note-title { font-size:20px; }.card-note-heading { gap:5px; }.card-note-meta { line-height:1.4; }.card-caption-sub { display:none; } }
+.card-heading-date { flex:1; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+button.card-library-button { flex-shrink:0; min-height:44px; padding:7px 12px; margin:0; border-radius:22px; background:#F7F4E9; border:1px solid rgba(138,129,104,.2); color:#6B775C; font-size:12px; line-height:28px; }
 .has-keyboard .memory-card-dialog { height:100%; gap:6px; }
 .has-keyboard .card-face { padding:8px 12px; gap:6px; }
 .has-keyboard .card-note-heading,.has-keyboard .card-back .card-ticket-stub,.has-keyboard .card-note-meta { display:none; }

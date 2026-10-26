@@ -10,7 +10,7 @@ class PhotoTask {
   stage(state, error) {
     if (this.cancelled) return;
     this.state = state;
-    this.onState({ id:this.id, state, error: error || '', permission: /权限/.test(error || ''), original: this.originalPath || this.photo && this.photo.path || '', previewOriginal:this.photo && this.photo.path || this.originalPath || '', subject: this.subjectPath || this.result || '', alignment:this.alignment || null, kind: this.kind || '', committed: this.committed, category: this.savedCategory || '' });
+    this.onState({ id:this.id, memoryId:this.savedId || '', state, error: error || '', permission: /权限/.test(error || ''), original: this.originalPath || this.photo && this.photo.path || '', previewOriginal:this.photo && this.photo.path || this.originalPath || '', subject: this.subjectPath || this.result || '', alignment:this.alignment || null, kind: this.kind || '', committed: this.committed, category: this.savedCategory || '' });
   }
   check() { if (this.cancelled) throw new Error('处理已取消'); }
   async own(path, role) {
@@ -62,7 +62,7 @@ class PhotoTask {
       // Synchronous commit makes cancellation and duplicate callbacks unambiguous.
       const id = this.memoryId ? this.store.replace(this.id, this.memoryId, photos) : this.store.add(this.id, this.date, photos, this.targetBoardId, { deferPlacement: this.deferPlacement });
       this.savedCategory = this.store.get().memories[id].category;
-      this.committed = true; platform.releaseFiles(this.owned); this.owned = []; this.stage('done'); this.onDone(id);
+      this.savedId = id; this.committed = true; platform.releaseFiles(this.owned); this.owned = []; this.stage('done'); this.onDone(id);
       platform.collect(this.store).catch(() => {});
     } catch (e) {
       if (this.cancelled) await this.cleanup();

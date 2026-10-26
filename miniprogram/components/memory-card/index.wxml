@@ -1,7 +1,7 @@
 <view class="memory-card-overlay modal-overlay material-{{cardStyle}} {{editing ? 'is-editing' : ''}} {{pickupEnabled ? 'has-pickup pickup-' + pickupPhase : ''}} {{modalClosing ? 'is-closing' : ''}} {{modalKeyboard ? 'has-keyboard' : ''}}" style="{{modalHeight ? 'height:' + modalHeight + 'px;padding-bottom:' + modalBottom + 'px;' : ''}}" catchtouchmove="stop" catchtap="stop">
   <view class="memory-card-scrim modal-scrim" bindtap="close" />
   <view class="memory-card-dialog modal-surface" role="dialog" aria-modal="true" aria-label="记忆卡片">
-    <view class="row card-heading"><text class="muted">{{dateLabel}}</text><button hover-class="ui-pressed" id="close-memory-card" class="ghost ui-close" aria-label="关闭记忆卡片" disabled="{{pickupBusy}}" bindtap="close">×</button></view>
+    <view class="row card-heading"><text class="muted card-heading-date">{{dateLabel}}</text><button wx:if="{{memory}}" id="add-to-memory-library" class="card-library-button" disabled="{{pickupBusy || flipBusy || editing || themeOpen}}" bindtap="openLibraries">{{libraryCount ? '记忆库 · ' + libraryCount : '加入记忆库'}}</button><button hover-class="ui-pressed" id="close-memory-card" class="ghost ui-close" aria-label="关闭记忆卡片" disabled="{{pickupBusy}}" bindtap="close">×</button></view>
     <view wx:if="{{!memory}}" class="error">{{error}}</view>
     <view wx:else id="pickup-paper" class="flip-scene" animation="{{pickupPaperAnimation}}">
       <view id="flip-card" class="flip-card {{flipped ? 'is-flipped' : ''}} {{turning ? 'is-turning' : ''}} {{flipBusy ? 'is-flipping' : ''}}" bindtap="flip" role="button" aria-label="{{flipped ? '翻回图片' : '翻到文字说明'}}">
@@ -66,3 +66,4 @@
   </view>
   <image wx:if="{{pickupEnabled && memory && !missing}}" id="pickup-photo" class="memory-pickup-photo" src="{{memory.subjectPath}}" mode="aspectFit" style="{{pickupFlightStyle}}" animation="{{pickupPhotoAnimation}}" bindload="pickupFlightLoaded" binderror="pickupFailed" aria-hidden="true" />
 </view>
+<memory-library wx:if="{{libraryPickerOpen}}" id="memory-library-picker" mode="pick" memory-id="{{memoryId}}" bind:close="closeLibraries" bind:change="librariesChanged" />

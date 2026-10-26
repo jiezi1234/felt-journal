@@ -4,6 +4,7 @@ const geometry = require('./geometry');
 const layers = require('./layers');
 const felt = require('./felt');
 const fasteners = require('./fastener-style');
+const libraries = require('./memory-libraries');
 const KEY = 'felt-journal:v1';
 const DRAFT = 'felt-journal:drafts:v1';
 const MEMORY_DRAFT = 'felt-journal:memory-drafts:v1';
@@ -11,7 +12,7 @@ const ACTIVE_THEME = 'felt-journal:active-theme:v1';
 const clone = value => JSON.parse(JSON.stringify(value));
 // Keep the storage key so existing installations retain their data. Version 1
 // is validated before a read-only upgrade; only a successful mutation writes v2.
-const empty = () => ({ version: 2, revision: 0, boards: {}, memories: {}, operations: {}, garbage: [], localNoticeSeen: false });
+const empty = () => ({ version: 2, revision: 0, boards: {}, memories: {}, libraries: {}, operations: {}, garbage: [], localNoticeSeen: false });
 const isThemeId = id => typeof id === 'string' && /^theme_[a-z0-9_]+$/.test(id);
 const boardLabel = board => board.type === 'theme' ? board.title : dates.label(board.date);
 const membership = board => board && board.membershipRevision || 0;
@@ -48,6 +49,7 @@ function validate(s) {
     assert(typeof m.text === 'string' && m.text.length <= config.maxText && config.categories.includes(m.category), '记忆内容异常');
     assert(m.categorySource === undefined || ['auto', 'manual', 'none'].includes(m.categorySource), '记忆分类来源异常');
   });
+  libraries.validate(s);
   return s;
 }
 function createStore(storage) {
@@ -161,6 +163,40 @@ function createStore(storage) {
   }
   function deleteTheme(id) { assert(isThemeId(id), '只能删除主题板'); if (!get().boards[id]) return; commit(s => { delete s.boards[id]; }); clearDraft(id); }
   function boardsForMemory(id) { return Object.values(get().boards).filter(b => b.placements.some(p => p.memoryId === id)).map(b => ({ id: b.id, label: boardLabel(b) })); }
+  function createLibrary(taskId, value) {
+    const id = `library_${taskId}`, title = libraries.title(value);
+    assert(libraries.validId(id), '记忆库编号无效');
+    if ((get().libraries || {})[id]) return id;
+    commit(s => {
+      if (!s.libraries) s.libraries = {};
+      assert(Object.keys(s.libraries).length < config.maxLibraries, `最多创建 ${config.maxLibraries} 个记忆库`);
+      assert(!Object.values(s.libraries).some(item => item.title === title), '已有同名记忆库，请换一个名称');
+      const now = Date.now(); s.libraries[id] = { id, title, memoryIds: [], createdAt: now, updatedAt: now };
+    }); return id;
+  }
+  function renameLibrary(id, value) {
+    const title = libraries.title(value), current = (get().libraries || {})[id];
+    assert(current, '记忆库已被删除'); if (current.title === title) return;
+    commit(s => {
+      assert(!Object.values(s.libraries).some(item => item.id !== id && item.title === title), '已有同名记忆库，请换一个名称');
+      Object.assign(s.libraries[id], { title, updatedAt: Date.now() });
+    });
+  }
+  function deleteLibrary(id) { if ((get().libraries || {})[id]) commit(s => { delete s.libraries[id]; }); }
+  function setMemoryLibraries(memoryId, ids) {
+    assert(Array.isArray(ids), '请选择记忆库'); const selected = [...new Set(ids)];
+    const state = get(), existing = state.libraries || {};
+    assert(state.memories[memoryId], '这条记忆已被删除');
+    assert(selected.every(id => Object.prototype.hasOwnProperty.call(existing, id)), '记忆库已被删除，请重新选择');
+    const previous = Object.values(existing).filter(item => item.memoryIds.includes(memoryId)).map(item => item.id);
+    if (selected.length === previous.length && selected.every(id => previous.includes(id))) return;
+    commit(s => Object.values(s.libraries || {}).forEach(item => {
+      const included = item.memoryIds.includes(memoryId), wanted = selected.includes(item.id);
+      if (included === wanted) return;
+      item.memoryIds = wanted ? [...item.memoryIds, memoryId] : item.memoryIds.filter(id => id !== memoryId);
+      item.updatedAt = Date.now();
+    }));
+  }
   function replace(taskId, id, photos) {
     if (get().operations[taskId]) return id;
     commit(s => {
@@ -198,6 +234,7 @@ function createStore(storage) {
     commit(s => {
       const m = s.memories[id]; assert(m, '这条记忆已被删除');
       Object.values(s.boards).forEach(b => { if (b.placements.some(p => p.memoryId === id)) { affected.push(b.id); b.placements = b.placements.filter(p => p.memoryId !== id); touchMembers(b); } });
+      Object.values(s.libraries || {}).forEach(item => { if (item.memoryIds.includes(id)) { item.memoryIds = item.memoryIds.filter(value => value !== id); item.updatedAt = Date.now(); } });
       s.garbage.push(m.originalPath, m.subjectPath); delete s.memories[id];
     });
     clearMemoryDraft(id); affected.forEach(clearDraft);
@@ -217,7 +254,7 @@ function createStore(storage) {
   function referenced(path) { return Object.values(get().memories).some(m => m.originalPath === path || m.subjectPath === path); }
   function activeTheme() { try { return storage.get(ACTIVE_THEME) || ''; } catch (_) { return ''; } }
   function rememberTheme(id) { try { if (activeTheme() !== id) storage.set(ACTIVE_THEME, id); } catch (_) { /* A preference must not block an otherwise saved board. */ } }
-  return { load, get, commit, board, view, canEdit, add, replace, editSubject, edit, remove, place, placeMany, unplace, createTheme, renameTheme, deleteTheme, boardsForMemory, saveBoard, keepDraft, clearDraft, getDraft, keepMemoryDraft, getMemoryDraft, clearMemoryDraft, referenced, activeTheme, rememberTheme };
+  return { load, get, commit, board, view, canEdit, add, replace, editSubject, edit, remove, place, placeMany, unplace, createTheme, renameTheme, deleteTheme, boardsForMemory, createLibrary, renameLibrary, deleteLibrary, setMemoryLibraries, saveBoard, keepDraft, clearDraft, getDraft, keepMemoryDraft, getMemoryDraft, clearMemoryDraft, referenced, activeTheme, rememberTheme };
 }
 let singleton;
 function getStore() {

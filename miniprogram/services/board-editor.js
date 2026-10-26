@@ -10,6 +10,9 @@ const stickerMotion = require('../core/sticker-motion');
 const feedback = require('./board-feedback');
 const boardMemory = require('./board-memory');
 function createBoardEditor(options = {}) { return {
+  openPhotoLibrary() { photo.openLibrary(this); },
+  closePhotoLibrary() { this.setData({ photoLibraryOpen: false }); photo.libraryChanged(this); },
+  photoLibraryChanged() { photo.libraryChanged(this); },
   // Placement feedback never changes the saved model or creates another memory.
   data: { showBoardGuide: false, layoutSaved: false, shareBoardId: '', memoryCardId: '', memoryCardSource: null, photoNoteOpen: false, photoNoteText: '', photoNoteError: '', embedded: !!options.embedded, sourceStage: false, drawer: '', libraryItems: [], visibleLibraryItems: [], libraryPage: 1, libraryPageCount: 1, noteText: '', noteCategory: 0, noteError: '', noteHint: '', categories: config.categories, maxText: config.maxText, loading: true, error: '', date: '', dateLabel: '', isTheme: false, editable: false, canEdit: false, selected: '', model: null, count: 0, saveState: '已保存', saveError: '', task: null, placing: null, colors: config.colors, textures: config.textures, appearanceLabel: '', canUndo: false, canRedo: false, canBringToFront: false, canSendToBack: false, recovering: false, openingLibrary: false },
   onLoad(query) {
@@ -260,6 +263,7 @@ function createBoardEditor(options = {}) { return {
   discardNote() { this.store.clearMemoryDraft(this.noteId); this.noteDirty = false; this.setData({ noteError: '', drawer: '' }); platform.unloadGuard(!!this.dirty || !!this.photoTask); },
   async back() {
     if (this.closing || this.data.recovering || this.mutating || this.data.photoAdjusting) return;
+    if (this.data.photoLibraryOpen) { const library = this.selectComponent && this.selectComponent('#photo-library'); if (library) library.close(); return; }
     if (this.data.shareBoardId) { const share = this.selectComponent && this.selectComponent('#share-card'); if (share) share.back(); return; }
     if (this.data.drawer) { this.closeDrawer(); return; }
     if (this.noteDirty && !this.saveNote()) return;

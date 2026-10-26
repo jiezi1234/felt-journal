@@ -18,6 +18,7 @@ module.exports = {
   scaleStep: 1.1, rotationStep: 15, minSize: 110, maxSize: 850, historyLimit: 30,
   maxItems: 30, maxImageBytes: 15 * 1024 * 1024, maxText: 1000,
   maxThemes: 50, maxBoardTitle: 30,
+  maxLibraries: 100, maxLibraryTitle: 30,
   categories: ['未分类', '饮食', '自然', '出行', '日常', '心情'],
   exportWidth: 1800,
   // Supply a trusted HTTPS image-processing backend, never a vendor secret.

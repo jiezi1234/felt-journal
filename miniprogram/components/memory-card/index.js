@@ -1,6 +1,7 @@
 const { getStore } = require('../../core/store');
 const dates = require('../../core/date');
 const config = require('../../core/config');
+const libraries = require('../../core/memory-libraries');
 const platform = require('../../services/platform');
 const { newId } = require('../../services/photo-task');
 const modal = require('../../services/modal-presentation');
@@ -17,6 +18,7 @@ Component({
   options: { styleIsolation: 'apply-shared' },
   properties: { memoryId: String, source:Object },
   data: { memory: null, dateLabel: '', cardStyle: 'cotton', cardDate: '', cardYear: '', cardMonth: '', cardDay: '', frontCaption: '', flipped: false, flipBusy: false, turning: false, noteFocus: false, editing: false, text: '', error: '', hint: '', missing: false, maxText: config.maxText,
+    libraryPickerOpen: false, libraryCount: 0,
     themeOpen: false, themeCreating: false, themeWorking: false, themeTitle: '', themeError: '', themes: [], visibleThemes: [], themePage: 1, themePageCount: 1, maxThemeTitle: config.maxBoardTitle },
   lifetimes: {
     attached() { pickup.mount(this); modal.mount(this); this.store = getStore(); this.refresh(); },
@@ -40,7 +42,7 @@ Component({
       try {
         const memory = this.store.load().memories[this.data.memoryId];
         if (!memory) throw new Error('这条记忆已被删除');
-        this.setData({ memory, ...cardDetails(memory), error: '' });
+        this.setData({ memory, ...cardDetails(memory), libraryCount: libraries.forMemory(this.store.get(), memory.id).length, error: '' });
         if (!this.dirty) this.setData({ text: memory.text });
         if (!this.checkedDraft) {
           this.checkedDraft = true; const draft = this.store.getMemoryDraft(memory.id);
@@ -50,9 +52,9 @@ Component({
       } catch (error) { this.setData({ error: platform.message(error, '记忆读取失败'), memory: null }); }
     },
     turnTo(back, done) { cardTurn.turn(this, back, done); },
-    flip() { if (!this.data.pickupBusy && !this.data.flipBusy && !this.data.editing && !this.data.themeOpen && this.data.memory) this.turnTo(!this.data.flipped); },
+    flip() { if (!this.data.libraryPickerOpen && !this.data.pickupBusy && !this.data.flipBusy && !this.data.editing && !this.data.themeOpen && this.data.memory) this.turnTo(!this.data.flipped); },
     edit() {
-      if (this.data.pickupBusy || this.data.flipBusy || !this.data.memory || this.data.themeOpen) return;
+      if (this.data.libraryPickerOpen || this.data.pickupBusy || this.data.flipBusy || !this.data.memory || this.data.themeOpen) return;
       this.setData({ flipped:true, editing:true, noteFocus:true, error:'', hint:'' });
     },
     noteFocused() { if (!this.data.noteFocus) this.setData({ noteFocus:true }); },
@@ -80,7 +82,7 @@ Component({
       this.setData({ text: memory ? memory.text : '', editing: false, noteFocus: false, error: '', hint: '' }); platform.unloadGuard(false);
     },
     openThemes() {
-      if (this.data.pickupBusy || this.data.flipBusy || !this.data.memory || !this.data.flipped || this.data.editing || this.data.themeWorking) return;
+      if (this.data.libraryPickerOpen || this.data.pickupBusy || this.data.flipBusy || !this.data.memory || !this.data.flipped || this.data.editing || this.data.themeWorking) return;
       this.setData({ themeOpen: true, themeCreating: false, themePage: 1, themeError: '' }); this.refreshThemes();
     },
     refreshThemes() {
@@ -127,7 +129,14 @@ Component({
       this.setData({ themeOpen: false, themeCreating: false, themeError: '' });
       this.triggerEvent('change', { id: this.data.memoryId }); platform.toast('已放入主题板');
     },
+    openLibraries() {
+      if (this.data.pickupBusy || this.data.flipBusy || this.data.editing || this.data.themeOpen || !this.data.memory) return;
+      this.setData({ libraryPickerOpen: true });
+    },
+    closeLibraries() { this.setData({ libraryPickerOpen: false }); this.refresh(); },
+    librariesChanged() { this.refresh(); this.triggerEvent('change', { id: this.data.memoryId }); },
     close() {
+      if (this.data.libraryPickerOpen) { const picker = this.selectComponent && this.selectComponent('#memory-library-picker'); if (picker) picker.close(); return; }
       if (this.data.themeOpen) { this.closeThemes(); return; }
       if (this.data.memory && this.dirty && !this.save()) return;
       pickup.close(this, () => this.triggerEvent('close'));

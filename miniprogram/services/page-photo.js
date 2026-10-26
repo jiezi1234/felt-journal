@@ -1,6 +1,7 @@
 const { PhotoTask } = require('./photo-task');
 const platform = require('./platform');
 const config = require('../core/config');
+const libraries = require('../core/memory-libraries');
 const { SubjectEditTask } = require('./subject-edit');
 function current(page, task) { return !page.disposed && page.photoTask === task; }
 function guard(page) {
@@ -12,13 +13,13 @@ function begin(page, source, options, previousResult) {
   if (page.disposed || page.photoTask) return;
   page.photoSource = source;
   page.photoNoteId = ''; page.photoNoteDirty = false;
-  page.setData({ photoNoteOpen: false, photoNoteText: '', photoNoteError: '', photoAdjustmentError: '' });
+  page.setData({ photoNoteOpen: false, photoNoteText: '', photoNoteError: '', photoAdjustmentError: '', photoLibraryOpen: false, photoLibraryTitle: '' });
   const task = new PhotoTask(Object.assign({}, options, {
     store: page.store, requireConfirmation: false,
     onState(snapshot) { if (current(page, task)) { page.setData({ task: snapshot }); guard(page); } },
     // Refresh the saved model now, while keeping the result visible until Continue.
     // A close/unload must never write an older board draft over the new memory.
-    onDone(id) { task.savedId = id; if (current(page, task)) { page.photoNoteId = id; page.setData({ photoNoteText: page.store.get().memories[id].text }); page.photoDone(id); guard(page); } },
+    onDone(id) { task.savedId = id; if (current(page, task)) { page.photoNoteId = id; page.setData({ photoNoteText: page.store.get().memories[id].text }); libraryChanged(page); page.photoDone(id); guard(page); } },
     onCancel() {
       if (!current(page, task)) return;
       page.photoTask = task.previousResult || null;
@@ -27,6 +28,7 @@ function begin(page, source, options, previousResult) {
         const memory = page.store.get().memories[page.photoNoteId];
         page.setData({ photoNoteText: memory ? memory.text : '', photoNoteOpen: false });
         refreshResult(page, true);
+        libraryChanged(page);
       } else page.setData({ task: null });
       guard(page);
     }
@@ -46,14 +48,14 @@ function retry(page) {
   if (task.state === 'preview' || task.state === 'extractError') return task.process(false);
 }
 function finish(page, showNotice = true) {
-  if (!page.photoTask || !page.photoTask.committed || page.disposed || page.data.photoAdjusting || !saveNote(page)) return false;
+  if (!page.photoTask || !page.photoTask.committed || page.disposed || page.data.photoAdjusting || page.data.photoLibraryOpen || !saveNote(page)) return false;
   page.photoTask = null; page.setData({ task: null }); guard(page);
   if (showNotice) platform.localNotice(page.store).catch(() => {});
   return true;
 }
 function confirmPlacement(page) {
   const task = page.photoTask;
-  if (!task || !task.committed || page.disposed || page.closing || page.data.modalClosing || page.handingOff || page.data.placing || page.data.lifting || page.data.photoAdjusting || !saveNote(page)) return false;
+  if (!task || !task.committed || page.disposed || page.closing || page.data.modalClosing || page.handingOff || page.data.placing || page.data.lifting || page.data.photoAdjusting || page.data.photoLibraryOpen || !saveNote(page)) return false;
   const id = task.savedId || page.photoNoteId || page.data.selected;
   try {
     if (task.deferPlacement) page.store.place(id, task.targetBoardId || task.date);
@@ -70,6 +72,16 @@ function openNote(page) {
   const draft = page.store.getMemoryDraft(page.photoNoteId);
   if (draft && !page.photoNoteDirty) { page.photoNoteDirty = true; page.setData({ photoNoteText: draft.text }); }
   page.setData({ photoNoteOpen: true }); guard(page);
+}
+function libraryChanged(page) {
+  const id = page.photoTask && page.photoTask.savedId;
+  const names = id ? libraries.forMemory(page.store.get(), id).map(item => item.title) : [];
+  page.setData({ photoLibraryTitle: names.join('、') });
+}
+function openLibrary(page) {
+  if (!page.photoTask || !page.photoTask.committed || !page.photoTask.savedId || page.disposed || page.data.photoAdjusting || page.data.placing || page.data.lifting || page.data.photoLibraryOpen || !saveNote(page)) return;
+  if (typeof wx !== 'undefined' && wx.hideKeyboard) wx.hideKeyboard({});
+  page.setData({ photoLibraryOpen: true });
 }
 function inputNote(page, e) {
   if (!page.photoTask || !page.photoTask.committed || !page.photoNoteId || page.data.placing || page.data.photoAdjusting || page.disposed) return;
@@ -137,4 +149,4 @@ function dispose(page) {
   if (page.resultEditTask) page.resultEditTask.cancel();
   if (task && !task.committed) return task.cancel();
 }
-module.exports = { begin, retry, cancel, original, finish, confirmPlacement, dispose, openNote, inputNote, saveNote, refreshResult, adjustResult };
+module.exports = { begin, retry, cancel, original, finish, confirmPlacement, dispose, openNote, inputNote, saveNote, refreshResult, adjustResult, openLibrary, libraryChanged };

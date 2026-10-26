@@ -11,7 +11,7 @@ Page({
   ...editor, ...theme,
   data: { ...theme.data, inlineTheme: false, mode: 'calendar', dailyDate: '', recentDays: [], themeRail: [], journalThemes: [], journalPicker: '', pickerClosing:false, pickerPreparing:false, previewReady:{}, previewErrors:{}, contentMotion:'',
     journalYear: 0, journalMonth: 0, calendarCells: [], canNextMonth: false, weekdays: ['一', '二', '三', '四', '五', '六', '日'],
-    navigationBusy: false, editorOpen: false, editorDate: '', headerStatus:20, headerHeight:64, headerMenuInset:104, headerTitle:'' },
+    libraryOpen: false, navigationBusy: false, editorOpen: false, editorDate: '', headerStatus:20, headerHeight:64, headerMenuInset:104, headerTitle:'' },
   syncNavigation() { this.setData({ navigationBusy: this.busy() }); platform.syncTab(this, 'today', true); },
   onLoad() { this.syncHeader(); editor.onLoad.call(this, { date: dates.key() }); this.dailyDate = this.date; this.lastToday = dates.key(); },
   syncHeader() {
@@ -56,7 +56,7 @@ Page({
       this.refreshNavigation();
     } catch (e) { this.setData({ loading: false, error: platform.message(e, '本地记录读取失败，请重试') }); }
   },
-  busy() { return !!(this.data.pickerPreparing || this.data.editorOpen || this.data.placing || this.data.memoryCardId || this.data.shareBoardId || this.data.task || this.data.recovering || this.data.formOpen || this.data.working || this.data.dragging || this.data.swiping || this.data.openingLibrary || this.photoTask || this.memoryOpening || this.mutating); },
+  busy() { return !!(this.data.libraryOpen || this.data.pickerPreparing || this.data.editorOpen || this.data.placing || this.data.memoryCardId || this.data.shareBoardId || this.data.task || this.data.recovering || this.data.formOpen || this.data.working || this.data.dragging || this.data.swiping || this.data.openingLibrary || this.photoTask || this.memoryOpening || this.mutating); },
   refreshNavigation() {
     const state = this.store.get(), items = navigation.themes(state), mode = this.data.mode;
     const selected = items.findIndex(item => item.id === this.activeThemeId);
@@ -149,10 +149,47 @@ Page({
     if (this.data.journalPicker !== 'calendar' || this.data.pickerClosing) return;
     const next = dates.shiftMonth(this.journalYear, this.journalMonth, offset); this.journalYear = next.year; this.journalMonth = next.month; this.refreshCalendar();
   },
-  memories() { this.closeJournalPicker(()=>platform.call('navigateTo', { url: '/pages/memories/index' }).catch(error => platform.toast(platform.message(error, '记忆库暂时无法打开')))); },
+  memories() { this.closeJournalPicker(() => this.openMemoryLibrary()); },
+  openMemoryLibrary() {
+    if (this.busy() || this.data.loading || this.data.error) return;
+    this.cancelGesture(); if (this.dirty && !this.persist()) return;
+    const token = this.pickerRequest = (this.pickerRequest || 0) + 1;
+    let opened = false;
+    const show = () => {
+      if (opened || this.disposed || token !== this.pickerRequest) return;
+      opened = true; clearTimeout(this.journalPrepareTimer);
+      this.setData({ libraryOpen: true, pickerPreparing: false, drawer: '' }); this.syncNavigation();
+    };
+    const board = this.selectComponent && this.selectComponent('#today-board');
+    if (!board || !board.prepareOverlay) { show(); return; }
+    this.setData({ pickerPreparing: true, navigationBusy: true });
+    this.journalPrepareTimer = setTimeout(show, 900);
+    return Promise.resolve(board.prepareOverlay()).then(show, show);
+  },
+  closeMemoryLibrary() { if (this.data.memoryCardId) return; this.setData({ libraryOpen: false }); this.refresh(); this.syncNavigation(); },
+  libraryChanged() { this.refresh(); },
+  openLibraryMemory(e) {
+    const id = e.detail.id;
+    if (!this.data.libraryOpen || this.data.memoryCardId || !this.store.get().memories[id]) return;
+    this.setData({ memoryCardId: id, memoryCardSource: null }); this.syncNavigation();
+  },
+  closeMemoryCard() {
+    if (!this.data.libraryOpen) return editor.closeMemoryCard.call(this);
+    this.setData({ memoryCardId: '', memoryCardSource: null }); this.refresh(); this.syncNavigation();
+  },
+  openCalendarOptions() {
+    if (this.data.mode !== 'calendar' || !this.prepareBoardChange()) return;
+    this.setData({ drawer: 'calendar-options' });
+  },
+  openAppearance() {
+    if (this.data.mode === 'themes') return theme.openAppearance.call(this);
+    if (this.busy() || this.data.journalPicker || this.data.loading || this.data.error) return;
+    this.cancelGesture(); if (this.dirty && !this.persist()) return;
+    this.setData({ drawer: '' }); this.edit(); editor.openAppearance.call(this);
+  },
   createJournalTheme() { if (this.prepareBoardChange()) this.closeJournalPicker(()=>{this.setData({mode:'themes'});this.create();}); },
   cancelGesture() { const board = this.selectComponent && this.selectComponent('#today-board'); if (board) board.touchCancel(); },
-  canAdjust() { return !this.data.editorOpen && !this.data.journalPicker && !this.data.formOpen && editor.canAdjust.call(this); },
+  canAdjust() { return !this.data.libraryOpen && !this.data.editorOpen && !this.data.journalPicker && !this.data.formOpen && editor.canAdjust.call(this); },
   openBoard() {
     if (this.busy() || this.data.drawer || this.data.journalPicker || this.data.loading || this.data.error) return;
     this.edit();
@@ -198,12 +235,13 @@ Page({
     if (!start || !end || ![start.x, start.y, end.x, end.y].every(Number.isFinite)) return;
     // Resolve the actual button bounds, including narrow screens and theme mode.
     // Never let a delayed measurement target a newly selected board or overlay.
-    this.createSelectorQuery().select('#export-today').boundingClientRect().select('#theme-options').boundingClientRect().exec(rects => {
+    this.createSelectorQuery().select('#export-today').boundingClientRect().select('#theme-options').boundingClientRect().select('#calendar-options').boundingClientRect().exec(rects => {
       if (this.disposed || this.date !== date || this.data.mode !== mode || this.busy() || this.data.journalPicker || this.data.drawer || this.data.loading || this.data.error) return;
       const inside = (r, p) => r && p.x >= r.left && p.x <= r.right && p.y >= r.top && p.y <= r.bottom;
       const hit = r => inside(r, start) && inside(r, end);
       if (hit(rects[0])) this.exportToday();
       else if (hit(rects[1])) this.openSelection();
+      else if (hit(rects[2])) this.openCalendarOptions();
     });
   },
   openSelection() { if (this.data.mode === 'themes') return theme.openSelection.call(this); if (this.canAdjust()) { this.cancelGesture(); this.setData({ drawer: 'selection' }); } },

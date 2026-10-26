@@ -1,0 +1,34 @@
+<view class="memory-library-overlay modal-overlay {{covered ? 'library-covered' : ''}} {{modalClosing ? 'is-closing' : ''}} {{modalKeyboard ? 'has-keyboard' : ''}}" style="{{modalHeight ? 'height:' + modalHeight + 'px;padding-bottom:' + modalBottom + 'px;' : ''}}" catchtap="stop" catchtouchmove="stop">
+  <view class="library-scrim modal-scrim" bindtap="close" />
+  <view class="library-card modal-surface" role="dialog" aria-modal="true" aria-label="{{mode === 'pick' ? '加入记忆库' : libraryTitle || '记忆库'}}">
+    <view class="library-heading">
+      <button wx:if="{{libraryId || formOpen}}" id="library-back" class="library-icon" aria-label="返回上一层" disabled="{{working}}" bindtap="back">‹</button>
+      <view class="library-heading-copy"><text class="library-eyebrow">把喜欢的，慢慢收好</text><view class="library-title">{{formOpen ? editingId ? '重命名记忆库' : '新建记忆库' : mode === 'pick' ? '加入记忆库' : libraryTitle || '记忆库'}}</view></view>
+      <button wx:if="{{libraryId && libraryId !== 'all' && !formOpen}}" id="library-options" class="library-icon" aria-label="管理记忆库" disabled="{{working}}" bindtap="options">···</button>
+      <button id="close-library-card" class="library-icon" aria-label="关闭记忆库" disabled="{{working}}" bindtap="close">×</button>
+    </view>
+    <view wx:if="{{formOpen}}" class="library-name-form library-pane">
+      <text class="library-helper">给这些记忆取一个名字</text>
+      <input id="library-name" class="library-name-input" value="{{formTitle}}" maxlength="{{maxTitle * 2}}" placeholder="如：旅途拾光、喜欢的小物" focus="{{true}}" disabled="{{working}}" bindinput="nameInput" bindconfirm="saveName" confirm-type="done" />
+      <view class="library-form-actions"><button id="cancel-library-name" class="secondary" disabled="{{working}}" bindtap="back">取消</button><button id="save-library-name" class="primary" loading="{{working}}" disabled="{{working}}" bindtap="saveName">{{editingId ? '保存名称' : mode === 'pick' ? '创建并选中' : '创建记忆库'}}</button></view>
+    </view>
+    <block wx:elif="{{libraryId}}">
+      <view class="library-gallery-tools"><text class="library-helper">{{items.length}} 件物体 · 轻点查看，翻面读小记</text><input id="library-search" class="library-search" placeholder="搜索文字、日期或分类" value="{{query}}" maxlength="100" bindinput="search" /></view>
+      <scroll-view id="library-objects" class="library-scroll library-pane" scroll-y scroll-top="{{scrollTop}}" bindscroll="scrolled" bindscrolltolower="more" lower-threshold="100">
+        <view class="library-object-grid"><button wx:for="{{visibleItems}}" wx:key="id" class="library-object" data-id="{{item.id}}" bindtap="openMemory" aria-label="{{item.date + '，' + (item.text || item.category) + '，打开记忆卡片'}}"><view class="library-object-photo"><image wx:if="{{!missing[item.id]}}" src="{{item.path}}" mode="aspectFit" lazy-load data-id="{{item.id}}" binderror="imageError" /><text wx:else class="library-image-missing">图片暂不可用</text></view><text class="library-object-date">{{item.date}}</text><view class="library-object-caption">{{item.text || '这一刻，值得收藏'}}</view></button></view>
+        <view wx:if="{{!visibleItems.length}}" class="library-empty"><text>{{query ? '没有找到相关物体' : '这里，等着新的记忆'}}</text><text>{{query ? '换个关键词再试试' : '在物体卡片中选择“加入记忆库”，就能在这里找到它'}}</text></view>
+        <button wx:if="{{visibleItems.length < filteredCount}}" class="library-more" bindtap="more">查看更多 · {{visibleItems.length}} / {{filteredCount}}</button>
+      </scroll-view>
+    </block>
+    <block wx:else>
+      <view class="library-list-tools"><text class="library-helper">{{mode === 'pick' ? '可选择多个库，物体保留在原来的板面上' : '按自己的方式，收藏生活的片段'}}</text><button id="create-library" class="library-new" disabled="{{working}}" bindtap="create">＋ 新建</button></view>
+      <scroll-view class="library-scroll library-pane" scroll-y>
+        <button wx:if="{{mode !== 'pick'}}" id="all-library-objects" class="library-all" data-id="all" bindtap="open"><view><text class="library-all-title">全部物体</text><text class="library-helper">{{allCount}} 件 · 每一份记忆都在这里</text></view><view class="library-all-images"><image wx:for="{{allImages}}" wx:key="id" src="{{item.path}}" mode="aspectFit" /></view><text class="library-chevron">›</text></button>
+        <view class="library-grid"><button wx:for="{{libraries}}" wx:key="id" class="library-folder {{item.checked && mode === 'pick' ? 'library-folder-selected' : ''}}" data-id="{{item.id}}" bindtap="open" disabled="{{working}}" aria-label="{{item.title + '，' + item.count + '件物体' + (mode === 'pick' ? item.checked ? '，已选择' : '，未选择' : '')}}"><view class="library-folder-cover"><image wx:for="{{item.images}}" wx:for-item="photo" wx:for-index="photoIndex" wx:key="id" class="library-cover-object library-cover-{{photoIndex}}" src="{{photo.path}}" mode="aspectFit" /><view wx:if="{{!item.images.length}}" class="library-folder-empty">把小事收好</view><view wx:if="{{mode === 'pick'}}" class="library-checkbox">{{item.checked ? '✓' : ''}}</view></view><view class="library-folder-name">{{item.title}}</view><text class="library-helper">{{item.count}} 件物体</text></button></view>
+        <view wx:if="{{!libraries.length}}" class="library-empty"><text>为记忆留一个专属的位置</text><text>新建一个记忆库，再把喜欢的物体放进来</text></view>
+      </scroll-view>
+      <view wx:if="{{mode === 'pick'}}" class="library-confirm"><text class="library-helper">{{selectionCount ? '已选 ' + selectionCount + ' 个库 · ' + selectedSummary : '未选择记忆库，物体仍保留在“全部物体”中'}}</text><button id="confirm-library-selection" class="primary" disabled="{{working || !loaded}}" loading="{{working}}" bindtap="confirm">保存选择</button></view>
+    </block>
+    <view wx:if="{{error}}" class="library-error" role="alert">{{error}}<button wx:if="{{!loaded}}" class="secondary" bindtap="refresh">重新读取</button></view>
+  </view>
+</view>

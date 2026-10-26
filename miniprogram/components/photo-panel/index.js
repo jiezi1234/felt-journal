@@ -4,7 +4,7 @@ const stageLabels = {
   extracting: '主体提取中…', saving: '保存记忆中…'
 };
 Component({
-  properties: { task: Object, inline: Boolean, keyboard: Boolean, lifting: Boolean, adjusting: Boolean, adjustmentError: String, continueLabel: { type: String, value: '继续' }, noteOpen: Boolean, noteText: String, noteError: String, maxText: { type: Number, value: 1000 } },
+  properties: { task: Object, inline: Boolean, keyboard: Boolean, lifting: Boolean, adjusting: Boolean, adjustmentError: String, allowLibrary: Boolean, libraryTitle: String, continueLabel: { type: String, value: '继续' }, noteOpen: Boolean, noteText: String, noteError: String, maxText: { type: Number, value: 1000 } },
   data: { showOriginal: false, preview: false, done: false, failed: false, analyzing: false, stageLabel: '', stageLines:[], resultLabel: '', displayImage: '', canCompare: false,
     originalSrc:'',subjectSrc:'',subjectStyle:'',subjectVisible:false,originalHidden:false,revealBusy:false,revealPhase:'original',revealError:'' },
   lifetimes: { detached() { this.dead = true; this.pendingContinue = null; reveal.clear(this); } },
@@ -35,6 +35,7 @@ Component({
     }
   },
   methods: {
+    openLibrary() { if (this.data.done && this.data.task.memoryId && this.data.allowLibrary && !this.data.revealBusy && !this.data.adjusting && !this.data.lifting) this.triggerEvent('libraryopen'); },
     originalLoaded(e) { reveal.loaded(this,'original',e); }, subjectLoaded(e) { reveal.loaded(this,'subject',e); },
     originalFailed(e) { reveal.failed(this,'original',e); }, subjectFailed(e) { reveal.failed(this,'subject',e); },
     retryPreview() { reveal.retry(this); },

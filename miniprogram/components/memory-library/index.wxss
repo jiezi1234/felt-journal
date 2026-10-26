@@ -1,0 +1,59 @@
+@import '../../styles/modal.wxss';
+:host { position:relative; z-index:190; }
+.memory-library-overlay { position:fixed; inset:0; z-index:190; box-sizing:border-box; padding:20px 16px calc(20px + env(safe-area-inset-bottom)); display:flex; align-items:center; justify-content:center; color:#534F43; }
+.library-covered { visibility:hidden; pointer-events:none; }
+.library-scrim { position:absolute; inset:0; background:rgba(39,37,29,.35); }
+.library-card { position:relative; width:100%; max-width:420px; height:76vh; max-height:min(660px,100%); min-height:280px; display:flex; flex-direction:column; overflow:hidden; box-sizing:border-box; border-radius:28px; padding:22px 18px 18px; background:linear-gradient(145deg,#FFFCF5,#F4F0E6); border:1px solid #FFFEF8; box-shadow:0 22px 64px rgba(43,37,25,.18),inset 0 1px 0 #FFF; }
+.library-heading { display:flex; align-items:center; gap:6px; padding-bottom:18px; flex-shrink:0; }
+.library-heading-copy { flex:1; min-width:0; display:flex; flex-direction:column; gap:7px; }
+.library-eyebrow { color:#948B76; font-size:10px; letter-spacing:2px; }
+.library-title { font-size:23px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+button.library-icon { flex-shrink:0; display:flex; align-items:center; justify-content:center; width:44px; min-height:44px; height:44px; margin:0; padding:0; border:0; font-size:25px; line-height:1; color:#77705E; background:transparent; border-radius:50%; }
+button::after { border:0; }
+.library-helper { display:block; color:#8C8472; font-size:11px; line-height:1.7; font-weight:normal; }
+.library-list-tools { display:flex; gap:10px; align-items:center; padding:0 0 14px; }
+.library-list-tools .library-helper { flex:1; }
+button.library-new { width:auto; flex-shrink:0; min-height:44px; margin:0; padding:0 12px; line-height:44px; border:0; font-size:12px; color:#607158; background:#E8EBDf; border-radius:22px; }
+.library-scroll { flex:1; height:0; min-height:0; width:100%; }
+.library-pane { animation:library-pane-in 220ms ease-out both; }
+@keyframes library-pane-in { from { opacity:0; transform:translateY(7px); } to { opacity:1; transform:translateY(0); } }
+button.library-all { display:flex; align-items:center; gap:8px; width:100%; padding:17px 14px; margin:0 0 18px; background:#E7EBDD; border:1px solid #D7DDC9; border-radius:18px; text-align:left; }
+.library-all>view:first-child { flex:1; min-width:0; }
+.library-all-title { display:block; font-size:16px; font-weight:600; margin-bottom:5px; color:#57634D; }
+.library-all-images { display:flex; align-items:center; width:78px; overflow:hidden; }
+.library-all-images image { width:34px; height:44px; flex-shrink:0; margin-left:-8px; }
+.library-chevron { font-size:24px; color:#7B876E; }
+.library-grid,.library-object-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 12px; padding:2px 2px 16px; }
+button.library-folder { width:100%; min-width:0; margin:0; padding:0 0 10px; border:0; border-radius:0; overflow:hidden; background:transparent; text-align:left; line-height:1.5; }
+.library-folder-cover { position:relative; height:108px; margin-bottom:10px; border-radius:15px; background:linear-gradient(145deg,#EEE7D7,#E4DFCF); border:1px solid #E0D8C4; box-shadow:0 4px 0 -2px #F8F5EB,0 5px 0 -2px #D9D1BF; }
+.library-folder-selected .library-folder-cover { border:2px solid #819270; background:#E9EDDE; }
+.library-cover-object { position:absolute; width:58%; height:72%; top:10%; left:20%; }
+.library-cover-1 { width:48%; height:58%; left:2%; top:30%; transform:rotate(-12deg); }
+.library-cover-2 { width:44%; height:52%; left:54%; top:36%; transform:rotate(10deg); }
+.library-folder-empty { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:11px; color:#A79D86; letter-spacing:1px; }
+.library-folder-name { display:block; font-size:14px; font-weight:500; color:#5F594A; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:0 2px 3px; }
+.library-folder>.library-helper { margin:0 2px; }
+.library-checkbox { position:absolute; top:8px; right:8px; width:20px; height:20px; border:1px solid #A7AE99; border-radius:50%; background:#FAF9F0; line-height:20px; text-align:center; color:#FFF; font-size:12px; }
+.library-folder-selected .library-checkbox { background:#758969; border-color:#758969; }
+.library-gallery-tools { padding-bottom:14px; }
+.library-search { margin-top:10px; height:39px; padding:0 13px; border-radius:12px; background:rgba(222,216,201,.42); font-size:12px; }
+button.library-object { width:100%; min-width:0; margin:0; padding:10px 10px 12px; background:#FFFEF8; border:1px solid #E8E0D1; border-radius:12px; text-align:left; line-height:1.6; box-shadow:0 3px 8px rgba(81,68,44,.04); }
+.library-object-photo { height:122px; display:flex; align-items:center; justify-content:center; padding:4px; }
+.library-object-photo image { width:100%; height:100%; }
+.library-object-date { display:block; font-size:10px; color:#A39A87; margin-top:7px; }
+.library-object-caption { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; color:#6C6251; }
+.library-image-missing { font-size:11px; color:#A39A87; }
+.library-empty { padding:26px 16px; text-align:center; color:#756C59; font-size:14px; }
+.library-empty>text { display:block; }
+.library-empty>text+text { margin-top:10px; font-size:12px; line-height:1.8; color:#A09885; }
+button.library-more { width:100%; border:0; font-size:12px; color:#7F8C70; background:transparent; margin:0 0 12px; }
+.library-confirm { padding-top:12px; border-top:1px solid #E5DECE; }
+.library-confirm .library-helper { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:10px; }
+.library-confirm .primary { width:100%; }
+.library-error { flex-shrink:0; color:#A6604A; font-size:12px; line-height:1.6; padding:8px 3px 0; }
+.library-name-form { padding:20px 0; }
+.library-name-input { border-bottom:1px solid #CFC8B7; height:52px; margin:12px 0 26px; font-size:16px; }
+.library-form-actions { display:flex; gap:12px; }
+.library-form-actions button { width:0; flex:1; }
+.has-keyboard .library-card { min-height:0; height:100%; }
+@media (max-width:350px) { .library-card { padding-left:14px; padding-right:14px; }.library-title { font-size:20px; }.library-object-photo { height:100px; }.library-all-images { width:50px; } }
