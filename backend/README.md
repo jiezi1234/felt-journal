@@ -36,6 +36,8 @@ backend/.venv/Scripts/python.exe -m backend.verify_nosh path/to/photo.jpg
 
 结果是真实透明 RGBA PNG，按主体边界裁切并依 APK 的纯白贴纸分支生成平滑轮廓（约主体长边 4%，小主体最少 9 像素）。每次提取随机选择 `cotton`（细棉纸）、`linen`（亚麻织纹）、`watercolor`（水彩纸）、`laid`（手工横纹）之一，并以独立随机种子生成浅白材质；这是本项目新增的装饰效果。材质只作为主体后方的轮廓层，保持原 alpha 轮廓和不透明主体像素，原半透明边缘按 alpha 正常混合。纹理直接写入 PNG，画板、预览和分享共用同一张图，不在显示时重新随机；已有贴纸不自动重写。纯白版本仍可通过 `backend.border.white_sticker` 用于对照验证。接触阴影由小程序共用渲染器绘制。
 
+2026-10-26 加深四种纸纹的纤维凹凸和明暗，沿用原有纹理形态、尺寸与暖白色调。在同一随机种子的 800px 纸面缩为 160px 的对照中，明暗标准差约为原来的 1.8–2 倍。纹理只影响新提取的 PNG，已有图片需重新提取。28 项轮廓、接口及模型预处理测试通过；服务器隔离候选镜像的真实模型样例为 938×454 RGBA，四种纹理的 alpha 与原轮廓一致，纸边平均亮度均高于 240/255。上线后，开发者工具通过真实微信登录、HTTPS 上传、推理及鉴权下载获得同尺寸透明 PNG，匿名上传仍返回 401；此项为模拟器验证，未重新上传体验版。
+
 原图仅在请求内存中处理。结果临时保留 15 分钟，到期不能读取；后续请求或健康检查清理过期文件。服务器的健康监控应定时访问 `/health`，以便空闲时也清理过期结果。一次处理一张，繁忙返回 503；413 为超限，415 为不支持的照片，失败不会返回成功结果。
 
 ## 部署接通小程序
@@ -66,7 +68,7 @@ docker compose --env-file backend/.env --env-file backend/.env.production \
 docker exec backend-https-1 caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
 ```
 
-`FELT_PRODUCTION_IMAGE` 必须是已构建并验证的镜像；新机器可先使用同一组参数执行 `docker compose ... build extractor`，再导入模型。当前部署使用 `felt-extractor-auth:20261023`，为兼容现有开发手机，启动命令还在 `.env.production` 之前加载 `--env-file backend/.env.development`，只将其中的开发令牌注入服务器。体验版/正式版始终走独立微信会话，不打包该令牌。移除这一可选 env-file 可关闭开发令牌入口。
+`FELT_PRODUCTION_IMAGE` 必须是已构建并验证的镜像；新机器可先使用同一组参数执行 `docker compose ... build extractor`，再导入模型。当前部署使用 `felt-extractor-texture:20261026`（基于已验证的 `felt-extractor-auth:20261023`，仅更新纸纹绘制），为兼容现有开发手机，启动命令还在 `.env.production` 之前加载 `--env-file backend/.env.development`，只将其中的开发令牌注入服务器。体验版/正式版始终走独立微信会话，不打包该令牌。移除这一可选 env-file 可关闭开发令牌入口。2026-10-26 更新前的配置与纹理源文件保留在服务器 `/home/ubuntu/felt-deployments/20261026-texture-depth/backup`，原镜像及运行卷保留。
 
 2026-10-23 已完成镜像构建、Caddy/Compose 校验和线上切换，保留原运行卷、证书卷及旧镜像回滚材料。隔离候选容器使用真实 `wx.login` 代码完成微信换取会话、真实模型提取及鉴权下载，公开动物样例为 938×454 RGBA，透明度 0–255，处理及下载约 0.87 秒；匿名上传/下载返回 401。此内部测试不代替手机体验版验收。
 

@@ -46,10 +46,11 @@ def paper_material(size: tuple[int, int], style: str, seed: int, stroke: float) 
         surface = np.sin((y + .3 * noise(12 * unit)) * np.pi / (2 * unit))
         surface += .25 * np.sin(x * np.pi / (15 * unit)) + .2 * noise(5 * unit, unit)
         shade = 1.3 * grain + 1.5 * noise(18 * unit)
-    # Upper-left light and lower-right recesses give fine fibres a shallow relief.
+    # Keep the same fibres and light direction, but deepen their relief. The
+    # broader shade also needs contrast so paper remains visible on small stickers.
     dx = cv2.Sobel(surface, cv2.CV_32F, 1, 0, ksize=3) / 8
     dy = cv2.Sobel(surface, cv2.CV_32F, 0, 1, ksize=3) / 8
-    luminance = np.clip(248 + 6.5 * (dx + dy) + shade, 228, 255)
+    luminance = np.clip(247 + 11 * (dx + dy) + 2.4 * shade, 218, 255)
     rgb = np.stack((luminance, luminance - .8, luminance - 2.2), axis=2)
     material = Image.fromarray(np.rint(rgb).clip(0, 255).astype(np.uint8)).convert('RGBA')
     if material.size != size:
