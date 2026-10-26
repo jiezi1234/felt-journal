@@ -201,6 +201,30 @@ test('journal floating controls keep safe-area clearance, separate hit targets a
   }
 });
 
+test('side bookmark shares paint and hit geometry, stays separate from bottom actions and hides behind overlays', () => {
+  const actions = require('../miniprogram/core/board-actions');
+  for (const width of [268,320,398,508]) for (const height of [200,300,560]) for (const mode of ['calendar','themes']) {
+    const state={interactive:true,bottomInset:34,floatingControls:{mode,quick:'tools',label:'添加记忆',offsetY:42}};
+    const targets=actions.layout(width,height,state),bookmark=targets.find(a=>a.action==='mode'),quick=targets.find(a=>a.action==='tools');
+    assert.equal(bookmark.width,44); assert.ok(bookmark.height>=112);
+    assert.equal(bookmark.x+bookmark.width,width); assert.ok(bookmark.y+bookmark.height<quick.y);
+    assert.equal(bookmark.title,mode==='calendar'?'日历板':'主题板');
+    assert.equal(actions.hit(targets,{x:bookmark.x+22,y:bookmark.y+56}).action,'mode');
+    for(const hidden of [{covered:true},{dragging:true},{landingId:'photo'},{interactive:false}])assert.deepEqual(actions.layout(width,height,{...state,...hidden}),[]);
+  }
+});
+
+test('native bookmark taps switch once and never select or open the underlying memory', t => {
+  const f=gestureFixture(t,{height:500,floatingControls:{mode:'calendar',label:'添加记忆'}});
+  const touch={clientX:20+360-22,clientY:40+24+66};
+  const start=()=>f.board.touchStart({touches:[touch]}),end=()=>f.board.touchEnd({changedTouches:[touch]});
+  start();end();assert.deepEqual(f.events,[{name:'boardaction',detail:{action:'mode'}}]);
+  f.board.actionTap({currentTarget:{dataset:{action:'mode'}}});assert.equal(f.events.length,1);
+  f.events.length=0;start();f.board.touchMove({touches:[{...touch,clientY:touch.clientY+20}]});end();assert.deepEqual(f.events,[]);
+  start();f.board.touchCancel();end();assert.deepEqual(f.events,[]);
+  f.board.data.floatingControls.disabled=true;start();end();assert.deepEqual(f.events,[]);
+});
+
 test('tapping an object opens its card without selecting it in browse or edit mode', t => {
   const f = gestureFixture(t);
   for (const editable of [false, true]) {

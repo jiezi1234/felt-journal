@@ -24,7 +24,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
   async function call(method, value) { await mini.evaluate((method, value) => getCurrentPages().slice(-1)[0][method](value), method, value); await pause(180); }
   async function settleBoard() {
     for(let i=0;i<80;i++) {
-      const ready=await mini.evaluate(()=>{const b=getCurrentPages().slice(-1)[0].selectComponent('#today-board');return !b || !b.data.navigationAnimating && (b.data.covered || b.displayModel && b.data.model && b.displayModel.id===b.data.model.id);});
+      const ready=await mini.evaluate(()=>{const p=getCurrentPages().slice(-1)[0],b=p.selectComponent('#today-board');return !b || !b.data.navigationAnimating && !b.journalSource && (b.data.covered || b.displayModel && b.data.model && b.data.model.id===p.data.date && b.displayModel.id===b.data.model.id);});
       if(ready)return;await pause(40);
     }
     throw Error('Board transition did not settle');
@@ -38,6 +38,10 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     assert.equal(await canvas.style('display'),'none','Native canvas is actually removed from the compositor');
   }
   async function tap(selector) {
+    if(selector==='#switch-mode') {
+      const board=await (await mini.currentPage()).$('#today-board');
+      if(board){await tapCanvasAction('mode');return;}
+    }
     const page=await mini.currentPage(),element=await page.$(selector);assert.ok(element,`Missing ${selector}`);await element.tap();
     if(selector==='#journal-more'){await wait(data=>!!data.journalPicker&&!data.pickerPreparing);await assertPickerOccluded();}
     if(selector==='#close-journal-picker')await assertPickerOccluded();
@@ -55,17 +59,17 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     assert.ok(touch,`Native canvas exposes ${action}`);
     const canvas=await (await (await mini.currentPage()).$('#today-board')).$('#feltCanvas');
     await canvas.touchstart({touches:[touch],changedTouches:[touch]}); await pause(120);
-    await canvas.touchend({touches:[],changedTouches:[touch]}); await pause(180);
+    await canvas.touchend({touches:[],changedTouches:[touch]}); await pause(180);await settleBoard();
   }
   async function inspect(name) {
     await settleBoard();
     const result = await mini.evaluate(() => new Promise(resolve => {
       const page = getCurrentPages().slice(-1)[0], info = wx.getSystemInfoSync();
-      const selectors = ['#switch-mode','.journal-rail','.today-sheet','.today-stage','#record-today','.journal-picker-card'];
+      const selectors = ['.journal-topbar','.journal-rail','.today-sheet','.today-stage','#record-today','.journal-picker-card'];
       const query = wx.createSelectorQuery(); selectors.forEach(s => query.select(s).boundingClientRect());
       query.selectAll('.journal-day,.journal-theme,.journal-more').boundingClientRect();
       query.selectAll('#selected-tools,#return-today').boundingClientRect();
-      query.exec(values => resolve({ mode:page.data.mode, error:page.data.error, width:info.windowWidth, height:info.windowHeight, rects:values.slice(0,selectors.length), rail:values[selectors.length], quickActions:values[selectors.length+1] }));
+      query.exec(values => resolve({ mode:page.data.mode, error:page.data.error, width:info.windowWidth, height:info.windowHeight, statusBar:info.statusBarHeight, menu:wx.getMenuButtonBoundingClientRect(), headerStatus:page.data.headerStatus, headerTitle:page.data.headerTitle, rects:values.slice(0,selectors.length), rail:values[selectors.length], quickActions:values[selectors.length+1] }));
     }));
     const page=await mini.currentPage(), dock=await page.$('.record-dock'), button=await page.$('#record-today');
     result.dock={ 'pointer-events':await dock.style('pointer-events'), visibility:await dock.style('visibility') };
@@ -81,6 +85,9 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
       for(const key of ['width','height','canvasHeight'])assert.ok(Math.abs(result.renderedSize[key]-baseline.renderedSize[key])<1,`${name}: rendered board ${key} stays fixed`);
     }
     assert.equal(result.error, '', name);
+    assert.equal(result.headerStatus,result.statusBar,'Custom header retains the native status-bar safe area');
+    assert.ok(result.rects[0].bottom>=result.menu.bottom,'Date title and native capsule share one navigation row');
+    assert.ok(result.rects[1].height<=68,'Compact date and theme rails do not restore the large heading gap');
     result.rects.filter(Boolean).forEach(r => { assert.ok(r.left >= -1 && r.right <= result.width+1, `${name} horizontal overflow ${JSON.stringify(r)}`); assert.ok(r.top >= -1 && r.bottom <= result.height+1, `${name} vertical overflow ${JSON.stringify(r)}`); });
     result.rail.forEach(r => assert.ok(r.width >= 43 && r.height >= 44, `${name} touch target ${JSON.stringify(r)}`));
     const tabVisible = await mini.evaluate(() => { const p = getCurrentPages().slice(-1)[0], tab = p.getTabBar && p.getTabBar(); return !!(tab && tab.selectComponent('#main-nav')); });
@@ -93,6 +100,9 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     assert.equal(result.dock['pointer-events'], 'none', 'Empty space around floating controls passes touches to the board');
     assert.equal(result.add['pointer-events'], 'auto', 'Floating add button remains interactive');
     if (!result.rects[5]) {
+      const bookmark=result.nativeControls.find(a=>a.action==='mode');assert.ok(bookmark,'Native canvas exposes the side bookmark');
+      assert.equal(bookmark.width,44);assert.ok(bookmark.top>result.canvasBounds.top && bookmark.top+bookmark.height<result.canvasBounds.bottom);
+      assert.ok(Math.abs(bookmark.left+bookmark.width-result.canvasBounds.right)<1,'Bookmark aligns with the right edge');
       const native=result.nativeControls.find(a=>a.action==='record'); assert.ok(native,'Native canvas paints the add control');
       assert.ok(native.top+native.height<=result.canvasBounds.bottom-1,'Floating button is fully painted below the raised board');
       for (const key of ['left','top','width','height']) assert.ok(Math.abs(native[key]-add[key])<1,`Native paint and accessible button agree on ${key}`);
@@ -184,8 +194,17 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     await tap('#close-journal-picker');
     const before=await mini.evaluate(()=>wx.getStorageSync('felt-journal:v1')); await tap('#switch-mode'); await tap('#switch-mode');
     assert.equal(await mini.evaluate(()=>wx.getStorageSync('felt-journal:v1')),before,'Browsing modes never writes board data');
+    const blankDisk={}, blankStore=createStore({get:k=>blankDisk[k],set:(k,v)=>{blankDisk[k]=v;}});
+    blankStore.commit(s=>{s.localNoticeSeen=true;});
+    await mini.evaluate((keys,snapshot)=>{keys.forEach(k=>wx.removeStorageSync(k));wx.setStorageSync(keys[0],snapshot);},keys,blankDisk[keys[0]]);
+    await mini.reLaunch('/pages/index/index');await wait(data=>!data.loading);
+    await tap('#switch-mode');await wait(data=>data.mode==='themes'&&!data.date);
+    const blankPage=await mini.currentPage(),fallback=await blankPage.$('#switch-mode');
+    assert.ok(fallback,'First-time theme mode keeps a reachable bookmark without a native board');
+    await tap('#switch-mode');await wait(data=>data.mode==='calendar');
+    assert.equal((await (await mini.currentPage()).data()).date,today);
     assert.deepEqual(errors,[]);
-    console.log('PASS: selection recall, latest thumbnail, library placement, sharing, empty-day recording and six-week calendar');
+    console.log('PASS: selection recall, latest thumbnail, library placement, sharing, empty-day recording, six-week calendar and empty-theme return');
   } finally {
     if (mini) {
       if (backup) {

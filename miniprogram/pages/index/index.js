@@ -4,16 +4,27 @@ const platform = require('../../services/platform');
 const motion = require('../../core/sticker-motion');
 const { createThemeBoardPage } = require('../../services/theme-board-page');
 const navigation = require('../../core/journal-navigation');
+const header = require('../../core/journal-header');
 const editor = createBoardEditor();
 const theme = createThemeBoardPage();
 Page({
   ...editor, ...theme,
   data: { ...theme.data, inlineTheme: false, mode: 'calendar', dailyDate: '', recentDays: [], themeRail: [], journalThemes: [], journalPicker: '', pickerClosing:false, pickerPreparing:false, previewReady:{}, previewErrors:{}, contentMotion:'',
     journalYear: 0, journalMonth: 0, calendarCells: [], canNextMonth: false, weekdays: ['一', '二', '三', '四', '五', '六', '日'],
-    navigationBusy: false, editorOpen: false, editorDate: '' },
+    navigationBusy: false, editorOpen: false, editorDate: '', headerStatus:20, headerHeight:64, headerMenuInset:104, headerTitle:'' },
   syncNavigation() { this.setData({ navigationBusy: this.busy() }); platform.syncTab(this, 'today', true); },
-  onLoad() { editor.onLoad.call(this, { date: dates.key() }); this.dailyDate = this.date; this.lastToday = dates.key(); },
+  onLoad() { this.syncHeader(); editor.onLoad.call(this, { date: dates.key() }); this.dailyDate = this.date; this.lastToday = dates.key(); },
+  syncHeader() {
+    let info = {}, menu = {};
+    if (typeof wx !== 'undefined') {
+      try { info = wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync(); } catch (_) { /* Safe defaults before the window is ready. */ }
+      try { menu = wx.getMenuButtonBoundingClientRect(); } catch (_) { /* Older runtimes keep a clear menu inset. */ }
+    }
+    this.setData(header.layout(info, menu));
+  },
+  onResize() { this.syncHeader(); editor.onResize.call(this); },
   onShow() {
+    this.syncHeader();
     this.syncNavigation();
     if (!this.data.editorOpen && !this.data.placing && !this.data.memoryCardId && !this.data.shareBoardId) this.refresh();
     clearInterval(this.timer);
@@ -55,7 +66,7 @@ Page({
     this.themeRailStart = start;
     this.setData({ todayDate: dates.key(), dailyDate: this.dailyDate || dates.key(), recentDays: navigation.recent(state, this.dailyDate || dates.key(), dates.key()),
       journalThemes: items, themeRail: items.slice(start, start + 3), navigationBusy: this.busy(), inlineTheme: mode === 'themes',
-      modeSubtitle: mode === 'themes' ? this.data.dateLabel || '按主题收藏喜欢的日子' : `${Number(this.date.slice(5, 7))}月${Number(this.date.slice(8))}日 · 星期${navigation.weekday(this.date)}` });
+      headerTitle: mode === 'themes' ? '我的收藏' : `${Number(this.date.slice(5, 7))}月${Number(this.date.slice(8))}日` });
     if (this.data.journalPicker === 'calendar') this.refreshCalendar();
   },
   display() { editor.display.call(this); this.refreshNavigation(); },
@@ -71,6 +82,7 @@ Page({
     this.setData({contentMotion:this.data.contentMotion === 'a' ? 'b' : 'a'});
   },
   switchMode() {
+    if (this.data.journalPicker || this.data.saveError) return;
     if (!this.prepareBoardChange()) return;
     this.beginBoardTransition();
     if (this.data.mode === 'calendar') this.dailyDate = this.date;
@@ -196,7 +208,7 @@ Page({
   },
   openSelection() { if (this.data.mode === 'themes') return theme.openSelection.call(this); if (this.canAdjust()) { this.cancelGesture(); this.setData({ drawer: 'selection' }); } },
   openSelectedTools() { if (this.canAdjust()) { this.cancelGesture(); this.setData({ drawer: 'selection' }); } },
-  floatingAction(e) { const action = e.detail.action; if (action === 'record') this.primary(); else if (action === 'tools') this.openSelectedTools(); else if (action === 'today') this.returnToday(); },
+  floatingAction(e) { const action = e.detail.action; if (action === 'record') this.primary(); else if (action === 'tools') this.openSelectedTools(); else if (action === 'today') this.returnToday(); else if (action === 'mode') this.switchMode(); },
   select(e) { return this.data.mode === 'themes' ? theme.select.call(this, e) : editor.select.call(this, e); },
   library() { return this.data.mode === 'themes' ? theme.library.call(this) : editor.library.call(this); },
   placeFromLibrary(e) { return this.data.mode === 'themes' ? theme.placeFromLibrary.call(this, e) : editor.placeFromLibrary.call(this, e); },

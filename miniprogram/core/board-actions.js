@@ -14,6 +14,12 @@ function layout(width, height, state) {
       const quickWidth = compact ? 56 : 66;
       actions.push({ action:controls.quick, id:'journal-canvas-quick', label:controls.quick === 'tools' ? '布置选项' : '回到今天', kind:'journal-quick', x:width-quickWidth, y:y+3, width:quickWidth, height:44, disabled:!!controls.disabled });
     }
+    if (controls.mode) {
+      const title = controls.mode === 'themes' ? '主题板' : '日历板', small = height < 260;
+      actions.push({ action:'mode', id:'switch-mode', kind:'journal-mode', mode:controls.mode, title,
+        label:`当前为${title}，点击切换为${controls.mode === 'themes' ? '日历板' : '主题板'}`,
+        x:width-44, y:small ? 12 : 24, width:44, height:small ? 112 : 132, disabled:!!controls.disabled });
+    }
     return actions.map(a => ({ ...a, style:`left:${a.x}px;top:${a.y}px;width:${a.width}px;height:${a.height}px;` }));
   }
   if (!state.showActions) return [];
@@ -44,6 +50,7 @@ function paint(ctx, actions, screenWidth, pressed, hint) {
       ctx.fillStyle = '#7D6D5E'; ctx.fillText(hint,screenWidth/2,y,width-12);
     }
     actions.forEach(a => {
+      if (a.kind === 'journal-mode') { paintBookmark(ctx, a, pressed === a.action); return; }
       ctx.save(); ctx.globalAlpha = a.disabled ? .45 : 1;
       ctx.shadowColor = 'rgba(79,55,21,.24)'; ctx.shadowBlur = 16; ctx.shadowOffsetY = 6;
       rounded(ctx,a.x,a.y,a.width,a.height,a.height/2);
@@ -81,6 +88,27 @@ function paint(ctx, actions, screenWidth, pressed, hint) {
     }
     ctx.restore();
   });
+  ctx.restore();
+}
+function paintBookmark(ctx, a, pressed) {
+  ctx.save(); ctx.translate(a.x, a.y); ctx.globalAlpha = a.disabled ? .45 : 1;
+  ctx.shadowColor = 'rgba(65,48,28,.18)'; ctx.shadowBlur = 10; ctx.shadowOffsetX = -3; ctx.shadowOffsetY = 4;
+  rounded(ctx, .5, .5, a.width-1, a.height-1, 12); ctx.fillStyle = pressed ? '#F3E9D5' : '#FFFCF6'; ctx.fill();
+  ctx.shadowColor = 'transparent'; ctx.strokeStyle = '#E2D7C5'; ctx.lineWidth = 1; ctx.stroke();
+  // The icon, vertical title and switch mark remain legible on compact boards.
+  ctx.strokeStyle = '#94816A'; ctx.lineWidth = 1.2; ctx.setLineDash([]);
+  const x = a.width/2, iconY = 16;
+  if (a.mode === 'themes') {
+    for (const dx of [-6,2]) for (const dy of [0,8]) { rounded(ctx,x+dx,iconY+dy,5,5,1); ctx.stroke(); }
+  } else {
+    rounded(ctx,x-6,iconY,12,12,2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x-6,iconY+4); ctx.lineTo(x+6,iconY+4);
+    ctx.moveTo(x-3,iconY-2); ctx.lineTo(x-3,iconY+2); ctx.moveTo(x+3,iconY-2); ctx.lineTo(x+3,iconY+2); ctx.stroke();
+  }
+  ctx.fillStyle = '#64533E'; ctx.font = '14px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const step = a.height < 132 ? 17 : 20, start = a.height/2-step;
+  Array.from(a.title).forEach((char,i)=>ctx.fillText(char,x,start+i*step));
+  ctx.font = '18px sans-serif'; ctx.fillStyle = '#94816A'; ctx.fillText('⇄',x,a.height-17);
   ctx.restore();
 }
 module.exports = { layout, hit, paint };

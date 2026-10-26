@@ -63,6 +63,15 @@ test('recent date rail crosses month/year/leap boundaries and only includes past
   assert.deepEqual(navigation.recent(state, '2024-03-01', '2024-03-01').map(d => d.date), ['2024-02-26','2024-02-27','2024-02-28','2024-02-29','2024-03-01']);
   assert.equal(navigation.recent(state, '2026-12-31', '2027-01-03')[2].date, '2026-12-31');
 });
+
+test('bookmark changes the header and retains each mode selection, but cannot switch through a modal or failed save', t => {
+  const {page:p,store}=fixture(t);themes(store);
+  p.chooseDate(event({date:'2026-10-20'}));assert.equal(p.data.headerTitle,'10月20日');
+  p.floatingAction({detail:{action:'mode'}});assert.equal(p.data.mode,'themes');assert.equal(p.data.headerTitle,'我的收藏');
+  p.openJournalPicker();p.floatingAction({detail:{action:'mode'}});assert.equal(p.data.mode,'themes');p.closeJournalPicker();
+  p.data.saveError='磁盘已满';p.floatingAction({detail:{action:'mode'}});assert.equal(p.data.mode,'themes');p.data.saveError='';
+  p.floatingAction({detail:{action:'mode'}});assert.equal(p.date,'2026-10-20');assert.equal(p.data.headerTitle,'10月20日');
+});
 test('reading dates, opening pickers and visiting empty theme mode never creates empty boards', t => {
   const { page: p, store } = fixture(t), before = store.get();
   p.chooseDate(event({ date: '2024-02-29' })); assert.equal(p.date, '2024-02-29'); assert.equal(p.data.canEdit, true);
