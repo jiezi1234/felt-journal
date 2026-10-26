@@ -13,9 +13,10 @@
       </view></scroll-view>
     </block>
     <view wx:elif="{{drawer === 'theme'}}" class="theme-menu">
+      <button id="theme-appearance" bindtap="openAppearance">版面和纹理<text>›</text></button>
+      <button wx:if="{{mode === 'themes'}}" id="open-memory-libraries" bindtap="openMemoryLibrary">记忆库<text>›</text></button>
       <button id="share-theme" disabled="{{!count}}" bindtap="shareTheme">分享这块板<text>↗</text></button>
       <button id="rename-theme" bindtap="rename">重命名<text>›</text></button>
-      <button id="theme-appearance" bindtap="openAppearance">板面与纹理<text>›</text></button>
       <button id="delete-theme" class="danger" bindtap="removeTheme">删除主题板<text>›</text></button>
     </view>
     <block wx:elif="{{drawer === 'library'}}">

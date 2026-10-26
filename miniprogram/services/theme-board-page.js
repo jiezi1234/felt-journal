@@ -35,6 +35,7 @@ function createThemeBoardPage() {
     },
     // Finish pending edits before changing which board the shared editor owns.
     prepareThemeChange() {
+      if (this.data.libraryOpen || this.data.pickerPreparing) return false;
       if (this.data.swiping && !this.committingSwipe) return false;
       if (this.data.working || this.data.formOpen || this.data.loading || this.data.error || this.data.recovering || this.mutating || this.memoryOpening || this.photoTask || this.data.placing || this.data.memoryCardId || this.data.shareBoardId) return false;
       this.cancelGesture();

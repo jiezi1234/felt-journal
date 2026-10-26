@@ -73,6 +73,19 @@ test('result library selector never confirms placement and a stale continue cann
   page.data.photoLibraryOpen = false; photo.libraryChanged(page); assert.equal(page.data.photoLibraryTitle, '随手收集');
   assert.equal(photo.finish(page, false), true); assert.equal(f.store.board(f.date).placements.length, 0);
 });
+test('theme menu opens the shared library and restores the same board while blocking hidden theme actions', t => {
+  const f = fixture(t), id = f.store.createTheme('current', '随手记', f.id);
+  const page = { ...home, data: clone(home.data), store: f.store, setData(update) { Object.assign(this.data, update); }, selectComponent() { return { touchCancel() {} }; } };
+  page.refresh(); page.switchMode(); assert.equal(page.date, id);
+  const before = clone(f.store.get().boards[id]);
+  page.openSelection(); assert.equal(page.data.drawer, 'theme'); page.openMemoryLibrary(); assert.equal(page.data.libraryOpen, true);
+  assert.equal(page.prepareThemeChange(), false); page.openAppearance(); page.rename(); page.switchMode();
+  assert.equal(page.data.drawer, ''); assert.equal(page.data.formOpen, false); assert.equal(page.data.mode, 'themes');
+  page.openLibraryMemory({ detail: { id: f.id } }); page.closeMemoryCard(); assert.equal(page.data.libraryOpen, true);
+  page.closeMemoryLibrary(); assert.equal(page.date, id); assert.equal(page.data.mode, 'themes');
+  assert.deepEqual(f.store.get().boards[id], before);
+  page.data.pickerPreparing = true; assert.equal(page.prepareThemeChange(), false);
+});
 test('object card offers library selection on its front and keeps flip state and notes on return', t => {
   const f = fixture(t), c = { ...memoryCard.methods, store: f.store, data: { ...clone(memoryCard.data), memoryId: f.id },
     setData(update) { Object.assign(this.data, update); }, triggerEvent() {} };

@@ -33,13 +33,16 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms || 120));
   async function more() {
     // These controls overlap the native board's extended top edge. Send a real
     // canvas touch at the DOM button's location to verify overhang forwarding.
-    const rect = await geometry('', '#calendar-options');
+    const themeMode = (await home.data()).mode === 'themes';
+    const rect = await geometry('', themeMode ? '#theme-options' : '#calendar-options');
     const touch = { identifier: 0, clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 };
     const canvas = await (await home.$('#today-board')).$('#feltCanvas');
     await canvas.touchstart({ touches: [touch], changedTouches: [touch] }); await pause(100);
     await canvas.touchend({ touches: [], changedTouches: [touch] });
-    await wait(home, d => d.drawer === 'calendar-options');
-    assert.equal((await home.$$('.calendar-options-menu button')).length, 2);
+    await wait(home, d => d.drawer === (themeMode ? 'theme' : 'calendar-options'));
+    if (themeMode) {
+      for (const selector of ['#theme-appearance', '#open-memory-libraries', '#rename-theme', '#delete-theme', '#share-theme']) assert.ok(await home.$(selector), selector);
+    } else assert.equal((await home.$$('.calendar-options-menu button')).length, 2);
     const board = await home.$('#today-board'); await wait(board, d => d.canvasHidden && d.occluded);
   }
   async function openLibrary() { await more(); await tap(home, '#open-memory-libraries'); await wait(home, d => d.libraryOpen); return home.$('#memory-library-card'); }
@@ -112,6 +115,19 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms || 120));
     const board = await home.$('#today-board'); await wait(board, d => !d.canvasHidden && !d.covered);
     checks.push('Same-card library gallery, 38-object pagination, scroll recall, flip note, multi-library save and inline creation');
     await home.callMethod('switchMode'); await wait(home, d => d.mode === 'themes' && d.date === theme); await pause(700);
+    await more(); await capture('08-theme-more'); await tap(home, '#theme-appearance'); await wait(home, d => d.drawer === 'appearance');
+    await tap(home, '#close-drawer');
+    const themeBeforeBrowse = (await snapshot()).boards[theme];
+    lib = await openLibrary(); await wait(lib, d => d.loaded);
+    assert.equal((await lib.data()).libraries.find(item => item.id === b).count, 1, 'Calendar and theme share the same libraries');
+    await tap(lib, `.library-folder[data-id="${b}"]`); await tap(lib, `.library-object[data-id="${one}"]`);
+    await wait(home, d => d.memoryCardId === one); card = await home.$('#memory-card'); await wait(card, d => !!d.memory);
+    await tap(card, '#flip-card'); await wait(card, d => d.flipped && !d.flipBusy); assert.equal((await card.data()).memory.text, store.get().memories[one].text);
+    await tap(card, '#close-memory-card'); await wait(home, d => !d.memoryCardId); assert.equal((await lib.data()).libraryId, b);
+    await tap(lib, '#close-library-card'); await wait(home, d => !d.libraryOpen);
+    assert.equal((await home.data()).date, theme); assert.equal((await home.data()).mode, 'themes');
+    assert.deepEqual((await snapshot()).boards[theme], themeBeforeBrowse);
+    checks.push('Theme native more menu opens appearance and shared libraries; gallery flip and return preserve the current board');
     card = await openObject(one); await tap(card, '#add-to-memory-library'); await wait(card, d => d.libraryPickerOpen);
     picker = await card.$('#memory-library-picker'); await wait(picker, d => d.loaded); assert.equal((await picker.data()).selectionCount, 2);
     await tap(picker, `.library-folder[data-id="${b}"]`); await tap(picker, '#close-library-card'); await wait(card, d => !d.libraryPickerOpen);
