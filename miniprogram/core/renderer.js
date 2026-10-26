@@ -1,6 +1,7 @@
 const config = require('./config');
 const felt = require('./felt');
 const material = require('./board-material');
+const fasteners = require('./sticker-fastener');
 const B = config.board;
 const rounded = material.rounded;
 // Logical board coordinates stay unchanged; the canvas includes transparent
@@ -19,10 +20,12 @@ function paint(ctx, model, images, selection, dimensions = B, surface, pixelScal
     ctx.save(); ctx.translate(i + p.x, i + p.y); ctx.rotate(p.angle * Math.PI / 180);
     if (image && !image.missing) {
       const size = contain(p, image);
+      const hardware = fasteners.layout(size, p, image);
+      fasteners.paint(ctx, hardware, pixelScale, 'back');
       ctx.shadowColor = 'rgba(48,40,29,0.3)'; ctx.shadowBlur = 18*pixelScale; ctx.shadowOffsetX = 2*pixelScale; ctx.shadowOffsetY = 9*pixelScale;
       ctx.drawImage(image, -size.width / 2, -size.height / 2, size.width, size.height);
       ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
-      material.pin(ctx, size, p.memoryId, p.angle * Math.PI / 180, pixelScale, image);
+      fasteners.paint(ctx, hardware, pixelScale, 'front');
       // The extraction service supplies the white sticker contour. Draw once so
       // semitransparent hair/fabric retains its original alpha and photo color.
     } else {

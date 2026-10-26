@@ -3,6 +3,7 @@ const config = require('./config');
 const geometry = require('./geometry');
 const layers = require('./layers');
 const felt = require('./felt');
+const fasteners = require('./fastener-style');
 const KEY = 'felt-journal:v1';
 const DRAFT = 'felt-journal:drafts:v1';
 const MEMORY_DRAFT = 'felt-journal:memory-drafts:v1';
@@ -35,6 +36,7 @@ function validate(s) {
       assert(m && (theme || m.date === id) && (s.version === 2 || !seen[p.memoryId] && m.boardId === id) && !localSeen.has(p.memoryId) && p.id === `p_${p.memoryId}`, '记忆与摆放关系异常');
       assert(['x', 'y', 'width', 'height', 'angle', 'z', 'createdAt'].every(k => Number.isFinite(p[k])) && p.width > 0 && p.height > 0, '物件布局异常');
       assert(p.verticalAnchor === undefined || Number.isFinite(p.verticalAnchor) && p.verticalAnchor >= 0 && p.verticalAnchor <= 1, '物件纵向位置异常');
+      assert(p.fastener === undefined || fasteners.valid(p.fastener), '物件固定件数据异常');
       const fixed = geometry.fit(p);
       assert(['x', 'y', 'width', 'height', 'angle'].every(k => Math.abs(p[k] - fixed[k]) < 0.01), '物件超出毡面');
       seen[p.memoryId] = true; localSeen.add(p.memoryId);
@@ -93,7 +95,7 @@ function createStore(storage) {
       // library until the user explicitly continues from the result card.
       if (!options.deferPlacement) {
         const z = Math.max(0, ...b.placements.map(p => p.z)) + 1;
-        b.placements.push(geometry.create(id, photos.width, photos.height, z, now, b.placements));
+        b.placements.push(Object.assign(geometry.create(id, photos.width, photos.height, z, now, b.placements), { fastener: fasteners.choose() }));
         touchMembers(b); s.boards[targetBoardId] = b;
       }
       s.operations[taskId] = id;
@@ -119,7 +121,7 @@ function createStore(storage) {
     if (b.placements.some(p => p.memoryId === memoryId)) return;
     assert(b.placements.length < config.maxItems, `每块板最多 ${config.maxItems} 件记忆`);
     const z = Math.max(0, ...b.placements.map(p => p.z)) + 1;
-    b.placements.push(geometry.create(memoryId, m.width || 300, m.height || 300, z, Date.now(), b.placements)); touchMembers(b); s.boards[boardId] = b;
+    b.placements.push(Object.assign(geometry.create(memoryId, m.width || 300, m.height || 300, z, Date.now(), b.placements), { fastener: fasteners.choose() })); touchMembers(b); s.boards[boardId] = b;
   }
   function place(memoryId, boardId) {
     const current = get(), target = current.boards[boardId];

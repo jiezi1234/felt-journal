@@ -119,7 +119,7 @@ function paint(ctx, model, B) {
 }
 function anchorOf(image, factory) {
   if (anchors.has(image)) return anchors.get(image);
-  let anchor = { x:.5, y:.28, span:.18 };
+  let anchor = { x:.5, y:.28, span:.18, edgeY:.18 };
   try {
     const create = factory || (typeof wx !== 'undefined' && wx.createOffscreenCanvas && (options => wx.createOffscreenCanvas(options)));
     let pixels, width, height;
@@ -141,47 +141,12 @@ function anchorOf(image, factory) {
         }
         if (best!==undefined) {
           let left=best,right=best; while(left>0&&opaque(left-1,y))left--; while(right<width-1&&opaque(right+1,y))right++;
-          anchor={x:(best+.5)/width,y:(y+.5)/height,span:(right-left+1)/width}; break outer;
+          let edge = y; while(edge > 0 && opaque(best,edge-1)) edge--;
+          anchor={x:(best+.5)/width,y:(y+.5)/height,span:(right-left+1)/width,edgeY:edge/height}; break outer;
         }
       }
     }
   } catch (_) { /* Older Canvas implementations use the neutral anchor. */ }
   anchors.set(image,anchor); return anchor;
 }
-function pin(ctx, size, id, angle, pixelScale, image) {
-  let hash = 0; for (const c of String(id || 'pin')) hash = ((hash * 31) + c.charCodeAt(0)) >>> 0;
-  const anchor = anchorOf(image), r = Math.max(6, Math.min(23,Math.min(size.width,size.height)*.08,anchor.span*size.width*.4));
-  ctx.save(); ctx.translate((anchor.x-.5)*size.width,(anchor.y-.5)*size.height);
-  ctx.rotate(-angle - [.18,.28,.12][hash%3]);
-  // A close-to-overhead view shows the rounded cap and a short tapered waist.
-  // One warm ivory resin keeps small pins quiet against different photographs.
-  ctx.shadowColor = 'rgba(46,36,22,.24)'; ctx.shadowBlur = r*.48*pixelScale; ctx.shadowOffsetX = r*.28*pixelScale; ctx.shadowOffsetY = r*.32*pixelScale;
-  oval(ctx, r*.27, -r*.2, r*.77, r*.48); ctx.fillStyle = 'rgba(65,49,28,.17)'; ctx.fill();
-  ctx.shadowColor = 'transparent';
-  ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(0,-r*.62); ctx.lineTo(0,0); ctx.lineWidth = r*.14; ctx.strokeStyle = '#707770'; ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(-r*.025,-r*.58); ctx.lineTo(-r*.025,-r*.04); ctx.lineWidth = r*.045; ctx.strokeStyle = '#F8FBF4'; ctx.stroke();
-  oval(ctx, 0,-r*.34,r*.74,r*.38); ctx.fillStyle = '#A99A7D'; ctx.fill();
-  oval(ctx, 0,-r*.4,r*.74,r*.37); ctx.fillStyle = gradient(ctx,-r*.5,-r*.7,r*.6,-r*.1,[[0,'#FFFDF2'],[.35,'#EAE0CA'],[.72,'#C8B99C'],[1,'#A99A7D']]); ctx.fill();
-  const resin=gradient(ctx,-r*.7,0,r*.7,0,[[0,'#B7A68A'],[.22,'#F4EDDC'],[.38,'#FFF9EB'],[.57,'#E5D9C0'],[.8,'#C5B493'],[1,'#A39377']]);
-  ctx.beginPath(); ctx.moveTo(-r*.7,-r*.44);
-  ctx.bezierCurveTo(-r*.65,-r*.65,-r*.31,-r*.61,-r*.32,-r*.96);
-  ctx.quadraticCurveTo(-r*.34,-r*1.16,-r*.53,-r*1.27); ctx.lineTo(r*.53,-r*1.27);
-  ctx.quadraticCurveTo(r*.34,-r*1.16,r*.32,-r*.96);
-  ctx.bezierCurveTo(r*.31,-r*.61,r*.65,-r*.65,r*.7,-r*.44);
-  ctx.bezierCurveTo(r*.46,-r*.17,-r*.46,-r*.17,-r*.7,-r*.44); ctx.closePath(); ctx.fillStyle=resin; ctx.fill();
-  ctx.beginPath(); ctx.moveTo(-r*.28,-r*1.08); ctx.quadraticCurveTo(-r*.24,-r*.7,-r*.5,-r*.48);
-  ctx.lineWidth=r*.065; ctx.strokeStyle='rgba(255,255,249,.72)'; ctx.stroke();
-  // The underside rim gives the cap thickness without a heavy dark outline.
-  oval(ctx,0,-r*1.2,r*.98,r*.54); ctx.fillStyle='#AD9E81'; ctx.fill();
-  ctx.beginPath(); ctx.moveTo(-r,-r*1.4); ctx.lineTo(-r*.98,-r*1.2);
-  ctx.bezierCurveTo(-r*.85,-r*.58,r*.85,-r*.58,r*.98,-r*1.2); ctx.lineTo(r,-r*1.4); ctx.closePath();
-  ctx.fillStyle=gradient(ctx,0,-r*1.7,0,-r*.7,[[0,'#F9F4E8'],[.55,'#E2D5BC'],[.85,'#B9A789'],[1,'#96866D']]); ctx.fill();
-  oval(ctx,0,-r*1.43,r,r*.61);
-  ctx.fillStyle=gradient(ctx,-r*.65,-r*2,r*.7,-r*.9,[[0,'#FFFFFF'],[.23,'#FCF9EE'],[.55,'#EEE6D4'],[.82,'#D4C5A9'],[1,'#BBAA8A']]); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(-r*.86,-r*1.47); ctx.bezierCurveTo(-r*.76,-r*1.93,r*.22,-r*2.06,r*.66,-r*1.72);
-  ctx.strokeStyle='rgba(255,255,253,.88)'; ctx.lineWidth=r*.045; ctx.stroke();
-  oval(ctx,-r*.29,-r*1.63,r*.37,r*.16); ctx.fillStyle='rgba(255,255,255,.62)'; ctx.fill();
-  ctx.restore();
-}
-module.exports = { rounded, paint, clip, pin, anchorOf };
+module.exports = { rounded, paint, clip, anchorOf };
