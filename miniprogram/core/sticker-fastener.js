@@ -18,12 +18,41 @@ function shadow(ctx, radius, pixelScale, strength = .2) {
 }
 function clearShadow(ctx) { ctx.shadowColor = 'transparent'; ctx.shadowBlur = ctx.shadowOffsetX = ctx.shadowOffsetY = 0; }
 function pin(ctx, palette, light, radius, pixelScale) {
-  shadow(ctx, radius, pixelScale); circle(ctx, 0, 0, .85); ctx.fillStyle = palette.shade; ctx.fill(); clearShadow(ctx);
-  // A circular cap seen directly from above: no visible shaft or side profile.
-  const dome = ctx.createRadialGradient(light.x * .36, light.y * .36, .05, light.x * .12, light.y * .12, 1.12);
-  dome.addColorStop(0, palette.light); dome.addColorStop(.5, palette.base); dome.addColorStop(1, palette.shade);
-  circle(ctx, 0, 0, .82); ctx.fillStyle = dome; ctx.fill();
-  ctx.strokeStyle = 'rgba(255,253,238,.2)'; ctx.lineWidth = .035; ctx.stroke();
+  const oval = (x, y, rx, ry) => {
+    ctx.save(); ctx.translate(x, y); ctx.scale(rx, ry);
+    circle(ctx, 0, 0, 1); ctx.restore();
+  };
+  // A short steel point meets the existing anchor. The resin foot, narrow waist
+  // and broad cap retain a readable pushpin silhouette even at phone size.
+  shadow(ctx, radius, pixelScale, .18);
+  ctx.beginPath(); ctx.moveTo(0, .13); ctx.lineTo(.16, .62);
+  ctx.strokeStyle = '#64716C'; ctx.lineWidth = .12; ctx.stroke(); clearShadow(ctx);
+  ctx.beginPath(); ctx.moveTo(-.015, .15); ctx.lineTo(.12, .53);
+  ctx.strokeStyle = '#E4E9E0'; ctx.lineWidth = .04; ctx.stroke();
+
+  shadow(ctx, radius, pixelScale, .24);
+  oval(0, .22, .78, .3); ctx.fillStyle = palette.shade; ctx.fill(); clearShadow(ctx);
+  oval(0, .12, .78, .3); ctx.fillStyle = tint(ctx, palette, light); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,253,238,.25)'; ctx.lineWidth = .035; ctx.stroke();
+
+  ctx.beginPath(); ctx.moveTo(-.47, -.91);
+  ctx.bezierCurveTo(-.31, -.65, -.29, -.36, -.38, -.12);
+  ctx.quadraticCurveTo(-.45, .04, -.68, .1);
+  ctx.bezierCurveTo(-.4, .36, .4, .36, .68, .1);
+  ctx.quadraticCurveTo(.45, .04, .38, -.12);
+  ctx.bezierCurveTo(.29, -.36, .31, -.65, .47, -.91); ctx.closePath();
+  ctx.fillStyle = tint(ctx, palette, { x: light.x * .7, y: light.y * .25 }); ctx.fill();
+  // Fine side reflection, with a soft occlusion immediately beneath the cap.
+  ctx.beginPath(); ctx.moveTo(-.28, -.65); ctx.quadraticCurveTo(-.24, -.32, -.34, -.1);
+  ctx.strokeStyle = 'rgba(255,253,238,.28)'; ctx.lineWidth = .055; ctx.stroke();
+  oval(0, -.69, .43, .15); ctx.fillStyle = 'rgba(49,43,31,.16)'; ctx.fill();
+
+  shadow(ctx, radius, pixelScale, .16);
+  oval(0, -.85, .88, .47); ctx.fillStyle = palette.shade; ctx.fill(); clearShadow(ctx);
+  const cap = ctx.createRadialGradient(light.x * .3, -.98 + light.y * .22, .025, 0, -.98, 1.05);
+  cap.addColorStop(0, palette.light); cap.addColorStop(.58, palette.base); cap.addColorStop(1, palette.shade);
+  oval(0, -.98, .88, .47); ctx.fillStyle = cap; ctx.fill();
+  ctx.strokeStyle = 'rgba(255,253,238,.28)'; ctx.lineWidth = .035; ctx.stroke();
 }
 function clip(ctx, palette, light, radius, pixelScale, back) {
   if (back) {

@@ -55,7 +55,7 @@ ctx.drawImage(board(390), 28, 122);
 let row = 0;
 for (const [kind, palette] of Object.entries(styles.palettes)) {
   const top = 130 + row * 228;
-  ctx.fillStyle = '#4E473B'; ctx.font = 'bold 22px "Microsoft YaHei"'; ctx.fillText({ pin: '哑光圆钉', clip: '迷你彩夹', paperclip: '细线回形针' }[kind], 470, top);
+  ctx.fillStyle = '#4E473B'; ctx.font = 'bold 22px "Microsoft YaHei"'; ctx.fillText({ pin: '树脂工字钉', clip: '迷你彩夹', paperclip: '细线回形针' }[kind], 470, top);
   ctx.save(); ctx.translate(455, top + 18); felt.paintSample(ctx, 820, 170, '#D9CBAF', 'fine'); ctx.restore();
   palette.forEach((color, n) => {
     const x = 535 + n * 151, y = top + 85;
