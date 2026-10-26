@@ -10,10 +10,12 @@
     <view wx:if="{{error}}" class="share-card-error">{{error}}<button hover-class="ui-pressed" wx:if="{{!imagePath || imageExpired}}" id="regenerate-image" class="ghost" disabled="{{generating || saving || sharing}}" bindtap="generate">重新生成</button></view>
     <button hover-class="ui-pressed" wx:if="{{previewColor}}" id="share-appearance" class="ghost share-card-style" disabled="{{generating || saving || sharing}}" bindtap="openAppearance"><view class="row"><text>板面与纹理</text><text class="muted">⌄</text></view></button>
     <view wx:if="{{imagePath}}" class="share-card-actions">
-      <button hover-class="ui-pressed" id="share-image" class="primary full" loading="{{sharing}}" disabled="{{generating || saving || sharing || imageExpired || !shareSupported}}" bindtap="shareImage">分享到微信</button>
-      <view wx:if="{{shareError}}" id="share-error" class="share-card-error">{{shareError}}</view>
-      <view wx:if="{{!shareSupported}}" id="share-unavailable" class="muted share-card-hint">当前微信暂不支持直接分享，可保存图片后发送。</view>
+      <button hover-class="ui-pressed" id="share-image" class="primary full" loading="{{sharing}}" disabled="{{generating || saving || sharing || imageExpired}}" bindtap="shareImage">{{sharing ? '正在打开…' : shareSupported ? '分享到微信' : '打开图片分享'}}</button>
+      <view wx:if="{{shareError}}" id="share-error" class="share-card-error">{{shareError}}<button wx:if="{{shareSupported}}" class="ghost full" disabled="{{generating || saving || sharing || imageExpired}}" bindtap="preview">打开大图，长按分享</button></view>
+      <view wx:elif="{{!shareSupported}}" id="share-unavailable" class="muted share-card-hint">打开大图后长按，选择发送给朋友；也可保存后发朋友圈。</view>
+      <view wx:else class="muted share-card-hint">在微信面板中选择朋友或朋友圈。没有朋友圈选项时，可保存后发布。</view>
       <button hover-class="ui-pressed" id="save-album" class="secondary full" loading="{{saving}}" disabled="{{generating || saving || sharing || imageExpired}}" bindtap="saveAlbum">{{albumSaved ? '已保存 · 再存一份' : '保存到相册'}}</button>
+      <view wx:if="{{albumSaved}}" class="muted share-card-hint">已存入相册，可在微信聊天或朋友圈中选择这张图片。</view>
       <button hover-class="ui-pressed" wx:if="{{albumDenied}}" id="album-settings" class="ghost full" bindtap="settings">打开相册权限设置</button>
     </view>
     <view wx:if="{{styleOpen}}" class="share-style-veil">

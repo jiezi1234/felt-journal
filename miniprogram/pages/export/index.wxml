@@ -7,13 +7,15 @@
     <view class="share-textures"><button wx:for="{{textures}}" wx:key="value" id="share-texture-{{item.value}}" class="{{previewTexture === item.value ? 'active' : ''}}" data-value="{{item.value}}" disabled="{{generating || saving || sharing}}" bindtap="chooseTexture">{{item.name}}</button></view>
   </view>
   <block wx:if="{{imagePath}}">
-    <text class="chip">{{imageExpired ? '图片需要重新生成' : albumSaved ? '已保存到相册' : '作品已生成 · 3:2'}}</text>
+    <text class="chip">{{imageExpired ? '图片需要重新生成' : albumSaved ? '已保存到相册' : '完整板面图片已生成'}}</text>
     <view class="paper export-paper"><image class="preview" src="{{imagePath}}" mode="aspectFit" bindtap="preview" /><view class="row space"><text class="muted">{{dateLabel}}</text><text class="muted">{{count}} 件记忆</text></view></view>
     <view class="export-actions">
-      <button id="share-image" class="primary full" loading="{{sharing}}" disabled="{{generating || saving || sharing || imageExpired || !shareSupported}}" bindtap="shareImage">{{sharing ? '正在打开分享面板' : '分享到微信'}}</button>
-      <view wx:if="{{shareError}}" id="share-error" class="share-error">{{shareError}}</view>
-      <view wx:if="{{!shareSupported}}" id="share-unavailable" class="muted share-hint">当前微信暂不支持直接分享，可保存到相册后发送。</view>
+      <button id="share-image" class="primary full" loading="{{sharing}}" disabled="{{generating || saving || sharing || imageExpired}}" bindtap="shareImage">{{sharing ? '正在打开…' : shareSupported ? '分享到微信' : '打开图片分享'}}</button>
+      <view wx:if="{{shareError}}" id="share-error" class="share-error">{{shareError}}<button wx:if="{{shareSupported}}" class="ghost full" disabled="{{generating || saving || sharing || imageExpired}}" bindtap="preview">打开大图，长按分享</button></view>
+      <view wx:elif="{{!shareSupported}}" id="share-unavailable" class="muted share-hint">打开大图后长按，选择发送给朋友；也可保存后发朋友圈。</view>
+      <view wx:else class="muted share-hint">在微信面板中选择朋友或朋友圈。没有朋友圈选项时，可保存后发布。</view>
       <button id="save-album" class="secondary full" loading="{{saving}}" disabled="{{generating || saving || sharing || imageExpired}}" bindtap="saveAlbum">{{saving ? '正在保存到相册' : albumSaved ? '再次保存到相册' : '保存到相册'}}</button>
+      <view wx:if="{{albumSaved}}" class="muted share-hint">已存入相册，可在微信聊天或朋友圈中选择这张图片。</view>
       <button wx:if="{{albumDenied}}" id="album-settings" class="full" bindtap="settings">打开权限设置</button>
     </view>
   </block>

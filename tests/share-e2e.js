@@ -62,6 +62,7 @@ const output = path.resolve(__dirname, '../artifacts');
     const seeded = disk[keys[0]];
     await mini.evaluate((names, snapshot) => { names.forEach(key => wx.removeStorageSync(key)); wx.setStorageSync(names[0], snapshot); getApp().__feltShareE2E = []; }, keys, seeded);
     await mini.mockWxMethod('showShareImageMenu', function(options) { getApp().__feltShareE2E.push(options); return { errMsg: 'showShareImageMenu:ok' }; });
+    await mini.mockWxMethod('previewImage', function(options) { getApp().__feltPreviewE2E = options; return { errMsg: 'previewImage:ok' }; });
     await mini.mockWxMethod('saveImageToPhotosAlbum', { errMsg: 'saveImageToPhotosAlbum:ok' });
     const home = await mini.reLaunch('/pages/index/index'); await wait(home, data => !data.loading);
     const board = await mini.navigateTo(`/pages/board/index?date=${date}`); await wait(board, data => !data.loading);
@@ -80,13 +81,24 @@ const output = path.resolve(__dirname, '../artifacts');
     checks.push('sharing does not claim delivery or album save; separate album callback controls saved status');
     console.log('STEP: native sharing handoff and album status verified; checking fallback UI and regeneration');
     // canIUse is not mockable through this automator version. Capability logic is
-    // covered by unit tests; inject its result here to inspect native fallback UI.
-    await page.setData({ shareSupported: false });
+    // covered by unit tests; inject the runtime-unavailable result for native UI.
+    await mini.evaluate(() => {
+      const card = getCurrentPages().slice(-1)[0].selectComponent('#share-card');
+      card.shareMenuUnavailable = true; card.refreshShareSupport();
+    });
     assert.equal((await page.data()).shareSupported, false); assert.ok(await page.$('#share-unavailable'));
-    assert.equal(String(await (await page.$('#share-image')).attribute('disabled')), 'true');
+    assert.equal(String(await (await page.$('#share-image')).attribute('disabled')), 'false');
     assert.equal(String(await (await page.$('#save-album')).attribute('disabled')), 'false');
-    await capture('wechat-share-unavailable.png'); await page.callMethod('refreshShareSupport');
-    checks.push('injected unsupported state shows fallback and leaves album saving enabled');
+    assert.match(await (await page.$('#share-image')).text(), /打开图片分享/);
+    await (await page.$('#share-image')).tap(); await wait(page, value => !value.sharing);
+    assert.deepEqual(await mini.evaluate(() => getApp().__feltPreviewE2E), { current: firstImage, urls: [firstImage], showmenu: true });
+    assert.equal((await mini.evaluate(() => getApp().__feltShareE2E)).length, 2);
+    await capture('wechat-share-unavailable.png');
+    await mini.evaluate(() => {
+      const card = getCurrentPages().slice(-1)[0].selectComponent('#share-card');
+      card.shareMenuUnavailable = false; card.refreshShareSupport();
+    });
+    checks.push('unsupported sharing switches to an enabled long-press preview fallback and leaves album saving available');
     // DevTools Canvas temporary files are readable but cannot be unlinked. Use
     // an exact export copy in our own namespace to exercise a genuinely lost file.
     const expiredCopy = files[0].replace(/-original\.png$/, '-expired.png'); files.push(expiredCopy);
@@ -103,9 +115,9 @@ const output = path.resolve(__dirname, '../artifacts');
     assert.equal(errors.length, 0, JSON.stringify(errors));
   } finally {
     if (mini) {
-      for (const name of ['showShareImageMenu', 'saveImageToPhotosAlbum']) await mini.restoreWxMethod(name).catch(() => {});
+      for (const name of ['showShareImageMenu', 'previewImage', 'saveImageToPhotosAlbum']) await mini.restoreWxMethod(name).catch(() => {});
       if (backup) await mini.evaluate(items => items.forEach(item => item.value === '' ? wx.removeStorageSync(item.key) : wx.setStorageSync(item.key, item.value)), backup);
-      await mini.evaluate(paths => { paths.forEach(file => { try { wx.getFileSystemManager().unlinkSync(file); } catch (_) {} }); delete getApp().__feltShareE2E; }, [...files, ...new Set(exportedFiles)]);
+      await mini.evaluate(paths => { paths.forEach(file => { try { wx.getFileSystemManager().unlinkSync(file); } catch (_) {} }); delete getApp().__feltShareE2E; delete getApp().__feltPreviewE2E; }, [...files, ...new Set(exportedFiles)]);
       await mini.reLaunch('/pages/index/index').catch(() => {}); mini.disconnect();
     }
   }

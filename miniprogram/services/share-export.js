@@ -12,7 +12,7 @@ function createShareExport() { return {
   onUnload() { this.disposed = true; },
   refreshShareSupport() {
     let supported = false;
-    try { supported = typeof wx.showShareImageMenu === 'function' && (typeof wx.canIUse !== 'function' || wx.canIUse('showShareImageMenu')); } catch (_) {}
+    try { supported = !this.shareMenuUnavailable && typeof wx.showShareImageMenu === 'function' && (typeof wx.canIUse !== 'function' || wx.canIUse('showShareImageMenu')); } catch (_) {}
     this.setData({ shareSupported: supported });
   },
   async generate() {
@@ -57,7 +57,7 @@ function createShareExport() { return {
   },
   async shareImage() {
     if (this.disposed || this.data.saving || this.data.sharing || !this.hasImage()) return;
-    this.refreshShareSupport(); if (!this.data.shareSupported) return;
+    this.refreshShareSupport(); if (!this.data.shareSupported) return this.preview();
     this.setData({ sharing: true, shareError: '' });
     try {
       // Pass the exact preview, with no local record link or implicit app entry.
@@ -68,7 +68,12 @@ function createShareExport() { return {
       if (this.disposed) return;
       const reason = String(e && (e.errMsg || e.message) || '');
       if (/cancel/i.test(reason)) return;
-      if (/not support|unsupported|not implement|is not a function|暂不支持/i.test(reason)) this.setData({ shareSupported: false, shareError: '' });
+      if (/not support|unsupported|not implement|is not a function|暂不支持/i.test(reason)) {
+        // Some clients expose the API but cannot open it. Keep the fallback for
+        // this card's lifetime; require a fresh tap for the next native action.
+        this.shareMenuUnavailable = true;
+        this.setData({ shareSupported: false, shareError: '' });
+      }
       else if (this.hasImage()) this.setData({ shareError: '分享面板暂时无法打开，请重试，或保存到相册后发送' });
     } finally { if (!this.disposed) this.setData({ sharing: false }); }
   },
@@ -80,12 +85,24 @@ function createShareExport() { return {
       if (!this.disposed) { this.setData({ albumSaved: true }); platform.toast('已保存到相册'); }
     } catch (e) {
       if (this.disposed || !this.hasImage()) return;
+      if (/cancel/i.test(String(e && (e.errMsg || e.message) || ''))) return;
       const denied = /auth|denied|permission|authorize/i.test(e.errMsg || '');
       this.setData({ albumDenied: denied, error: denied ? '尚未获得相册权限，请在设置中允许保存到相册后重试' : '作品已生成，但尚未保存到相册，请重试' });
     } finally { if (!this.disposed) this.setData({ saving: false }); }
   },
   async settings() { try { await platform.call('openSetting', {}); if (!this.disposed) this.setData({ albumDenied: false }); } catch (_) { if (!this.disposed) platform.toast('设置未打开，请在小程序设置中允许相册权限'); } },
-  preview() { if (!this.data.saving && !this.data.sharing && this.hasImage()) platform.call('previewImage', { urls: [this.data.imagePath] }).catch(() => { if (this.hasImage()) platform.toast('图片暂时无法预览，请重试'); }); },
-  back() { platform.back(); }
+  async preview() {
+    if (this.disposed || this.data.saving || this.data.sharing || !this.hasImage()) return;
+    this.setData({ sharing: true, shareError: '' });
+    try {
+      // Native preview provides a second user-initiated sharing path, without
+      // album permission. Explicitly retain its long-press menu on all clients.
+      await platform.call('previewImage', { current: this.data.imagePath, urls: [this.data.imagePath], showmenu: true });
+    } catch (e) {
+      if (this.disposed || /cancel/i.test(String(e && (e.errMsg || e.message) || ''))) return;
+      if (this.hasImage()) this.setData({ shareError: '图片暂时无法打开，请重试，或保存到相册后在微信中发送' });
+    } finally { if (!this.disposed) this.setData({ sharing: false }); }
+  },
+  back() { if (!this.disposed && !this.data.saving && !this.data.sharing) platform.back(); }
 }; }
 module.exports = { createShareExport };

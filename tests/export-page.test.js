@@ -82,14 +82,71 @@ test('cancelling the native panel is quiet and preserves any existing album resu
   }
   assert.deepEqual(f.toasts, []);
 });
-test('capability detection and runtime unsupported errors leave album saving available', async t => {
+test('unavailable image sharing opens the exact preview with its native long-press menu', async t => {
   const f = fixture(t);
-  wx.canIUse = () => false; await f.page.shareImage(); assert.equal(f.page.data.shareSupported, false); assert.equal(f.calls.length, 0);
-  wx.canIUse = () => true; delete wx.showShareImageMenu; await f.page.shareImage(); assert.equal(f.calls.length, 0);
-  wx.showShareImageMenu = () => {};
-  platform.call = async () => { throw { errMsg: 'showShareImageMenu:fail not supported' }; };
-  await f.page.shareImage(); assert.equal(f.page.data.shareSupported, false); assert.equal(f.page.data.shareError, ''); assert.equal(f.page.data.sharing, false);
-  platform.call = async () => ({}); await f.page.saveAlbum(); assert.equal(f.page.data.albumSaved, true);
+  wx.canIUse = () => false;
+  const operation = f.page.shareImage();
+  // The native API must run in the original tap's synchronous call stack.
+  assert.deepEqual(f.calls, [{ name: 'previewImage', options: { current: '/preview.png', urls: ['/preview.png'], showmenu: true } }]);
+  await operation; assert.equal(f.page.data.shareSupported, false); assert.equal(f.page.data.sharing, false);
+  wx.canIUse = () => true; delete wx.showShareImageMenu; await f.page.shareImage();
+  assert.equal(f.calls[1].name, 'previewImage'); assert.equal(f.page.data.albumSaved, false);
+  await f.page.saveAlbum(); assert.equal(f.page.data.albumSaved, true);
+});
+
+test('runtime unsupported errors keep a usable fallback on the next explicit tap', async t => {
+  const f = fixture(t), calls = [];
+  platform.call = async (name, options) => {
+    calls.push({ name, options });
+    if (name === 'showShareImageMenu') throw { errMsg: 'showShareImageMenu:fail not supported' };
+    return {};
+  };
+  await f.page.shareImage();
+  assert.equal(f.page.data.shareSupported, false); assert.equal(f.page.data.shareError, ''); assert.equal(f.page.data.sharing, false);
+  assert.deepEqual(calls.map(c => c.name), ['showShareImageMenu']);
+  f.page.refreshShareSupport(); assert.equal(f.page.data.shareSupported, false);
+  await f.page.shareImage();
+  assert.deepEqual(calls.map(c => c.name), ['showShareImageMenu', 'previewImage']);
+  assert.deepEqual(calls[1].options, { current: '/preview.png', urls: ['/preview.png'], showmenu: true });
+  assert.equal(f.page.data.albumSaved, false); assert.deepEqual(f.toasts, []);
+});
+
+test('preview fallback works without album permission and preserves separate permission feedback', async t => {
+  const f = fixture(t), before = f.disk[KEY]; wx.canIUse = () => false;
+  f.page.data.albumDenied = true; f.page.data.error = '相册权限未开启';
+  await f.page.shareImage();
+  assert.equal(f.calls.length, 1); assert.equal(f.calls[0].name, 'previewImage');
+  assert.equal(f.page.data.albumDenied, true); assert.equal(f.page.data.error, '相册权限未开启');
+  assert.equal(f.disk[KEY], before); assert.deepEqual(f.toasts, []);
+});
+
+test('preview failure and cancellation remain retryable without claiming delivery', async t => {
+  const f = fixture(t); wx.canIUse = () => false;
+  platform.call = async () => { throw { errMsg: 'previewImage:fail internal error' }; };
+  await f.page.shareImage(); assert.match(f.page.data.shareError, /保存到相册/); assert.equal(f.page.data.sharing, false);
+  assert.equal(f.page.data.imagePath, '/preview.png'); assert.equal(f.page.data.albumSaved, false);
+  platform.call = async () => { throw { errMsg: 'previewImage:fail cancel' }; };
+  await f.page.shareImage(); assert.equal(f.page.data.shareError, '');
+  platform.call = async () => ({}); await f.page.shareImage(); assert.equal(f.page.data.shareError, '');
+  assert.deepEqual(f.toasts, []);
+});
+
+test('pending preview prevents duplicate previews, sharing, saving, generation and page exit', async t => {
+  const f = fixture(t), before = f.disk[KEY]; let finish, calls = 0, backs = 0;
+  platform.call = () => { calls++; return new Promise(resolve => { finish = resolve; }); };
+  platform.back = () => { backs++; };
+  const operation = f.page.preview();
+  await f.page.preview(); await f.page.shareImage(); await f.page.saveAlbum(); await f.page.generate(); f.page.back();
+  assert.equal(calls, 1); assert.equal(backs, 0); assert.equal(f.disk[KEY], before);
+  finish({}); await operation; f.page.back(); assert.equal(backs, 1); assert.equal(f.page.data.sharing, false);
+});
+
+test('cancelled album save does not show a permission or sharing error', async t => {
+  const f = fixture(t);
+  platform.call = async () => { throw { errMsg: 'saveImageToPhotosAlbum:fail cancel' }; };
+  await f.page.saveAlbum();
+  assert.equal(f.page.data.error, ''); assert.equal(f.page.data.albumDenied, false); assert.equal(f.page.data.albumSaved, false);
+  assert.equal(f.page.data.imagePath, '/preview.png'); assert.deepEqual(f.toasts, []);
 });
 test('sharing failure can retry while retaining independent album permission feedback', async t => {
   const f = fixture(t); f.page.data.albumDenied = true; f.page.data.error = '相册权限未开启';
@@ -100,13 +157,13 @@ test('sharing failure can retry while retaining independent album permission fee
 });
 test('expired exports block share/save and can regenerate from the unchanged board', async t => {
   const f = fixture(t), before = f.disk[KEY]; f.missing(true);
-  await f.page.shareImage(); await f.page.saveAlbum(); assert.equal(f.calls.length, 0); assert.equal(f.page.data.imageExpired, true); assert.match(f.page.data.error, /重新生成/);
+  await f.page.shareImage(); await f.page.saveAlbum(); await f.page.preview(); assert.equal(f.calls.length, 0); assert.equal(f.page.data.imageExpired, true); assert.match(f.page.data.error, /重新生成/);
   f.missing(false); await f.page.generate(); assert.equal(f.page.data.imagePath, '/new-export.png'); assert.equal(f.page.data.imageExpired, false); assert.equal(f.page.data.error, '');
   assert.deepEqual([f.canvas.width, f.canvas.height], [1800, 1546]); assert.equal(f.page.data.count, 1);
   await f.page.shareImage(); assert.equal(f.calls.at(-1).options.path, '/new-export.png'); assert.equal(f.disk[KEY], before);
 });
-test('late share and album callbacks do not update or toast on an unloaded page', async t => {
-  for (const action of ['shareImage', 'saveAlbum']) {
+test('late share, preview and album callbacks do not update or toast on an unloaded page', async t => {
+  for (const action of ['shareImage', 'saveAlbum', 'preview']) {
     const f = fixture(t); let complete;
     platform.call = () => new Promise(resolve => { complete = resolve; });
     const operation = f.page[action](); f.page.onUnload(); const before = clone(f.page.data);
@@ -126,7 +183,7 @@ test('unfinished or empty export states cannot open the panel or save an image',
   const f = fixture(t);
   for (const state of [{ generating: true }, { saving: true }, { imageExpired: true }, { imagePath: '' }]) {
     Object.assign(f.page.data, { generating: false, saving: false, imageExpired: false, imagePath: '/preview.png' }, state);
-    await f.page.shareImage(); await f.page.saveAlbum(); assert.equal(f.calls.length, 0);
+    await f.page.shareImage(); await f.page.saveAlbum(); await f.page.preview(); assert.equal(f.calls.length, 0);
   }
 });
 test('unsaved layouts, empty boards and failed image reads do not expose a shareable image', async t => {
@@ -179,8 +236,8 @@ test('closing a generating share card prevents late updates and export work', as
   assert.deepEqual(events, ['close']); assert.deepEqual(f.page.data, before); assert.deepEqual(f.calls, []);
 });
 
-test('native share and album requests keep the share card mounted until they finish', async t => {
-  for (const action of ['shareImage', 'saveAlbum']) {
+test('native share, preview and album requests keep the share card mounted until they finish', async t => {
+  for (const action of ['shareImage', 'saveAlbum', 'preview']) {
     const f = fixture(t), events = []; let finish;
     Object.assign(f.page, cardDefinition.methods, { triggerEvent: name => events.push(name) });
     platform.call = () => new Promise(resolve => { finish = resolve; });

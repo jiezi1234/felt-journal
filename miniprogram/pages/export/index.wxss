@@ -14,7 +14,7 @@
 .export-page .export-paper .row { flex-shrink:0; margin-top:8px; }.export-paper .muted { font-size:11px; }
 .export-page .export-actions { flex-shrink:0; margin:0; gap:8px; }
 .export-page .share-error { padding:6px 10px; font-size:12px; }
-.export-page .share-hint { font-size:11px; }
+.export-page .share-hint { font-size:11px; line-height:1.5; }.share-error button { min-height:40px; padding:6px; font-size:12px; }
 .share-appearance { flex-shrink:0; padding:10px 14px; border-radius:20px; background:#FFFDFA; }.style-title { font-size:13px; color:#6F5540; }.share-appearance .muted { font-size:10px; }
 .share-colors { display:flex; justify-content:space-between; gap:8px; margin:8px 0; }.share-colors button.share-color { min-width:34px; width:34px; height:34px; min-height:34px; padding:0; border-radius:50%; margin:0; border:2px solid transparent; color:#5F5445; line-height:30px; }.share-colors button.active { border-color:#6C5B46; }.share-color::after { border:0; }
 .share-textures { display:flex; gap:6px; }.share-textures button { flex:1; min-height:32px; height:32px; line-height:30px; padding:0; font-size:12px; border:0; border-radius:10px; background:#F4F0E8; color:#9A8A7C; }.share-textures button.active { background:#6C5B46; color:white; }

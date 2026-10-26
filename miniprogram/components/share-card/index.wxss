@@ -9,7 +9,7 @@ button.share-card-close { flex-shrink:0; width:40px; min-width:40px; min-height:
 button.share-card-style { flex-shrink:0; width:100%; min-height:42px; margin:0; padding:8px 12px; border:1px solid #EEE8DF; border-radius:16px; font-size:13px; text-align:left; }
 .share-card-actions { flex-shrink:0; display:flex; flex-direction:column; gap:8px; }.share-card-actions button { min-height:44px; padding:10px 12px; font-size:14px; }.share-card-actions .secondary { background:#F3F1ED; }
 .share-card-error { flex-shrink:0; max-height:90px; overflow-y:auto; font-size:12px; line-height:1.5; color:#97574C; padding:8px 10px; border-radius:12px; background:#FBF4F2; }.share-card-error button { min-height:32px; font-size:12px; padding:4px; }
-.share-card-hint { font-size:12px; text-align:center; }.share-export-canvas { position:fixed; left:-3000px; top:-3000px; width:360px; height:240px; pointer-events:none; }
+.share-card-hint { font-size:12px; line-height:1.5; text-align:center; padding:0 4px; }.share-export-canvas { position:fixed; left:-3000px; top:-3000px; width:360px; height:240px; pointer-events:none; }
 .share-style-veil { position:absolute; inset:0; z-index:2; display:flex; align-items:flex-end; }.share-style-scrim { position:absolute; inset:0; background:rgba(43,35,28,.2); }
 .share-style-sheet { position:relative; width:100%; padding:16px; border-radius:24px 24px 0 0; background:#FFFDF9; box-shadow:0 -6px 24px rgba(45,35,25,.1); animation:share-rise-in .18s ease-out; }
 .share-style-heading { gap:8px; font-size:14px; }.share-style-heading .muted { font-size:12px; margin-top:3px; }.share-style-heading button { min-height:40px; padding:8px; font-size:12px; }
