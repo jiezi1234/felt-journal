@@ -46,3 +46,16 @@ button.board-share-button[disabled] { background:transparent; opacity:.4; }
 .library-pagination { display:flex; align-items:center; justify-content:space-between; }.library-pagination text { font-size:12px; color:#95877D; }
 .library-pagination button { min-height:36px; padding:6px 20px; }
 @media (max-height:570px) { .drawer-content { padding:8px 14px 10px; }.drawer-content .texture-name { margin-top:3px; }.drawer-content .record-note { height:84px; }.drawer-content .color { min-height:32px; padding:4px 2px; } }
+/* Calendar and theme menus share one card treatment. */
+.board-options-drawer .drawer-sheet { display:flex; flex-direction:column; max-height:80vh; }
+.board-options-drawer .drawer-heading,.board-options-drawer .drawer-handle { flex-shrink:0; }
+.board-options-drawer .drawer-scroll,.board-options-scroll { min-height:0; max-height:64vh; flex:0 1 auto; }
+.board-options-scroll { height:min(calc(var(--option-count, 5) * 82px + 34px),64vh); }
+.board-options-menu { display:flex; flex-direction:column; gap:8px; }
+.board-options-menu button { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; min-height:70px; margin:0; padding:14px 16px; border:1px solid #E5DFD2; border-radius:17px; background:#FCFAF3; color:#625A49; text-align:left; font-size:15px; line-height:1.5; }
+.board-options-menu button>view { flex:1; min-width:0; }
+.board-options-menu button>view>text { display:block; }
+.board-options-menu button>text { flex-shrink:0; }
+.board-options-menu button .muted { margin-top:5px; font-size:11px; color:#9C927F; }
+.board-options-menu button.danger { color:#A2554C; }
+.board-options-menu button[disabled] { color:#A39A91; background:#F4F1EA; border-color:#E8E3DA; }

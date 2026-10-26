@@ -1,8 +1,8 @@
-<view wx:if="{{drawer === 'themes' || drawer === 'theme' || drawer === 'library' || drawer === 'appearance'}}" class="drawer-veil theme-drawer" catchtouchmove="stop">
+<view wx:if="{{drawer === 'themes' || drawer === 'theme' || drawer === 'library' || drawer === 'appearance'}}" class="drawer-veil {{drawer === 'theme' ? 'board-options-drawer' : 'theme-drawer'}}" catchtouchmove="stop">
   <view class="drawer-scrim" bindtap="closeDrawer" />
-  <view class="drawer-sheet" role="dialog" aria-modal="true" aria-label="{{drawer === 'themes' ? '所有主题板' : drawer === 'theme' ? '主题板选项' : drawer === 'appearance' ? '板面与纹理' : '添加记忆'}}">
+  <view class="drawer-sheet" role="dialog" aria-modal="true" aria-label="{{drawer === 'themes' ? '所有主题板' : drawer === 'theme' ? '更多选项' : drawer === 'appearance' ? '板面与纹理' : '添加记忆'}}">
     <view class="drawer-handle" aria-hidden="true" />
-    <view class="row drawer-heading"><view class="section-title">{{drawer === 'themes' ? '所有主题板' : drawer === 'theme' ? dateLabel : drawer === 'appearance' ? '板面与纹理' : '添加记忆'}}</view><button id="close-drawer" class="ghost" disabled="{{working}}" aria-label="关闭面板" bindtap="closeDrawer">{{drawer === 'library' && !count ? '稍后添加' : '收起 ⌄'}}</button></view>
+    <view class="row drawer-heading"><view class="section-title">{{drawer === 'themes' ? '所有主题板' : drawer === 'theme' ? '更多选项' : drawer === 'appearance' ? '板面与纹理' : '添加记忆'}}</view><button id="close-drawer" class="ghost" disabled="{{working}}" aria-label="关闭面板" bindtap="closeDrawer">{{drawer === 'library' && !count ? '稍后添加' : '收起 ⌄'}}</button></view>
     <block wx:if="{{drawer === 'themes'}}">
       <scroll-view scroll-y class="theme-picker-scroll"><view class="theme-picker-grid">
         <button wx:for="{{themes}}" wx:key="id" class="theme-preview {{date === item.id ? 'theme-preview-active' : ''}}" data-id="{{item.id}}" bindtap="open" aria-label="{{item.title + '，' + item.count + ' 件记忆' + (date === item.id ? '，当前主题板' : '')}}">
@@ -12,13 +12,15 @@
         <button id="new-theme" class="theme-preview theme-new-preview" bindtap="create"><view class="theme-thumbnail theme-new-thumbnail"><text>＋</text><text>新建主题板</text></view></button>
       </view></scroll-view>
     </block>
-    <view wx:elif="{{drawer === 'theme'}}" class="theme-menu">
-      <button id="theme-appearance" bindtap="openAppearance">版面和纹理<text>›</text></button>
-      <button wx:if="{{mode === 'themes'}}" id="open-memory-libraries" bindtap="openMemoryLibrary">记忆库<text>›</text></button>
-      <button id="share-theme" disabled="{{!count}}" bindtap="shareTheme">分享这块板<text>↗</text></button>
-      <button id="rename-theme" bindtap="rename">重命名<text>›</text></button>
-      <button id="delete-theme" class="danger" bindtap="removeTheme">删除主题板<text>›</text></button>
-    </view>
+    <scroll-view wx:elif="{{drawer === 'theme'}}" class="board-options-scroll" style="--option-count:{{mode === 'themes' ? 5 : 4}};" scroll-y>
+      <view class="drawer-content"><view class="board-options-menu">
+        <button id="theme-appearance" hover-class="ui-pressed" bindtap="openAppearance"><view><text>版面和纹理</text><text class="muted">选择喜欢的颜色与毡面质感</text></view><text>›</text></button>
+        <button wx:if="{{mode === 'themes'}}" id="open-memory-libraries" hover-class="ui-pressed" bindtap="openMemoryLibrary"><view><text>记忆库</text><text class="muted">分门别类，收好喜欢的物体</text></view><text>›</text></button>
+        <button id="share-theme" hover-class="ui-pressed" disabled="{{!count}}" bindtap="shareTheme"><view><text>分享这块板</text><text class="muted">把这一板的记忆分享给朋友</text></view><text>›</text></button>
+        <button id="rename-theme" hover-class="ui-pressed" bindtap="rename"><view><text>重命名</text><text class="muted">为这块主题板换个名字</text></view><text>›</text></button>
+        <button id="delete-theme" hover-class="ui-pressed" class="danger" bindtap="removeTheme"><view><text>删除主题板</text><text class="muted">物体和文字仍会保留</text></view><text>›</text></button>
+      </view></view>
+    </scroll-view>
     <block wx:elif="{{drawer === 'library'}}">
       <view class="theme-library-controls"><input id="theme-library-search" class="theme-search" value="{{libraryQuery}}" placeholder="搜索记录、日期或分类" maxlength="100" bindinput="searchLibrary" /><scroll-view scroll-x class="theme-category-scroll"><view class="theme-category-row"><button wx:for="{{libraryFilters}}" wx:key="*this" class="theme-filter {{libraryCategory === item ? 'theme-filter-active' : ''}}" data-category="{{item}}" bindtap="categoryLibrary">{{item}}</button></view></scroll-view></view>
       <scroll-view scroll-y class="theme-library-scroll"><view class="theme-library-grid">

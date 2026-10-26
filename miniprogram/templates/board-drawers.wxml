@@ -1,13 +1,13 @@
-<view wx:if="{{drawer}}" class="drawer-veil" catchtouchmove="stop">
+<view wx:if="{{drawer}}" class="drawer-veil {{drawer === 'calendar-options' ? 'board-options-drawer' : ''}}" catchtouchmove="stop">
   <view class="drawer-scrim" bindtap="closeDrawer" />
   <view class="drawer-sheet" role="dialog" aria-modal="true" aria-label="{{drawer === 'calendar-options' ? '更多选项' : drawer === 'theme' ? '主题选项' : drawer === 'selection' ? '布置贴纸' : drawer === 'note' ? '写下记忆' : drawer === 'library' ? (isTheme ? '添加记忆' : '找回当天记忆') : '添加照片'}}">
     <view class="drawer-handle" aria-hidden="true" />
     <view class="row drawer-heading"><view class="section-title">{{drawer === 'calendar-options' ? '更多选项' : drawer === 'theme' ? '主题选项' : drawer === 'selection' ? '布置贴纸' : drawer === 'note' ? '文字 / 分类' : drawer === 'library' ? (isTheme ? '添加记忆' : '当天记忆') : '添加照片'}}</view><button id="close-drawer" class="ghost" aria-label="收起抽屉" bindtap="closeDrawer">收起 ⌄</button></view>
     <view class="drawer-scroll">
       <view class="drawer-content">
-        <view wx:if="{{drawer === 'calendar-options'}}" class="calendar-options-menu">
-          <button id="calendar-appearance" bindtap="openAppearance"><view><text>版面和纹理</text><text class="muted">选择喜欢的颜色与毡面质感</text></view><text>›</text></button>
-          <button id="open-memory-libraries" bindtap="openMemoryLibrary"><view><text>记忆库</text><text class="muted">分门别类，收好喜欢的物体</text></view><text>›</text></button>
+        <view wx:if="{{drawer === 'calendar-options'}}" class="calendar-options-menu board-options-menu">
+          <button id="calendar-appearance" hover-class="ui-pressed" bindtap="openAppearance"><view><text>版面和纹理</text><text class="muted">选择喜欢的颜色与毡面质感</text></view><text>›</text></button>
+          <button id="open-memory-libraries" hover-class="ui-pressed" bindtap="openMemoryLibrary"><view><text>记忆库</text><text class="muted">分门别类，收好喜欢的物体</text></view><text>›</text></button>
         </view>
         <view wx:elif="{{drawer === 'selection' || drawer === 'theme'}}" class="source-actions">
           <block wx:if="{{!inlineTheme || (editable && selected)}}">

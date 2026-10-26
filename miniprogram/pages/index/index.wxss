@@ -29,10 +29,6 @@ button.journal-more { display:flex; flex-direction:column; align-items:center; j
 .sheet-date { flex:1; min-width:0; color:#766457; font-size:12px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
 .memory-count { margin-left:8px; color:#8A7B6D; font-size:11px; }
 .home-actions { display:flex; align-items:center; gap:0; height:44px; }
-.calendar-options-menu { display:flex; flex-direction:column; gap:8px; }
-.calendar-options-menu button { display:flex; align-items:center; justify-content:space-between; width:100%; min-height:70px; margin:0; padding:14px 16px; border:1px solid #E5DFD2; border-radius:17px; background:#FCFAF3; color:#625A49; text-align:left; font-size:15px; line-height:1.5; }
-.calendar-options-menu button>view>text { display:block; }
-.calendar-options-menu button .muted { margin-top:5px; font-size:11px; color:#9C927F; }
 button.journal-options { width:44px; height:44px; min-height:44px; padding:0; background:transparent; border:0; font-size:25px; line-height:36px; }
 .today-stage { position:relative; z-index:0; flex:1; min-height:0; }
 .journal-board-feedback { position:absolute; left:50%; bottom:58px; transform:translateX(-50%); max-width:100%; padding:3px 9px; border-radius:12px; background:rgba(255,252,246,.88); text-overflow:ellipsis; white-space:nowrap; font-size:11px; line-height:20px; color:#7D6D5E; text-align:center; pointer-events:none; }
