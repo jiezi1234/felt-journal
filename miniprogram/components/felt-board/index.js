@@ -9,15 +9,21 @@ const boardGuide = require('../../core/board-guide');
 const swipe = require('../../services/board-swipe');
 const journalMotion = require('../../services/journal-board-motion');
 Component({
-  properties: { model: { type: Object, value: null }, layout: String, editable: Boolean, canEdit: Boolean, selected: String, covered: Boolean, occluded: Boolean, landingId: String, reportGestures: Boolean, forwardOverhangTaps: Boolean, floatingControls: Object, allowSwipe: Boolean, swipePrevious: Object, swipeNext: Object, showActions: Boolean, actionsDisabled: Boolean, canAdd: Boolean, canUndo: Boolean, canBringToFront: Boolean, interactive: { type: Boolean, value: true } },
+  properties: { model: { type: Object, value: null }, layout: String, editable: Boolean, canEdit: Boolean, selected: String, covered: Boolean, occluded: Boolean, freezeCanvas: Boolean, landingId: String, reportGestures: Boolean, forwardOverhangTaps: Boolean, floatingControls: Object, allowSwipe: Boolean, swipePrevious: Object, swipeNext: Object, showActions: Boolean, actionsDisabled: Boolean, canAdd: Boolean, canUndo: Boolean, canBringToFront: Boolean, interactive: { type: Boolean, value: true } },
   data: { height: 210, width: 0, topSpace: 0, canvasHeight: 210, handles: [], actions: [], swipeActive: false, navigationAnimating:false, imageError: false, snapshot: '', snapshotA:'', snapshotB:'', snapshotSlot:'a', snapshotVisible:false, canvasHidden:false },
   observers: { 'model, editable, selected, landingId, floatingControls': function () { this.refresh(); if (this.data.layout) wx.nextTick(() => this.measure()); },
-    'covered, interactive, occluded': function () {
+    'covered, interactive, occluded, freezeCanvas': function () {
+      // A hidden native canvas can flash above a menu when it paints/exports.
+      // Invalidate pending image loads too; hiding the node alone is not enough.
+      if (this.data.freezeCanvas) this.version = (this.version || 0) + 1;
+      const resuming = this.canvasFrozen && !this.data.freezeCanvas;
+      this.canvasFrozen = !!this.data.freezeCanvas;
       if (this.data.covered || this.data.occluded || !this.data.interactive) journalMotion.stop(this);
       if (this.data.covered || this.data.occluded || !this.data.interactive) swipe.cancel(this);
       snapshots.cover(this);
       if (!this.data.covered) { this.pickupReturn = null; this.pickupId = ''; this.finishPickupSnapshot(false); }
       if (this.data.covered || this.data.occluded || !this.data.interactive) this.touchCancel(); else this.refresh();
+      if (resuming) wx.nextTick(() => { if (!this.dead && !this.data.freezeCanvas) this.measure(); });
     }, 'swipePrevious, swipeNext, allowSwipe': function () { swipe.warm(this); },
     'showActions, actionsDisabled, canAdd, canUndo, canBringToFront': function () { this.refresh(); }, layout() { this.measure(); } },
   lifetimes: { ready() { this.measure(); }, detached() { this.dead = true; journalMotion.dispose(this); swipe.dispose(this); snapshots.dispose(this); this.clearGesture(); this.finishPickupSnapshot(false); } },
@@ -26,9 +32,10 @@ Component({
     exportViewport() { return this.dimensions ? { width: this.dimensions.width, height: this.dimensions.height } : null; },
     beginNavigationTransition(targetId) { journalMotion.begin(this, targetId); },
     async prepareOverlay() {
+      if (this.data.freezeCanvas) return !!this.data.snapshot;
       journalMotion.dispose(this);
       await this.refresh();
-      if (this.dead || !this.canvas || !this.data.model || this.data.covered) return false;
+      if (this.dead || this.data.freezeCanvas || !this.canvas || !this.data.model || this.data.covered) return false;
       const id=this.data.model.id;
       const path=await new Promise(resolve=>{
         let finished=false;
@@ -36,13 +43,14 @@ Component({
         const timer=setTimeout(()=>done(null),600);
         wx.canvasToTempFilePath({canvas:this.canvas,fileType:'png',success:r=>done(r.tempFilePath),fail:()=>done(null)});
       });
-      if (!path || this.dead || this.data.covered || !this.data.model || this.data.model.id!==id) return false;
-      return snapshots.stage(this,path,()=>!this.dead && !this.data.covered && !!this.data.model && this.data.model.id===id);
+      if (!path || this.dead || this.data.freezeCanvas || this.data.covered || !this.data.model || this.data.model.id!==id) return false;
+      return snapshots.stage(this,path,()=>!this.dead && !this.data.freezeCanvas && !this.data.covered && !!this.data.model && this.data.model.id===id);
     },
     stop() {},
     measure() {
+      if (this.dead || this.data.freezeCanvas) return;
       this.createSelectorQuery().select('#feltCanvas').fields({ node: true }).select('.board-viewport').boundingClientRect().exec(result => {
-        const r = result[0], rect = result[1]; if (this.dead || !r || !r.node || !rect || !rect.width) return;
+        const r = result[0], rect = result[1]; if (this.dead || this.data.freezeCanvas || !r || !r.node || !rect || !rect.width) return;
         const tall = this.data.layout === 'tall';
         const width = this.data.layout === 'fit' && rect.height ? Math.min(rect.width, rect.height * B.width / (B.height + B.overhang)) : rect.width;
         const topSpace = width * B.overhang / B.width;
@@ -62,11 +70,11 @@ Component({
       });
     },
     async refresh() {
-      if (!this.canvas || !this.data.model || this.dead || this.journalMotion || swipe.hold(this)) return;
+      if (!this.canvas || !this.data.model || this.dead || this.data.freezeCanvas || this.journalMotion || swipe.hold(this)) return;
       const version = this.version = (this.version || 0) + 1, model = this.dragModel || this.data.model;
       try {
         this.images = await renderer.loadImages(this.canvas, model.items || [], this.images, false);
-        if (version !== this.version || this.dead) return;
+        if (version !== this.version || this.dead || this.data.freezeCanvas) return;
         swipe.beforePaint(this);
         const dimensions = this.dimensions || B;
         const display = viewport.present(model, this.screenWidth, this.data.height).model;
@@ -93,11 +101,11 @@ Component({
         // as a raster while covered, without destroying the canvas or page.
         if (this.data.covered) wx.canvasToTempFilePath({ canvas: this.canvas, fileType: 'png',
           success: result => {
-            if (this.dead || !this.data.covered || version !== this.version) return;
+            if (this.dead || this.data.freezeCanvas || !this.data.covered || version !== this.version) return;
             if (this.pickupWait) this.pickupWait.path = result.tempFilePath;
             const returning = this.pickupReturn;
-            snapshots.stage(this, result.tempFilePath, () => !this.dead && this.data.covered && version === this.version, !!returning).then(ready => {
-              if (this.dead || !this.data.covered || version !== this.version) return;
+            snapshots.stage(this, result.tempFilePath, () => !this.dead && !this.data.freezeCanvas && this.data.covered && version === this.version, !!returning).then(ready => {
+              if (this.dead || this.data.freezeCanvas || !this.data.covered || version !== this.version) return;
               if (returning && this.pickupReturn === returning) returning.snapshot = ready;
               if (this.pickupWait && this.pickupWait.path === result.tempFilePath) this.finishPickupSnapshot(!!ready);
               this.landingReady();

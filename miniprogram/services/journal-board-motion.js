@@ -13,9 +13,11 @@ function stop(host) {
   }
   host.journalMotion = null;
   if (!host.dead) {
-    const ctx = host.canvas.getContext('2d');
-    ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.globalAlpha=1; ctx.clearRect(0,0,host.canvas.width,host.canvas.height);
-    ctx.drawImage(motion.target,0,0,host.canvas.width,host.canvas.height); ctx.restore();
+    if (!host.data.freezeCanvas) {
+      const ctx = host.canvas.getContext('2d');
+      ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.globalAlpha=1; ctx.clearRect(0,0,host.canvas.width,host.canvas.height);
+      ctx.drawImage(motion.target,0,0,host.canvas.width,host.canvas.height); ctx.restore();
+    }
     host.setData({ navigationAnimating:false });
   }
 }

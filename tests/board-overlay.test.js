@@ -325,7 +325,7 @@ test('dragging works after long press and on a subsequent gesture of the selecte
 
 test('cancellation, covering, backgrounding, multitouch and detaching suppress pending long presses', t => {
   const f = gestureFixture(t);
-  const cancel = [() => f.board.touchCancel(), () => { f.board.data.covered = true; definition.observers['covered, interactive, occluded'].call(f.board); },
+  const cancel = [() => f.board.touchCancel(), () => { f.board.data.covered = true; definition.observers['covered, interactive, occluded, freezeCanvas'].call(f.board); },
     () => definition.pageLifetimes.hide.call(f.board), () => f.board.touchMove({ touches: [{}, {}] }), () => definition.lifetimes.detached.call(f.board)];
   for (const stop of cancel) {
     f.board.dead = false; f.board.data.covered = false; f.start(); stop(); t.mock.timers.tick(1000); f.board.touchEnd(); assert.deepEqual(f.events, []);

@@ -26,6 +26,11 @@ test('rapid board changes cancel the previous frame loop and settle on the lates
   host.data.model={id:'third'};motion.run(host);t.mock.timers.tick(256);
   assert.equal(host.data.model.id,'third');assert.equal(host.data.navigationAnimating,false);assert.equal(host.refreshCount,1);
 });
+test('freezing for a menu cancels a transition without its final native paint',t=>{
+  const {host,draws}=fixture(t);motion.begin(host);host.data.model={id:'second'};motion.run(host);
+  const before=draws.length;host.data.freezeCanvas=true;motion.stop(host);t.mock.timers.tick(1000);
+  assert.equal(draws.length,before);assert.equal(host.journalMotion,null);assert.equal(host.data.navigationAnimating,false);
+});
 test('a picker holds the transition until its exit is complete, and disposal releases all frames',t=>{
   const {host}=fixture(t);motion.begin(host);host.data.model={id:'second'};host.data.covered=true;
   assert.equal(motion.run(host),false);assert.ok(host.journalSource);
