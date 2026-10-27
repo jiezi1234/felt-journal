@@ -24,7 +24,7 @@ Component({
   pageLifetimes: { resize() { journalMotion.dispose(this); swipe.cancel(this); this.touchCancel(); this.measure(); }, hide() { journalMotion.dispose(this); swipe.cancel(this); this.touchCancel(); }, show() { if (this.canvas) this.refresh(); } },
   methods: {
     exportViewport() { return this.dimensions ? { width: this.dimensions.width, height: this.dimensions.height } : null; },
-    beginNavigationTransition() { journalMotion.begin(this); },
+    beginNavigationTransition(targetId) { journalMotion.begin(this, targetId); },
     async prepareOverlay() {
       journalMotion.dispose(this);
       await this.refresh();

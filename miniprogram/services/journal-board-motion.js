@@ -19,17 +19,20 @@ function stop(host) {
     host.setData({ navigationAnimating:false });
   }
 }
-function begin(host) {
+function begin(host, targetId) {
   stop(host); host.journalSource = null;
   if (host.dead || !host.canvas || !host.data.model || typeof wx === 'undefined' || !wx.createOffscreenCanvas) return;
   try {
-    host.journalSource = { canvas:copy(host), id:host.data.model.id };
+    host.journalSource = { canvas:copy(host), id:host.data.model.id, targetId };
     host.version = (host.version || 0) + 1;
   } catch (_) { /* Older runtimes keep the normal immediate board change. */ }
 }
 function run(host) {
   const source = host.journalSource;
   if (!source || host.data.covered || host.data.occluded || host.data.landingId) return false;
+  // Selection/gesture updates can repaint the outgoing board before the next
+  // model arrives. Only that requested model may consume its transition frame.
+  if (source.targetId && (!host.data.model || source.targetId !== host.data.model.id)) return false;
   host.journalSource = null;
   if (host.dead || !host.data.model || source.id === host.data.model.id) return false;
   let target;

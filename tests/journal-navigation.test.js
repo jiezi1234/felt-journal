@@ -103,6 +103,26 @@ test('theme thumbnail follows latest placement time, not image age, z-order or l
   store.unplace(b, first); p.refresh(); assert.equal(p.data.themeRail.find(t => t.id === first).latestPath, '');
 });
 
+test('theme rail and picker retain the outgoing board and request the same targeted transition as dates', t => {
+  const { page: p, store } = fixture(t), { first, second } = themes(store);
+  const memory = store.add('transition', '2026-10-22', photo('transition'));
+  store.place(memory, first); p.refresh();
+  const transitions = [], models = [], setData = p.setData;
+  p.selectComponent = () => ({ touchCancel() {}, beginNavigationTransition(id) { transitions.push({ from: p.data.model.id, to: id }); } });
+  p.setData = function(update) { if (Object.hasOwn(update, 'model')) models.push(update.model); setData.call(this, update); };
+  p.chooseDate(event({ date: '2026-10-20' }));
+  p.chooseTheme(event({ id: first }));
+  p.openJournalPicker(); p.chooseTheme(event({ id: second }));
+  assert.deepEqual(transitions, [
+    { from: '2026-10-22', to: '2026-10-20' },
+    { from: '2026-10-20', to: first },
+    { from: first, to: second }
+  ]);
+  assert.ok(models.every(Boolean), 'Valid board switches never clear the rendered model between frames');
+  assert.equal(p.data.model.id, second); assert.equal(p.data.count, 0); assert.equal(p.data.journalPicker, '');
+  p.chooseTheme(event({ id: second })); assert.equal(transitions.length, 3, 'Reselecting the active theme does not flash');
+});
+
 test('calendar and theme pickers preview two recent board objects without duplicates or invented placeholders',t=>{
   const {store}=fixture(t),{first}=themes(store);
   const ids=['a','b','c'].map(id=>store.add(id,'2026-10-22',photo(id)));

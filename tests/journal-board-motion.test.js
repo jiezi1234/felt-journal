@@ -37,6 +37,14 @@ test('same-board selection and unsupported bitmap runtimes keep the normal rende
   const {host}=fixture(t);motion.begin(host);assert.equal(motion.run(host),false);assert.equal(host.journalSource,null);
   global.wx={};motion.begin(host);host.data.model={id:'other'};assert.equal(motion.run(host),false);
 });
+test('outgoing and stale model paints cannot consume a transition for the requested board',t=>{
+  const {host}=fixture(t);motion.begin(host,'second');const source=host.journalSource;
+  assert.equal(motion.run(host),false);assert.equal(host.journalSource,source);
+  host.data.model=null;assert.equal(motion.run(host),false);assert.equal(host.journalSource,source);
+  host.data.model={id:'stale'};assert.equal(motion.run(host),false);assert.equal(host.journalSource,source);
+  host.data.model={id:'second'};assert.equal(motion.run(host),true);
+  t.mock.timers.tick(256);assert.equal(host.data.navigationAnimating,false);
+});
 test('a throttled native animation frame never leaves the board interaction locked',t=>{
   const {host}=fixture(t);host.canvas.requestAnimationFrame=()=>1;host.canvas.cancelAnimationFrame=()=>{};
   motion.begin(host);host.data.model={id:'next'};motion.run(host);t.mock.timers.tick(420);

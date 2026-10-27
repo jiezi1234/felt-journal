@@ -76,9 +76,9 @@ Page({
     if (this.dirty && !this.persist() || this.noteDirty && !this.saveNote()) return false;
     this.setData({ editable: false, selected: '' }); return true;
   },
-  beginBoardTransition() {
+  beginBoardTransition(targetId) {
     const board=this.selectComponent && this.selectComponent('#today-board');
-    if (board && board.beginNavigationTransition) board.beginNavigationTransition();
+    if (board && board.beginNavigationTransition) board.beginNavigationTransition(targetId);
     this.setData({contentMotion:this.data.contentMotion === 'a' ? 'b' : 'a'});
   },
   switchMode() {
@@ -91,14 +91,14 @@ Page({
   chooseDate(e) {
     const date = e.currentTarget.dataset.date;
     if (!dates.valid(date) || date > dates.key() || !this.prepareBoardChange()) return;
-    if (this.data.mode !== 'calendar' || date !== this.date) this.beginBoardTransition();
+    if (this.data.mode !== 'calendar' || date !== this.date) this.beginBoardTransition(date);
     this.dailyDate = date; this.setData({ mode: 'calendar' }); this.refresh(); this.closeJournalPicker();
   },
   returnToday() { this.chooseDate({ currentTarget: { dataset: { date: dates.key() } } }); },
   chooseTheme(e) {
     const id = e.currentTarget.dataset.id;
     if (!this.data.journalThemes.some(item => item.id === id) || !this.prepareBoardChange()) return;
-    if (this.data.mode !== 'themes' || id !== this.date) this.beginBoardTransition();
+    if (this.data.mode !== 'themes' || id !== this.date) this.beginBoardTransition(id);
     this.activeThemeId = id; this.setData({ mode: 'themes' }); this.refresh(); this.closeJournalPicker();
   },
   openJournalPicker() {

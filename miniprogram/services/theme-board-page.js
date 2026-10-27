@@ -23,7 +23,9 @@ function createThemeBoardPage() {
         this.cancelGesture(); this.date = id; this.draft = null; this.history = null;
         this.dirty = false; this.checkedDraft = false; this.pendingSelection = ''; this.wantEdit = false;
         this.noteId = ''; this.noteDirty = false;
-        this.setData({ editable: false, selected: '', dragging: false, drawer: '', model: null, count: 0, canEdit: false,
+        // Keep the outgoing board mounted until display publishes the next model.
+        // Clearing it here interrupts the same transition used by calendar days.
+        this.setData({ editable: false, selected: '', dragging: false, drawer: '', ...(id ? {} : { model: null, count: 0 }), canEdit: false,
           canUndo: false, canRedo: false, saveError: '', saveState: '已保存', noteError: '' });
       }
       if (id) editor.refresh.call(this);
