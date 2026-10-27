@@ -55,7 +55,7 @@ test('gallery loads beyond the first screen and searching does not lose membersh
   c.search({ detail: { value: '回忆 39' } }); assert.equal(c.data.visibleItems.length, 1); assert.equal(c.data.visibleItems[0].text, '回忆 39');
 });
 test('calendar more menu opens appearance and libraries, freezes the board and returns from detail to the same library', t => {
-  const f = fixture(t), page = { ...home, data: clone(home.data), store: f.store, setData(update) { Object.assign(this.data, update); }, selectComponent() { return { touchCancel() {} }; } };
+  const f = fixture(t), page = { ...home, data: clone(home.data), store: f.store, setData(update, done) { Object.assign(this.data, update); if(done)done(); }, selectComponent() { return { touchCancel() {} }; } };
   page.refresh(); const before = f.store.get().memories;
   page.openCalendarOptions(); assert.equal(page.data.drawer, 'calendar-options'); page.openAppearance(); assert.equal(page.data.drawer, 'appearance');
   page.texture({ currentTarget: { dataset: { value: 'long' } } }); assert.equal(f.store.board(f.date).texture, 'long'); page.closeDrawer();
@@ -75,7 +75,7 @@ test('result library selector never confirms placement and a stale continue cann
 });
 test('theme menu opens the shared library and restores the same board while blocking hidden theme actions', t => {
   const f = fixture(t), id = f.store.createTheme('current', '随手记', f.id);
-  const page = { ...home, data: clone(home.data), store: f.store, setData(update) { Object.assign(this.data, update); }, selectComponent() { return { touchCancel() {} }; } };
+  const page = { ...home, data: clone(home.data), store: f.store, setData(update, done) { Object.assign(this.data, update); if(done)done(); }, selectComponent() { return { touchCancel() {} }; } };
   page.refresh(); page.switchMode(); assert.equal(page.date, id);
   const before = clone(f.store.get().boards[id]);
   page.openSelection(); assert.equal(page.data.drawer, 'theme'); page.openMemoryLibrary(); assert.equal(page.data.libraryOpen, true);

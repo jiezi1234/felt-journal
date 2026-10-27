@@ -18,7 +18,7 @@ function fixture(t) {
   platform.syncTab = () => {}; platform.unloadGuard = () => {}; platform.toast = () => {};
   platform.call = async () => ({ confirm: true }); platform.confirmRemovePlacement = async () => true;
   const disk = {}, store = createStore({ get: key => disk[key], set(key, value) { if (fail && key === KEY) throw new Error('disk full'); disk[key] = value; } });
-  const page = { ...definition, data: clone(definition.data), store, setData(update) { Object.assign(this.data, update); }, selectComponent() { return { touchCancel() {} }; } };
+  const page = { ...definition, data: clone(definition.data), store, setData(update, done) { Object.assign(this.data, update); if(done)done(); }, selectComponent() { return { touchCancel() {} }; } };
   page.refresh();
   return { page, store, disk, fail(value) { fail = value; }, today(value) { today = value; } };
 }
@@ -109,7 +109,7 @@ test('theme rail and picker retain the outgoing board and request the same targe
   store.place(memory, first); p.refresh();
   const transitions = [], models = [], setData = p.setData;
   p.selectComponent = () => ({ touchCancel() {}, beginNavigationTransition(id) { transitions.push({ from: p.data.model.id, to: id }); } });
-  p.setData = function(update) { if (Object.hasOwn(update, 'model')) models.push(update.model); setData.call(this, update); };
+  p.setData = function(update, done) { if (Object.hasOwn(update, 'model')) models.push(update.model); setData.call(this, update, done); };
   p.chooseDate(event({ date: '2026-10-20' }));
   p.chooseTheme(event({ id: first }));
   p.openJournalPicker(); p.chooseTheme(event({ id: second }));
@@ -160,6 +160,36 @@ test('failed or stalled board preparation still opens a picker with native occlu
   await p.openJournalPicker();assert.equal(p.data.journalPicker,'calendar');p.closeJournalPicker();
   p.selectComponent=()=>({touchCancel(){},prepareOverlay:()=>new Promise(()=>{})});
   p.openJournalPicker();t.mock.timers.tick(900);assert.equal(p.data.journalPicker,'calendar');assert.equal(p.data.pickerPreparing,false);
+});
+
+test('both more menus hide the canvas in a completed render before mounting, and reject repeated taps',async t=>{
+  const {page:p,store}=fixture(t);themes(store);
+  const oldWx=global.wx;t.after(()=>{global.wx=oldWx;});
+  let paint,ready,captures=0;global.wx={nextTick:fn=>{paint=fn;}};
+  p.selectComponent=()=>({touchCancel(){},prepareOverlay(){captures++;return new Promise(resolve=>{ready=resolve;});}});
+  for(const mode of ['calendar','themes']) {
+    if(mode==='themes')p.switchMode();
+    const open=()=>mode==='calendar'?p.openCalendarOptions():p.openSelection();
+    const opening=open();assert.equal(p.data.drawer,'');assert.equal(p.data.pickerPreparing,true);
+    open();assert.equal(captures,mode==='calendar'?1:2,'A second tap cannot restart preparation');
+    ready(true);await opening;
+    assert.equal(p.data.boardOccluded,true);assert.equal(p.data.drawer,'','Menu waits until the hidden canvas has rendered');
+    paint();assert.equal(p.data.drawer,mode==='calendar'?'calendar-options':'theme');
+    assert.equal(p.data.boardOccluded,false);assert.equal(p.data.pickerPreparing,false);
+    p.closeDrawer();
+  }
+});
+
+test('failed menu captures use pre-occlusion, and cancellation cannot leave a hidden board or open a stale menu',async t=>{
+  const {page:p}=fixture(t);const oldWx=global.wx;t.after(()=>{global.wx=oldWx;});
+  let paint;global.wx={nextTick:fn=>{paint=fn;}};
+  p.selectComponent=()=>({touchCancel(){},prepareOverlay:()=>Promise.reject(Error('capture failed'))});
+  await p.openCalendarOptions();assert.equal(p.data.boardOccluded,true);assert.equal(p.data.drawer,'');
+  p.closeDrawer();paint();assert.equal(p.data.boardOccluded,false);assert.equal(p.data.drawer,'');assert.equal(p.data.navigationBusy,false);
+  await p.openCalendarOptions();paint();assert.equal(p.data.drawer,'calendar-options');p.closeDrawer();
+  let ready;p.selectComponent=()=>({touchCancel(){},prepareOverlay:()=>new Promise(resolve=>{ready=resolve;})});
+  const opening=p.openCalendarOptions();p.onHide();ready(true);await opening;
+  assert.equal(p.data.drawer,'');assert.equal(p.data.boardOccluded,false);assert.equal(p.data.pickerPreparing,false);
 });
 test('busy operations and failed saves cannot switch the editor to a different board', t => {
   const f = fixture(t), p = f.page; themes(f.store);

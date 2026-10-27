@@ -9,7 +9,7 @@ const editor = createBoardEditor();
 const theme = createThemeBoardPage();
 Page({
   ...editor, ...theme,
-  data: { ...theme.data, inlineTheme: false, mode: 'calendar', dailyDate: '', recentDays: [], themeRail: [], journalThemes: [], journalPicker: '', pickerClosing:false, pickerPreparing:false, previewReady:{}, previewErrors:{}, contentMotion:'',
+  data: { ...theme.data, inlineTheme: false, mode: 'calendar', dailyDate: '', recentDays: [], themeRail: [], journalThemes: [], journalPicker: '', pickerClosing:false, pickerPreparing:false, boardOccluded:false, previewReady:{}, previewErrors:{}, contentMotion:'',
     journalYear: 0, journalMonth: 0, calendarCells: [], canNextMonth: false, weekdays: ['一', '二', '三', '四', '五', '六', '日'],
     libraryOpen: false, navigationBusy: false, editorOpen: false, editorDate: '', headerStatus:20, headerHeight:64, headerMenuInset:104, headerTitle:'' },
   syncNavigation() { this.setData({ navigationBusy: this.busy() }); platform.syncTab(this, 'today', true); },
@@ -30,7 +30,7 @@ Page({
     clearInterval(this.timer);
     this.timer = setInterval(() => { if (!this.busy() && dates.key() !== this.lastToday) this.refresh(); }, 30000);
   },
-  onHide() { clearInterval(this.timer); clearTimeout(this.journalCloseTimer); clearTimeout(this.journalPrepareTimer); this.pickerRequest=(this.pickerRequest||0)+1; this.setData({journalPicker:'',pickerClosing:false,pickerPreparing:false}); editor.onHide.call(this); if (this.data.drawer === 'selection') this.setData({ drawer: '' }); },
+  onHide() { clearInterval(this.timer); clearTimeout(this.journalCloseTimer); clearTimeout(this.journalPrepareTimer); this.pickerRequest=(this.pickerRequest||0)+1; this.setData({journalPicker:'',pickerClosing:false,pickerPreparing:false,boardOccluded:false}); editor.onHide.call(this); if (this.data.drawer === 'selection') this.setData({ drawer: '' }); },
   onUnload() { clearInterval(this.timer); clearTimeout(this.journalCloseTimer); clearTimeout(this.journalPrepareTimer); this.pickerRequest=(this.pickerRequest||0)+1; editor.onUnload.call(this); },
   refresh() {
     if (this.disposed) return;
@@ -105,24 +105,33 @@ Page({
     if (!this.prepareBoardChange()) return;
     const mode = this.data.mode;
     if (mode === 'calendar') { const [y, m] = this.dailyDate.split('-').map(Number); this.journalYear = y; this.journalMonth = m; }
+    return this.presentBoardOverlay({ journalPicker: mode === 'calendar' ? 'calendar' : 'themes', pickerClosing:false, previewReady:{}, previewErrors:{} }, () => this.refreshNavigation());
+  },
+  presentBoardOverlay(update, after) {
     const token=this.pickerRequest=(this.pickerRequest||0)+1;
     let opened=false;
+    const valid=()=>!this.disposed && token===this.pickerRequest;
     const open=()=>{
-      if (opened || this.disposed || token!==this.pickerRequest) return;
+      if (opened || !valid()) return;
       opened=true;clearTimeout(this.journalPrepareTimer);this.journalPrepareTimer=null;
-      this.setData({ journalPicker: mode === 'calendar' ? 'calendar' : 'themes', pickerClosing:false, pickerPreparing:false, previewReady:{}, previewErrors:{} }); this.refreshNavigation();
+      // Hide the native canvas in a separate render before mounting an overlay.
+      // Its decoded raster keeps the board visible below the menu throughout.
+      this.setData({boardOccluded:true},()=>{
+        const show=()=>{if(valid()){this.setData({...update,boardOccluded:false,pickerPreparing:false});if(after)after();}};
+        if(typeof wx!=='undefined' && wx.nextTick)wx.nextTick(show);else show();
+      });
     };
+    this.setData({pickerPreparing:true,navigationBusy:true});
     const board=this.selectComponent && this.selectComponent('#today-board');
     if (!board || !board.prepareOverlay) { open(); return; }
-    this.setData({pickerPreparing:true,navigationBusy:true});
     this.journalPrepareTimer=setTimeout(open,900);
-    // A failed capture still opens the picker with its native canvas suppressed.
-    return Promise.resolve(board.prepareOverlay()).then(open,open);
+    // Capture failures still hide the native canvas before opening the overlay.
+    try { return Promise.resolve(board.prepareOverlay()).then(open,open); } catch (_) { open(); }
   },
   closeJournalPicker(done) {
     const after=typeof done === 'function' ? done : null;
     if (!this.data.journalPicker) {
-      if(this.data.pickerPreparing){clearTimeout(this.journalPrepareTimer);this.pickerRequest=(this.pickerRequest||0)+1;this.setData({pickerPreparing:false});this.syncNavigation();}
+      if(this.data.pickerPreparing){clearTimeout(this.journalPrepareTimer);this.pickerRequest=(this.pickerRequest||0)+1;this.setData({pickerPreparing:false,boardOccluded:false});this.syncNavigation();}
       if (after) after(); return;
     }
     if (this.data.pickerClosing) return;
@@ -153,18 +162,7 @@ Page({
   openMemoryLibrary() {
     if (this.busy() || this.data.loading || this.data.error) return;
     this.cancelGesture(); if (this.dirty && !this.persist()) return;
-    const token = this.pickerRequest = (this.pickerRequest || 0) + 1;
-    let opened = false;
-    const show = () => {
-      if (opened || this.disposed || token !== this.pickerRequest) return;
-      opened = true; clearTimeout(this.journalPrepareTimer);
-      this.setData({ libraryOpen: true, pickerPreparing: false, drawer: '' }); this.syncNavigation();
-    };
-    const board = this.selectComponent && this.selectComponent('#today-board');
-    if (!board || !board.prepareOverlay) { show(); return; }
-    this.setData({ pickerPreparing: true, navigationBusy: true });
-    this.journalPrepareTimer = setTimeout(show, 900);
-    return Promise.resolve(board.prepareOverlay()).then(show, show);
+    return this.presentBoardOverlay({ libraryOpen: true, drawer: '' }, () => this.syncNavigation());
   },
   closeMemoryLibrary() { if (this.data.memoryCardId) return; this.setData({ libraryOpen: false }); this.refresh(); this.syncNavigation(); },
   libraryChanged() { this.refresh(); },
@@ -179,7 +177,7 @@ Page({
   },
   openCalendarOptions() {
     if (this.data.mode !== 'calendar' || !this.prepareBoardChange()) return;
-    this.setData({ drawer: 'calendar-options' });
+    return this.presentBoardOverlay({ drawer: 'calendar-options' }, () => this.syncNavigation());
   },
   openAppearance() {
     if (this.data.mode === 'themes') return theme.openAppearance.call(this);
@@ -244,13 +242,19 @@ Page({
       else if (hit(rects[2])) this.openCalendarOptions();
     });
   },
-  openSelection() { if (this.data.mode === 'themes') return theme.openSelection.call(this); if (this.canAdjust()) { this.cancelGesture(); this.setData({ drawer: 'selection' }); } },
+  openSelection() {
+    if (this.data.mode === 'themes') {
+      if (!this.date || !theme.prepareThemeChange.call(this)) return;
+      return this.presentBoardOverlay({ drawer: 'theme' }, () => this.syncNavigation());
+    }
+    if (this.canAdjust()) { this.cancelGesture(); this.setData({ drawer: 'selection' }); }
+  },
   openSelectedTools() { if (this.canAdjust()) { this.cancelGesture(); this.setData({ drawer: 'selection' }); } },
   floatingAction(e) { const action = e.detail.action; if (action === 'record') this.primary(); else if (action === 'tools') this.openSelectedTools(); else if (action === 'today') this.returnToday(); else if (action === 'mode') this.switchMode(); },
   select(e) { return this.data.mode === 'themes' ? theme.select.call(this, e) : editor.select.call(this, e); },
   library() { return this.data.mode === 'themes' ? theme.library.call(this) : editor.library.call(this); },
   placeFromLibrary(e) { return this.data.mode === 'themes' ? theme.placeFromLibrary.call(this, e) : editor.placeFromLibrary.call(this, e); },
-  closeDrawer() { return this.data.mode === 'themes' ? theme.closeDrawer.call(this) : editor.closeDrawer.call(this); },
+  closeDrawer() { if(this.data.pickerPreparing)this.closeJournalPicker(); return this.data.mode === 'themes' ? theme.closeDrawer.call(this) : editor.closeDrawer.call(this); },
   gestureState(e) { this.setData({ dragging: !!e.detail.active }); this.setData({ navigationBusy: this.busy() }); },
   async cancelPhoto(e) { await editor.cancelPhoto.call(this, e); if (!this.disposed) this.refreshNavigation(); },
   async continuePhoto(e) { await editor.continuePhoto.call(this, e); if (!this.disposed) this.refreshNavigation(); },

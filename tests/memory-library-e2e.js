@@ -37,9 +37,26 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms || 120));
     const rect = await geometry('', themeMode ? '#theme-options' : '#calendar-options');
     const touch = { identifier: 0, clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 };
     const canvas = await (await home.$('#today-board')).$('#feltCanvas');
-    await canvas.touchstart({ touches: [touch], changedTouches: [touch] }); await pause(100);
-    await canvas.touchend({ touches: [], changedTouches: [touch] });
-    await wait(home, d => d.drawer === (themeMode ? 'theme' : 'calendar-options'));
+    await mini.evaluate(() => {
+      const p=getCurrentPages().slice(-1)[0], original=p.setData;
+      p.__menuAudit={original};
+      p.setData=function(update,done){
+        if(update.drawer==='calendar-options'||update.drawer==='theme') {
+          const b=this.selectComponent('#today-board');
+          this.__menuAudit.before={hidden:b.data.canvasHidden,occluded:b.data.occluded,raster:!!b.data.snapshot && b.data.snapshotVisible};
+        }
+        return original.call(this,update,done);
+      };
+    });
+    let before;
+    try {
+      await canvas.touchstart({ touches: [touch], changedTouches: [touch] }); await pause(100);
+      await canvas.touchend({ touches: [], changedTouches: [touch] });
+      await wait(home, d => d.drawer === (themeMode ? 'theme' : 'calendar-options'));
+    } finally {
+      before=await mini.evaluate(()=>{const p=getCurrentPages().slice(-1)[0],a=p.__menuAudit;p.setData=a.original;delete p.__menuAudit;return a.before;});
+    }
+    assert.deepEqual(before,{hidden:true,occluded:true,raster:true},'The decoded board replaces the native canvas before the first menu frame');
     if (themeMode) {
       for (const selector of ['#theme-appearance', '#open-memory-libraries', '#rename-theme', '#delete-theme']) assert.ok(await home.$(selector), selector);
       assert.equal(await home.$('#share-theme'), null, 'Sharing stays in the board header, without a duplicate menu entry');
