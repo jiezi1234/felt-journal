@@ -60,7 +60,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     await element.tap();
     if(before && !before.modeSwitchExpanded) {
       await wait(data=>data.modeSwitchExpanded);assert.equal(await page.data('mode'),before.mode,'Empty-theme first tap only expands');
-      await pause(200);await element.tap();await wait(data=>!data.modeSwitchExpanded && data.mode!==before.mode);
+      await pause(200);await element.tap();await wait(data=>data.modeSwitchExpanded && data.mode!==before.mode);
     }
     if(selector==='#journal-more'){await wait(data=>!!data.journalPicker&&!data.pickerPreparing);await assertPickerOccluded();}
     if(selector==='#close-journal-picker')await assertPickerOccluded();
@@ -86,7 +86,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
         assert.equal(after.mode,before.mode,'First native tap only expands the bookmark');assert.equal(after.date,before.date);
         assert.equal(after.modeSwitchExpanded,true);assert.equal(after.memoryCardId,before.memoryCardId,'Expansion never opens the object behind the handle');
         if(!expandOnly)await tapCanvasAction('mode');
-      } else { assert.notEqual(after.mode,before.mode,'Second native tap switches modes');assert.equal(after.modeSwitchExpanded,false); }
+      } else { assert.notEqual(after.mode,before.mode,'Second native tap switches modes');assert.equal(after.modeSwitchExpanded,true,'Switching keeps the bookmark expanded'); }
     }
   }
   async function inspect(name) {
@@ -175,6 +175,14 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     await tapCanvasAction('mode',true);
     if(bookmarkScreenshots)await mini.screenshot({path:path.join(output,'bookmark-expanded.png')});
     await tap('.journal-title');assert.equal(await page.data('modeSwitchExpanded'),false,'Tapping outside dismisses the bookmark');
+    await tapCanvasAction('mode',true);await pause(1300);
+    await tapCanvasAction('mode');await pause(1700);
+    assert.equal(await page.data('modeSwitchExpanded'),true,'The previous expansion timeout cannot close the switch after a new tap');
+    await tapCanvasAction('mode');await pause(1700);
+    assert.equal(await page.data('modeSwitchExpanded'),true,'Repeated switching restarts the three-second idle delay');
+    await wait(data=>!data.modeSwitchExpanded);
+    assert.equal(await page.data('mode'),'calendar','Idle collapse does not change the current board');
+    console.log('PASS: mode switch stays expanded across changes, renews its idle timer and collapses after inactivity');
     await mini.evaluate(()=>getCurrentPages().slice(-1)[0].switchMode());
     let animating=false;for(let i=0;i<30;i++){animating=await mini.evaluate(()=>getCurrentPages().slice(-1)[0].selectComponent('#today-board').data.navigationAnimating);if(animating)break;await pause(10);}
     assert.equal(animating,true,'A real native canvas transition runs when changing modes');

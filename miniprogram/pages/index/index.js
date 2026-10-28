@@ -30,8 +30,8 @@ Page({
     clearInterval(this.timer);
     this.timer = setInterval(() => { if (!this.busy() && dates.key() !== this.lastToday) this.refresh(); }, 30000);
   },
-  onHide() { clearInterval(this.timer); clearTimeout(this.journalCloseTimer); clearTimeout(this.journalPrepareTimer); this.pickerRequest=(this.pickerRequest||0)+1; this.setData({journalPicker:'',pickerClosing:false,pickerPreparing:false,boardOccluded:false,modeSwitchExpanded:false}); editor.onHide.call(this); if (this.data.drawer === 'selection') this.setData({ drawer: '' }); },
-  onUnload() { clearInterval(this.timer); clearTimeout(this.journalCloseTimer); clearTimeout(this.journalPrepareTimer); this.pickerRequest=(this.pickerRequest||0)+1; editor.onUnload.call(this); },
+  onHide() { this.clearModeSwitchTimer(); clearInterval(this.timer); clearTimeout(this.journalCloseTimer); clearTimeout(this.journalPrepareTimer); this.pickerRequest=(this.pickerRequest||0)+1; this.setData({journalPicker:'',pickerClosing:false,pickerPreparing:false,boardOccluded:false,modeSwitchExpanded:false}); editor.onHide.call(this); if (this.data.drawer === 'selection') this.setData({ drawer: '' }); },
+  onUnload() { this.clearModeSwitchTimer(); clearInterval(this.timer); clearTimeout(this.journalCloseTimer); clearTimeout(this.journalPrepareTimer); this.pickerRequest=(this.pickerRequest||0)+1; editor.onUnload.call(this); },
   refresh() {
     if (this.disposed) return;
     try {
@@ -70,11 +70,11 @@ Page({
     if (this.data.journalPicker === 'calendar') this.refreshCalendar();
   },
   display() { editor.display.call(this); this.refreshNavigation(); },
-  prepareBoardChange() {
+  prepareBoardChange(keepModeSwitchOpen = false) {
     if (this.busy() || this.data.loading || this.data.error || this.data.drawer || this.data.pickerClosing) return false;
     this.cancelGesture();
     if (this.dirty && !this.persist() || this.noteDirty && !this.saveNote()) return false;
-    this.collapseModeSwitch();
+    if (!keepModeSwitchOpen) this.collapseModeSwitch();
     this.setData({ editable: false, selected: '' }); return true;
   },
   beginBoardTransition(targetId) {
@@ -82,7 +82,15 @@ Page({
     if (board && board.beginNavigationTransition) board.beginNavigationTransition(targetId);
     this.setData({contentMotion:this.data.contentMotion === 'a' ? 'b' : 'a'});
   },
+  clearModeSwitchTimer() { clearTimeout(this.modeSwitchTimer); this.modeSwitchTimer=null; },
+  scheduleModeSwitchCollapse() {
+    this.clearModeSwitchTimer();
+    const timer=this.modeSwitchTimer=setTimeout(()=>{
+      if (!this.disposed && this.modeSwitchTimer === timer) this.collapseModeSwitch();
+    },3000);
+  },
   collapseModeSwitch() {
+    this.clearModeSwitchTimer();
     if (!this.data.modeSwitchExpanded) return;
     const board=this.selectComponent && this.selectComponent('#today-board');
     if (board && board.cancelBookmarkTransition) board.cancelBookmarkTransition();
@@ -90,6 +98,7 @@ Page({
   },
   toggleModeSwitch() {
     if (this.busy() || this.data.loading || this.data.error || this.data.drawer || this.data.journalPicker || this.data.saveError) return;
+    this.scheduleModeSwitchCollapse();
     if (this.data.modeSwitchExpanded) { this.switchMode(); return; }
     const board=this.selectComponent && this.selectComponent('#today-board');
     if (board && board.beginBookmarkTransition) board.beginBookmarkTransition(true);
@@ -97,7 +106,7 @@ Page({
   },
   switchMode() {
     if (this.data.journalPicker || this.data.saveError) return;
-    if (!this.prepareBoardChange()) return;
+    if (!this.prepareBoardChange(this.data.modeSwitchExpanded)) return;
     this.beginBoardTransition();
     if (this.data.mode === 'calendar') this.dailyDate = this.date;
     this.setData({ mode: this.data.mode === 'calendar' ? 'themes' : 'calendar' }); this.refresh(); this.closeJournalPicker();

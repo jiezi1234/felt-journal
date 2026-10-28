@@ -19,6 +19,7 @@ function fixture(t) {
   platform.call = async () => ({ confirm: true }); platform.confirmRemovePlacement = async () => true;
   const disk = {}, store = createStore({ get: key => disk[key], set(key, value) { if (fail && key === KEY) throw new Error('disk full'); disk[key] = value; } });
   const page = { ...definition, data: clone(definition.data), store, setData(update, done) { Object.assign(this.data, update); if(done)done(); }, selectComponent() { return { touchCancel() {} }; } };
+  t.after(()=>page.clearModeSwitchTimer());
   page.refresh();
   return { page, store, disk, fail(value) { fail = value; }, today(value) { today = value; } };
 }
@@ -69,7 +70,7 @@ test('bookmark changes the header and retains each mode selection, but cannot sw
   p.chooseDate(event({date:'2026-10-20'}));assert.equal(p.data.headerTitle,'10月20日');
   p.floatingAction({detail:{action:'mode'}});assert.equal(p.data.mode,'calendar');assert.equal(p.data.modeSwitchExpanded,true);
   p.floatingAction({detail:{action:'mode'}});assert.equal(p.data.mode,'themes');assert.equal(p.data.headerTitle,'我的收藏');
-  assert.equal(p.data.modeSwitchExpanded,false);
+  assert.equal(p.data.modeSwitchExpanded,true);
   p.openJournalPicker();p.floatingAction({detail:{action:'mode'}});assert.equal(p.data.mode,'themes');p.closeJournalPicker();
   p.data.saveError='磁盘已满';p.floatingAction({detail:{action:'mode'}});assert.equal(p.data.mode,'themes');p.data.saveError='';
   p.floatingAction({detail:{action:'mode'}});assert.equal(p.data.mode,'themes');
@@ -91,7 +92,28 @@ test('opening menus and selecting a date dismiss the expanded bookmark, includin
   p.toggleModeSwitch();p.openCalendarOptions();assert.equal(p.data.modeSwitchExpanded,false);p.closeDrawer();
   p.toggleModeSwitch();p.chooseDate(event({date:p.date}));assert.equal(p.data.modeSwitchExpanded,false);
   p.switchMode();assert.equal(p.date,'');p.toggleModeSwitch();assert.equal(p.data.mode,'themes');assert.equal(p.data.modeSwitchExpanded,true);
-  p.toggleModeSwitch();assert.equal(p.data.mode,'calendar');assert.equal(p.data.modeSwitchExpanded,false);
+  p.toggleModeSwitch();assert.equal(p.data.mode,'calendar');assert.equal(p.data.modeSwitchExpanded,true);
+});
+test('the expanded switch stays open across mode changes and hides three seconds after the last tap',t=>{
+  t.mock.timers.enable({apis:['setTimeout']});
+  const {page:p,store}=fixture(t);themes(store);
+  p.toggleModeSwitch();assert.equal(p.data.mode,'calendar');assert.equal(p.data.modeSwitchExpanded,true);
+  t.mock.timers.tick(2000);p.toggleModeSwitch();assert.equal(p.data.mode,'themes');assert.equal(p.data.modeSwitchExpanded,true);
+  t.mock.timers.tick(2000);assert.equal(p.data.modeSwitchExpanded,true,'The first tap timer cannot close the newly switched button');
+  p.toggleModeSwitch();assert.equal(p.data.mode,'calendar');
+  t.mock.timers.tick(2999);assert.equal(p.data.modeSwitchExpanded,true);
+  t.mock.timers.tick(1);assert.equal(p.data.modeSwitchExpanded,false);assert.equal(p.modeSwitchTimer,null);
+  p.toggleModeSwitch();assert.equal(p.data.mode,'calendar','After timeout, the next tap only expands');
+  t.mock.timers.tick(3000);assert.equal(p.data.modeSwitchExpanded,false,'Expansion without switching also times out');
+});
+test('dismissal and page lifecycle cancel the idle timer without affecting a later expansion',t=>{
+  t.mock.timers.enable({apis:['setTimeout']});
+  const {page:p}=fixture(t);
+  p.toggleModeSwitch();t.mock.timers.tick(2000);p.collapseModeSwitch();assert.equal(p.modeSwitchTimer,null);
+  p.toggleModeSwitch();t.mock.timers.tick(1000);assert.equal(p.data.modeSwitchExpanded,true);
+  p.onHide();assert.equal(p.modeSwitchTimer,null);assert.equal(p.data.modeSwitchExpanded,false);
+  t.mock.timers.tick(5000);p.toggleModeSwitch();assert.equal(p.data.modeSwitchExpanded,true);
+  p.onUnload();assert.equal(p.modeSwitchTimer,null);t.mock.timers.tick(5000);
 });
 test('reading dates, opening pickers and visiting empty theme mode never creates empty boards', t => {
   const { page: p, store } = fixture(t), before = store.get();
