@@ -2,7 +2,12 @@
 .page.home-page { padding:0 10px 6px; gap:6px; background:radial-gradient(ellipse at 12% 4%,#FFFCF4 0%,transparent 60%),linear-gradient(155deg,#F4F0E8,#ECE8E0); }
 .journal-topbar { flex-shrink:0; display:flex; align-items:center; padding-left:10px; min-height:44px; }
 .journal-title { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:Georgia,"Songti SC",SimSun,serif; font-size:23px; line-height:1.4; color:#5A4B3C; }
-button.journal-bookmark { position:absolute; right:8px; top:80px; z-index:20; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; width:44px; height:132px; min-height:132px; padding:9px 0; border:1px solid #E7DED0; border-radius:12px 6px 6px 12px; background:#FFFCF6; box-shadow:-3px 4px 12px rgba(79,55,21,.16); font-size:14px; line-height:20px; font-weight:400; color:#5A4B3C; }
+button.journal-bookmark { position:absolute; right:8px; top:80px; z-index:20; display:flex; justify-content:flex-end; width:44px; height:132px; min-height:64px; padding:0; border:0; background:transparent; font-size:14px; line-height:20px; font-weight:400; color:#5A4B3C; transition:top .18s ease,height .18s ease; }
+.journal-bookmark::after { border:0; }
+.journal-bookmark-paper { box-sizing:border-box; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; width:44px; height:100%; padding:9px 0; border:1px solid #E7DED0; border-radius:12px 6px 6px 12px; background:#FFFCF6; box-shadow:-3px 4px 12px rgba(79,55,21,.16); transition:width .18s ease; }
+button.journal-bookmark-collapsed { top:114px; height:64px; }
+.journal-bookmark-collapsed .journal-bookmark-paper { width:18px; border-radius:8px; }
+.journal-bookmark-pull { font-family:system-ui,sans-serif; font-size:24px; color:#94816A; }
 .journal-bookmark-grid { font-size:18px; color:#8C7A65; margin-bottom:4px; }.journal-switch-mark { font-family:system-ui,sans-serif; font-size:20px; color:#8C7A65; margin-top:5px; }
 .journal-rail { flex-shrink:0; display:grid; align-items:center; gap:3px; padding:0 2px 2px; }
 .journal-date-rail { grid-template-columns:repeat(5,minmax(0,1fr)) 44px; }

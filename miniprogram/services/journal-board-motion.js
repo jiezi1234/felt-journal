@@ -21,11 +21,11 @@ function stop(host) {
     host.setData({ navigationAnimating:false });
   }
 }
-function begin(host, targetId) {
+function begin(host, targetId, bookmarkExpanded) {
   stop(host); host.journalSource = null;
   if (host.dead || !host.canvas || !host.data.model || typeof wx === 'undefined' || !wx.createOffscreenCanvas) return;
   try {
-    host.journalSource = { canvas:copy(host), id:host.data.model.id, targetId };
+    host.journalSource = { canvas:copy(host), id:host.data.model.id, targetId, bookmarkExpanded };
     host.version = (host.version || 0) + 1;
   } catch (_) { /* Older runtimes keep the normal immediate board change. */ }
 }
@@ -35,11 +35,13 @@ function run(host) {
   // Selection/gesture updates can repaint the outgoing board before the next
   // model arrives. Only that requested model may consume its transition frame.
   if (source.targetId && (!host.data.model || source.targetId !== host.data.model.id)) return false;
+  const bookmarkChange = typeof source.bookmarkExpanded === 'boolean';
+  if (bookmarkChange && !!(host.data.floatingControls && host.data.floatingControls.modeExpanded) !== source.bookmarkExpanded) return false;
   host.journalSource = null;
-  if (host.dead || !host.data.model || source.id === host.data.model.id) return false;
+  if (host.dead || !host.data.model || source.id === host.data.model.id && !bookmarkChange) return false;
   let target;
   try { target = copy(host); } catch (_) { return false; }
-  const motion = host.journalMotion = { target, canvas:host.canvas, started:Date.now(), frame:null };
+  const motion = host.journalMotion = { target, canvas:host.canvas, started:Date.now(), frame:null, bookmarkChange };
   motion.timer=setTimeout(()=>{if(host.journalMotion===motion){stop(host);host.refresh();}},420);
   host.setData({ navigationAnimating:true, handles:[], actions:[], snapshotVisible:false, canvasHidden:false });
   const tick = () => {

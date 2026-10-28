@@ -13,6 +13,7 @@ const output = path.resolve(__dirname, '../artifacts/journal-navigation');
 const captureScreenshots = !process.argv.includes('--no-screenshots');
 const pickerScreenshots = process.argv.includes('--picker-screenshots');
 const guideScreenshots = process.argv.includes('--guide-screenshots');
+const bookmarkScreenshots = process.argv.includes('--bookmark-screenshots');
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 (async () => {
   let mini, backup;
@@ -54,13 +55,20 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
       const board=await (await mini.currentPage()).$('#today-board');
       if(board){await tapCanvasAction('mode');return;}
     }
-    const page=await mini.currentPage(),element=await page.$(selector);assert.ok(element,`Missing ${selector}`);await element.tap();
+    const page=await mini.currentPage(),element=await page.$(selector);assert.ok(element,`Missing ${selector}`);
+    const before=selector==='#switch-mode' ? await page.data() : null;
+    await element.tap();
+    if(before && !before.modeSwitchExpanded) {
+      await wait(data=>data.modeSwitchExpanded);assert.equal(await page.data('mode'),before.mode,'Empty-theme first tap only expands');
+      await pause(200);await element.tap();await wait(data=>!data.modeSwitchExpanded && data.mode!==before.mode);
+    }
     if(selector==='#journal-more'){await wait(data=>!!data.journalPicker&&!data.pickerPreparing);await assertPickerOccluded();}
     if(selector==='#close-journal-picker')await assertPickerOccluded();
     await pause(180);if(selector==='#close-journal-picker')await wait(data=>!data.journalPicker);
   }
-  async function tapCanvasAction(action) {
+  async function tapCanvasAction(action, expandOnly=false) {
     await settleBoard();
+    const before=action==='mode' ? await (await mini.currentPage()).data() : null;
     const touch=await mini.evaluate(action=>new Promise(resolve=>{
       const board=getCurrentPages().slice(-1)[0].selectComponent('#today-board');
       board.createSelectorQuery().select('.board-shell').boundingClientRect(rect=>{
@@ -72,6 +80,14 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     const canvas=await (await (await mini.currentPage()).$('#today-board')).$('#feltCanvas');
     await canvas.touchstart({touches:[touch],changedTouches:[touch]}); await pause(120);
     await canvas.touchend({touches:[],changedTouches:[touch]}); await pause(180);await settleBoard();
+    if(before) {
+      const after=await (await mini.currentPage()).data();
+      if(!before.modeSwitchExpanded) {
+        assert.equal(after.mode,before.mode,'First native tap only expands the bookmark');assert.equal(after.date,before.date);
+        assert.equal(after.modeSwitchExpanded,true);assert.equal(after.memoryCardId,before.memoryCardId,'Expansion never opens the object behind the handle');
+        if(!expandOnly)await tapCanvasAction('mode');
+      } else { assert.notEqual(after.mode,before.mode,'Second native tap switches modes');assert.equal(after.modeSwitchExpanded,false); }
+    }
   }
   async function inspect(name) {
     await settleBoard();
@@ -150,10 +166,15 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     store.commit(s=>{[a,b,c,d].forEach((id,i)=>{s.boards[id].createdAt=i+1;s.boards[id].updatedAt=i+1;});s.localNoticeSeen=true;});
     await mini.evaluate((keys,snapshot,active)=>{keys.forEach(k=>wx.removeStorageSync(k));wx.setStorageSync(keys[0],snapshot);wx.setStorageSync(keys[4],active);},keys,disk[keys[0]],b);
     console.log('Installed isolated fixtures');
-    await mini.reLaunch('/pages/index/index');
+    await mini.callWxMethod('reLaunch',{url:'/pages/index/index'});await pause(700);
     await wait(data=>!data.loading&&data.mode==='calendar');
     let page=await mini.currentPage(); assert.equal((await page.data()).date,today); console.log('Journal page ready');
     await inspect('calendar-board');
+    assert.equal(await page.data('modeSwitchExpanded'),false,'The bookmark starts tucked away');
+    if(bookmarkScreenshots)await mini.screenshot({path:path.join(output,'bookmark-collapsed.png')});
+    await tapCanvasAction('mode',true);
+    if(bookmarkScreenshots)await mini.screenshot({path:path.join(output,'bookmark-expanded.png')});
+    await tap('.journal-title');assert.equal(await page.data('modeSwitchExpanded'),false,'Tapping outside dismisses the bookmark');
     await mini.evaluate(()=>getCurrentPages().slice(-1)[0].switchMode());
     let animating=false;for(let i=0;i<30;i++){animating=await mini.evaluate(()=>getCurrentPages().slice(-1)[0].selectComponent('#today-board').data.navigationAnimating);if(animating)break;await pause(10);}
     assert.equal(animating,true,'A real native canvas transition runs when changing modes');
@@ -209,7 +230,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     const blankDisk={}, blankStore=createStore({get:k=>blankDisk[k],set:(k,v)=>{blankDisk[k]=v;}});
     blankStore.commit(s=>{s.localNoticeSeen=true;});
     await mini.evaluate((keys,snapshot)=>{keys.forEach(k=>wx.removeStorageSync(k));wx.setStorageSync(keys[0],snapshot);},keys,blankDisk[keys[0]]);
-    await mini.reLaunch('/pages/index/index');await wait(data=>!data.loading);
+    await mini.callWxMethod('reLaunch',{url:'/pages/index/index'});await pause(700);await wait(data=>!data.loading);
     await tap('#switch-mode');await wait(data=>data.mode==='themes'&&!data.date);
     const blankPage=await mini.currentPage(),fallback=await blankPage.$('#switch-mode');
     assert.ok(fallback,'First-time theme mode keeps a reachable bookmark without a native board');
@@ -222,7 +243,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
       if (backup) {
         console.log('Restoring original storage');
         await mini.evaluate(items=>{const p=getCurrentPages().slice(-1)[0];if(p&&p.onHide)p.onHide();items.forEach(item=>item.value===''?wx.removeStorageSync(item.key):wx.setStorageSync(item.key,item.value));},backup);
-        await mini.reLaunch('/pages/index/index');
+        await mini.callWxMethod('reLaunch',{url:'/pages/index/index'});await pause(700);
         await pause(500);
         assert.deepEqual(await mini.evaluate(names=>names.map(key=>({key,value:wx.getStorageSync(key)})),keys),backup);
       }

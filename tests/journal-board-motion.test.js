@@ -42,6 +42,12 @@ test('same-board selection and unsupported bitmap runtimes keep the normal rende
   const {host}=fixture(t);motion.begin(host);assert.equal(motion.run(host),false);assert.equal(host.journalSource,null);
   global.wx={};motion.begin(host);host.data.model={id:'other'};assert.equal(motion.run(host),false);
 });
+test('bookmark expansion waits for its new controls and crossfades without changing board identity',t=>{
+  const {host}=fixture(t);host.data.floatingControls={modeExpanded:false};motion.begin(host,'first',true);
+  const source=host.journalSource;assert.equal(motion.run(host),false);assert.equal(host.journalSource,source);
+  host.data.floatingControls.modeExpanded=true;assert.equal(motion.run(host),true);assert.equal(host.data.model.id,'first');
+  t.mock.timers.tick(256);assert.equal(host.data.navigationAnimating,false);assert.equal(host.journalSource,null);
+});
 test('outgoing and stale model paints cannot consume a transition for the requested board',t=>{
   const {host}=fixture(t);motion.begin(host,'second');const source=host.journalSource;
   assert.equal(motion.run(host),false);assert.equal(host.journalSource,source);

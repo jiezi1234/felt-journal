@@ -67,10 +67,31 @@ test('recent date rail crosses month/year/leap boundaries and only includes past
 test('bookmark changes the header and retains each mode selection, but cannot switch through a modal or failed save', t => {
   const {page:p,store}=fixture(t);themes(store);
   p.chooseDate(event({date:'2026-10-20'}));assert.equal(p.data.headerTitle,'10月20日');
+  p.floatingAction({detail:{action:'mode'}});assert.equal(p.data.mode,'calendar');assert.equal(p.data.modeSwitchExpanded,true);
   p.floatingAction({detail:{action:'mode'}});assert.equal(p.data.mode,'themes');assert.equal(p.data.headerTitle,'我的收藏');
+  assert.equal(p.data.modeSwitchExpanded,false);
   p.openJournalPicker();p.floatingAction({detail:{action:'mode'}});assert.equal(p.data.mode,'themes');p.closeJournalPicker();
   p.data.saveError='磁盘已满';p.floatingAction({detail:{action:'mode'}});assert.equal(p.data.mode,'themes');p.data.saveError='';
+  p.floatingAction({detail:{action:'mode'}});assert.equal(p.data.mode,'themes');
   p.floatingAction({detail:{action:'mode'}});assert.equal(p.date,'2026-10-20');assert.equal(p.data.headerTitle,'10月20日');
+});
+test('expanding or dismissing the bookmark never edits, saves or changes the selected board',t=>{
+  const {page:p,store}=fixture(t);themes(store);p.data.editable=true;p.data.selected='selected';p.dirty=true;
+  const before=store.get(),date=p.date;let captures=0,cancelled=0;
+  p.selectComponent=()=>({beginBookmarkTransition(expanded){assert.equal(expanded,true);captures++;},cancelBookmarkTransition(){cancelled++;}});
+  p.toggleModeSwitch();assert.equal(p.data.modeSwitchExpanded,true);assert.equal(captures,1);
+  assert.equal(p.date,date);assert.equal(p.data.selected,'selected');assert.equal(p.data.editable,true);assert.equal(p.dirty,true);
+  p.collapseModeSwitch();assert.equal(p.data.modeSwitchExpanded,false);assert.equal(cancelled,1);assert.deepEqual(store.get(),before);
+  for(const key of ['journalPicker','drawer','loading','error','saveError','dragging']){
+    p.data[key]=true;p.toggleModeSwitch();assert.equal(p.data.modeSwitchExpanded,false,key);p.data[key]='';
+  }
+});
+test('opening menus and selecting a date dismiss the expanded bookmark, including empty theme mode',t=>{
+  const {page:p}=fixture(t);
+  p.toggleModeSwitch();p.openCalendarOptions();assert.equal(p.data.modeSwitchExpanded,false);p.closeDrawer();
+  p.toggleModeSwitch();p.chooseDate(event({date:p.date}));assert.equal(p.data.modeSwitchExpanded,false);
+  p.switchMode();assert.equal(p.date,'');p.toggleModeSwitch();assert.equal(p.data.mode,'themes');assert.equal(p.data.modeSwitchExpanded,true);
+  p.toggleModeSwitch();assert.equal(p.data.mode,'calendar');assert.equal(p.data.modeSwitchExpanded,false);
 });
 test('reading dates, opening pickers and visiting empty theme mode never creates empty boards', t => {
   const { page: p, store } = fixture(t), before = store.get();

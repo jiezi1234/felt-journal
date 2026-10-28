@@ -15,10 +15,11 @@ function layout(width, height, state) {
       actions.push({ action:controls.quick, id:'journal-canvas-quick', label:controls.quick === 'tools' ? '布置选项' : '回到今天', kind:'journal-quick', x:width-quickWidth, y:y+3, width:quickWidth, height:44, disabled:!!controls.disabled });
     }
     if (controls.mode) {
-      const title = controls.mode === 'themes' ? '主题板' : '日历板', small = height < 260;
+      const title = controls.mode === 'themes' ? '主题板' : '日历板', small = height < 260, expanded = !!controls.modeExpanded;
+      const fullHeight = small ? 112 : 132, top = small ? 12 : 24;
       actions.push({ action:'mode', id:'switch-mode', kind:'journal-mode', mode:controls.mode, title,
-        label:`当前为${title}，点击切换为${controls.mode === 'themes' ? '日历板' : '主题板'}`,
-        x:width-44, y:small ? 12 : 24, width:44, height:small ? 112 : 132, disabled:!!controls.disabled });
+        expanded, label:expanded ? `当前为${title}，点击切换为${controls.mode === 'themes' ? '日历板' : '主题板'}` : `展开版面切换，当前为${title}`,
+        x:width-44, y:top+(expanded ? 0 : (fullHeight-64)/2), width:44, height:expanded ? fullHeight : 64, disabled:!!controls.disabled });
     }
     return actions.map(a => ({ ...a, style:`left:${a.x}px;top:${a.y}px;width:${a.width}px;height:${a.height}px;` }));
   }
@@ -93,6 +94,14 @@ function paint(ctx, actions, screenWidth, pressed, hint) {
 function paintBookmark(ctx, a, pressed) {
   ctx.save(); ctx.translate(a.x, a.y); ctx.globalAlpha = a.disabled ? .45 : 1;
   ctx.shadowColor = 'rgba(65,48,28,.18)'; ctx.shadowBlur = 10; ctx.shadowOffsetX = -3; ctx.shadowOffsetY = 4;
+  if (!a.expanded) {
+    // Keep a 44px touch target while exposing only an 18px paper pull tab.
+    rounded(ctx,a.width-18,.5,17,a.height-1,8); ctx.fillStyle=pressed ? '#F3E9D5' : '#FFFCF6'; ctx.fill();
+    ctx.shadowColor='transparent';ctx.strokeStyle='#E2D7C5';ctx.lineWidth=1;ctx.stroke();
+    ctx.strokeStyle='#94816A';ctx.lineWidth=1.5;ctx.lineCap='round';ctx.lineJoin='round';
+    ctx.beginPath();ctx.moveTo(a.width-7,a.height/2-5);ctx.lineTo(a.width-11,a.height/2);ctx.lineTo(a.width-7,a.height/2+5);ctx.stroke();
+    ctx.restore();return;
+  }
   rounded(ctx, .5, .5, a.width-1, a.height-1, 12); ctx.fillStyle = pressed ? '#F3E9D5' : '#FFFCF6'; ctx.fill();
   ctx.shadowColor = 'transparent'; ctx.strokeStyle = '#E2D7C5'; ctx.lineWidth = 1; ctx.stroke();
   // The icon, vertical title and switch mark remain legible on compact boards.

@@ -31,6 +31,10 @@ Component({
   methods: {
     exportViewport() { return this.dimensions ? { width: this.dimensions.width, height: this.dimensions.height } : null; },
     beginNavigationTransition(targetId) { journalMotion.begin(this, targetId); },
+    beginBookmarkTransition(expanded) { journalMotion.begin(this, this.data.model && this.data.model.id, expanded); },
+    cancelBookmarkTransition() {
+      if (this.journalSource && typeof this.journalSource.bookmarkExpanded === 'boolean' || this.journalMotion && this.journalMotion.bookmarkChange) journalMotion.dispose(this);
+    },
     async prepareOverlay() {
       if (this.data.freezeCanvas) return !!this.data.snapshot;
       journalMotion.dispose(this);
@@ -244,6 +248,7 @@ Component({
         this.rect = rect;
         const point = this.point(touch); if (!point) { this.clearGesture(); return; }
         const action = !buttonOp && this.actionAt(touch);
+        if ((!action || action.action !== 'mode') && this.data.floatingControls && this.data.floatingControls.modeExpanded) this.triggerEvent('dismissmode');
         if (action) {
           Object.assign(g, { action: action.action, pending: false });
           if (g.ended) this.touchEnd(g.endEvent); else this.refresh();
