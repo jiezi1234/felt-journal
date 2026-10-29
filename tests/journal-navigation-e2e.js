@@ -121,7 +121,7 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     const tabVisible = await mini.evaluate(() => { const p = getCurrentPages().slice(-1)[0], tab = p.getTabBar && p.getTabBar(); return !!(tab && tab.selectComponent('#main-nav')); });
     assert.equal(tabVisible, false);
     const stage = result.rects[3], add = result.rects[4];
-    assert.ok(Math.abs(stage.top-result.boardBounds.top-42)<1 && Math.abs(stage.bottom-result.boardBounds.bottom-42)<1, 'Only the felt board is raised 42px within the notebook');
+    assert.ok(Math.abs(stage.top-result.boardBounds.top-54)<1 && Math.abs(stage.bottom-result.boardBounds.bottom-54)<1, 'Only the felt board is raised 54px within the notebook');
     assert.ok(stage.bottom >= result.height - 16, 'Board extends close to the screen bottom');
     assert.ok(add.top >= stage.top && add.bottom <= stage.bottom - 10, 'Add button floats inside the board with bottom clearance');
     assert.ok(add.height >= 44 && add.width >= 44, 'Floating add button retains its touch target');
