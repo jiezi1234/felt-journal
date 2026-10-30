@@ -47,6 +47,25 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
       await tap(mode === 'calendar' ? '#calendar-options' : '#theme-options');
       await wait(() => getCurrentPages().slice(-1)[0].data.sheetScene === 'menu'); await capture(mode + '-more');
       const menu = await geometry(); assert.ok(menu.frozen && menu.hidden && menu.snapshot); assert.equal(menu.width, baseline.width);
+      if (mode === 'themes') {
+        const original = (await page.data()).themes.find(item => item.id === theme).title;
+        await tap('#rename-theme'); await capture('themes-rename');
+        assert.equal((await page.data()).sheetScene, 'rename'); assert.equal(await page.$('.theme-form-overlay'), null);
+        const renamed = await geometry(); assert.ok(renamed.frozen && renamed.hidden);
+        assert.ok(renamed.surface.height < menu.surface.height);
+        assert.ok(Math.abs(renamed.surface.bottom - menu.surface.bottom) < 1);
+        await (await page.$('#theme-title')).input('未保存的名字'); await tap('#cancel-theme'); await pause(380);
+        assert.equal((await page.data()).sheetScene, 'menu');
+        await tap('#rename-theme'); await pause(380); assert.equal(await (await page.$('#theme-title')).value(), original);
+        await (await page.$('#theme-title')).input(''); await tap('#save-theme');
+        assert.equal((await page.data()).sheetScene, 'rename'); assert.ok((await page.data()).formError);
+        await (await page.$('#theme-title')).input('重命名后的收藏'); await tap('#save-theme'); await pause(380);
+        assert.equal((await page.data()).sheetScene, 'menu');
+        assert.equal((await page.data()).themes.find(item => item.id === theme).title, '重命名后的收藏');
+        await tap('#rename-theme'); await pause(380); await tap('#rename-back'); await capture('themes-rename-return');
+        assert.equal((await page.data()).sheetScene, 'menu'); assert.equal((await page.data()).date, theme);
+        checks.push('theme rename: same bottom-anchored shell, back/cancel/save return to More; validation failure retains form');
+      }
       await tap(mode === 'calendar' ? '#calendar-appearance' : '#theme-appearance'); await capture(mode + '-appearance');
       const appearance = await geometry(); assert.ok(appearance.surface.height > menu.surface.height); assert.ok(!appearance.frozen);
       console.log(mode + ' dimensions', JSON.stringify({ baseline, appearance }));

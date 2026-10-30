@@ -12,12 +12,14 @@ function update(host) {
   const reported = info.windowHeight;
   if (!state.keyboard) state.base = reported;
   const safeBottom = info.safeArea ? Math.max(0, (info.screenHeight || reported) - info.safeArea.bottom) : 0;
-  host.setData({ modalHeight: viewportHeight(state.base, reported, state.keyboard), modalKeyboard: state.keyboard > 0,
-    modalBottom: state.keyboard ? 10 : Math.max(12, safeBottom + 10) });
+  const viewport = { modalHeight: viewportHeight(state.base, reported, state.keyboard), modalKeyboard: state.keyboard > 0,
+    modalBottom: state.keyboard ? 10 : Math.max(12, safeBottom + 10) };
+  host.setData(viewport);
+  if (state.onViewport) state.onViewport(viewport);
 }
-function mount(host) {
+function mount(host, onViewport) {
   const info = windowInfo();
-  const state = host.modalPresentation = { alive: true, base: info ? info.windowHeight : 0, keyboard: 0, width: info && info.windowWidth };
+  const state = host.modalPresentation = { alive: true, base: info ? info.windowHeight : 0, keyboard: 0, width: info && info.windowWidth, onViewport };
   state.keyboardChanged = event => { state.keyboard = Math.max(0, event.height || 0); update(host); };
   state.resized = event => {
     if (!state.alive) return;

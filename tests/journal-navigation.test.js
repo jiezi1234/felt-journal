@@ -282,3 +282,33 @@ test('theme photo handoff closes its owned processing panel and releases navigat
   p.stickerLanded(); assert.equal(p.data.placing, null); assert.equal(p.data.navigationBusy, false);
   p.switchMode(); assert.equal(p.data.mode, 'calendar'); assert.ok(store.board(first).placements.some(p=>p.memoryId===id));
 });
+
+test('theme rename returns to the existing More menu after back, cancel, scrim or successful save', async t => {
+  const { page: p, store } = fixture(t), { first } = themes(store);
+  p.switchMode(); p.chooseTheme(event({ id: first })); p.openSelection();
+  const before = clone(store.get());
+  for (const close of ['backSmoothSheet', 'cancelForm', 'closeSmoothSheet']) {
+    p.renameFromSheet(); assert.equal(p.data.sheetScene, 'rename'); assert.equal(p.data.editingId, first);
+    p.input({ detail: { value: '未保存的名字' } }); p[close]();
+    assert.equal(p.data.sheetScene, 'menu'); assert.equal(p.data.drawer, 'theme');
+    assert.equal(p.data.sheetClosing, false); assert.equal(p.data.formOpen, false);
+    assert.deepEqual(store.get(), before); assert.equal(p.date, first);
+  }
+  p.renameFromSheet(); p.input({ detail: { value: '新的收藏' } }); await p.save();
+  assert.equal(p.data.sheetScene, 'menu'); assert.equal(p.data.drawer, 'theme'); assert.equal(p.data.formOpen, false);
+  assert.equal(store.board(first).title, '新的收藏'); assert.equal(p.data.themeRail.find(item => item.id === first).title, '新的收藏');
+});
+
+test('failed rename remains editable in More, and saving blocks dismissal through every return control', async t => {
+  const f = fixture(t), p = f.page, { first } = themes(f.store);
+  p.switchMode(); p.chooseTheme(event({ id: first })); p.openSelection(); p.renameFromSheet();
+  p.input({ detail: { value: '' } }); await p.save();
+  assert.equal(p.data.sheetScene, 'rename'); assert.ok(p.data.formError);
+  p.input({ detail: { value: '保存失败后重试' } }); f.fail(true); await p.save();
+  assert.equal(p.data.sheetScene, 'rename'); assert.equal(p.data.title, '保存失败后重试'); assert.ok(p.data.formError);
+  p.setData({ working: true });
+  for (const close of ['backSmoothSheet', 'cancelForm', 'closeSmoothSheet']) { p[close](); assert.equal(p.data.sheetScene, 'rename'); }
+  p.setData({ working: false }); f.fail(false); await p.save();
+  assert.equal(p.data.sheetScene, 'menu'); assert.equal(f.store.board(first).title, '保存失败后重试');
+  p.renameFromSheet(); p.onHide(); assert.equal(p.data.sheetScene, ''); assert.equal(p.data.formOpen, false);
+});

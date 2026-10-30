@@ -34,3 +34,17 @@ test('a library operation in progress cannot be dismissed through the shared scr
   assert.equal(sheet.navigate(p, 'menu'), false); sheet.close(p);
   assert.equal(p.data.sheetScene, 'library'); assert.equal(p.data.sheetClosing, false);
 });
+
+test('rename follows keyboard height and releases listeners and late callbacks on return', t => {
+  const before = global.wx, listeners = {};
+  global.wx = { getWindowInfo: () => ({ windowWidth: 390, windowHeight: 800 }), hideKeyboard() {},
+    onKeyboardHeightChange(fn) { listeners.keyboard = fn; }, offKeyboardHeightChange() { delete listeners.keyboard; },
+    onWindowResize(fn) { listeners.resize = fn; }, offWindowResize() { delete listeners.resize; } };
+  t.after(() => { global.wx = before; });
+  const p = host(); p.data.mode = 'themes';
+  sheet.navigate(p, 'rename', { formOpen: true, editingId: 'theme', title: '名字' });
+  assert.equal(p.data.sheetViewportHeight, 800);
+  const late = listeners.keyboard; late({ height: 300 }); assert.equal(p.data.sheetViewportHeight, 500);
+  sheet.navigate(p, 'menu'); assert.deepEqual(listeners, {}); assert.equal(p.data.sheetViewportHeight, 0);
+  assert.equal(p.data.formOpen, false); late({ height: 300 }); assert.equal(p.data.sheetViewportHeight, 0);
+});

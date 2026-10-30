@@ -303,12 +303,22 @@ Page({
   select(e) { return this.data.mode === 'themes' ? theme.select.call(this, e) : editor.select.call(this, e); },
   library() { return this.data.mode === 'themes' ? theme.library.call(this) : editor.library.call(this); },
   placeFromLibrary(e) { return this.data.mode === 'themes' ? theme.placeFromLibrary.call(this, e) : editor.placeFromLibrary.call(this, e); },
-  closeSmoothSheet() { sheet.close(this); },
+  closeSmoothSheet() { if (this.data.sheetScene === 'rename') this.backSmoothSheet(); else sheet.close(this); },
   sheetViewportChanged(e) {
-    if (!this.data.sheetClosing) this.setData({ sheetViewportHeight: e.detail.height, sheetKeyboard: !!e.detail.keyboard });
+    if (!this.data.sheetClosing && this.data.sheetScene !== 'rename') this.setData({ sheetViewportHeight: e.detail.height, sheetKeyboard: !!e.detail.keyboard });
   },
   backSmoothSheet() { sheet.navigate(this, 'menu'); },
-  renameFromSheet() { sheet.close(this, () => this.rename()); },
+  renameFromSheet() {
+    if (this.data.mode !== 'themes' || this.data.sheetScene !== 'menu' || this.data.sheetClosing || this.data.working) return;
+    const item = this.data.themes.find(item => item.id === this.date);
+    if (item) sheet.navigate(this, 'rename', { formOpen: true, editingId: item.id, title: item.title, formError: '' });
+  },
+  cancelForm() { if (this.data.sheetScene === 'rename') this.backSmoothSheet(); else theme.cancelForm.call(this); },
+  async save() {
+    const renaming = this.data.sheetScene === 'rename';
+    await theme.save.call(this);
+    if (renaming && !this.disposed && this.data.sheetScene === 'rename' && !this.data.formOpen) this.backSmoothSheet();
+  },
   removeThemeFromSheet() { sheet.close(this, () => this.removeTheme()); },
   closeDrawer() { if (this.data.sheetScene) return this.closeSmoothSheet(); if(this.data.pickerPreparing)this.closeJournalPicker(); return this.data.mode === 'themes' ? theme.closeDrawer.call(this) : editor.closeDrawer.call(this); },
   gestureState(e) { this.setData({ dragging: !!e.detail.active }); this.setData({ navigationBusy: this.busy() }); },

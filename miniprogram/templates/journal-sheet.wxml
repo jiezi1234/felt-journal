@@ -1,6 +1,6 @@
 <view wx:if="{{sheetScene}}" id="journal-sheet" class="smooth-overlay journal-smooth-overlay {{sheetClosing ? 'is-closing' : ''}} {{memoryCardId ? 'sheet-covered' : ''}} {{sheetKeyboard ? 'has-keyboard' : ''}}" style="{{sheetViewportHeight ? 'height:' + sheetViewportHeight + 'px;' : ''}}" catchtouchmove="stop">
   <view class="smooth-scrim" bindtap="closeSmoothSheet" />
-  <view id="journal-sheet-surface" class="smooth-surface journal-smooth-surface sheet-scene-{{sheetScene}} {{mode === 'themes' ? 'sheet-theme-menu' : ''}}" role="dialog" aria-modal="true" aria-label="{{sheetScene === 'menu' ? '更多选项' : sheetScene === 'appearance' ? '板面与纹理' : '记忆库'}}">
+  <view id="journal-sheet-surface" class="smooth-surface journal-smooth-surface sheet-scene-{{sheetScene}} {{mode === 'themes' ? 'sheet-theme-menu' : ''}}" role="dialog" aria-modal="true" aria-label="{{sheetScene === 'menu' ? '更多选项' : sheetScene === 'appearance' ? '板面与纹理' : sheetScene === 'rename' ? '重命名主题板' : '记忆库'}}">
     <view class="smooth-handle" aria-hidden="true" />
     <view class="smooth-pane smooth-menu {{sheetScene === 'menu' ? 'pane-current' : 'pane-behind'}}" aria-hidden="{{sheetScene !== 'menu'}}">
       <view class="row smooth-heading"><view class="section-title">更多选项</view><button id="close-drawer" class="ghost" aria-label="关闭更多选项" bindtap="closeSmoothSheet">收起 ⌄</button></view>
@@ -19,6 +19,14 @@
     </view>
     <view class="smooth-pane smooth-library {{sheetScene === 'library' ? 'pane-current' : 'pane-next'}}" aria-hidden="{{sheetScene !== 'library'}}">
       <memory-library wx:if="{{sheetLibraryMounted}}" id="memory-library-card" inline="{{true}}" covered="{{!!memoryCardId || sheetScene !== 'library' || sheetClosing}}" bind:viewport="sheetViewportChanged" bind:memory="openLibraryMemory" bind:close="backSmoothSheet" bind:change="libraryChanged" />
+    </view>
+    <view class="smooth-pane smooth-rename {{sheetScene === 'rename' ? 'pane-current' : 'pane-next'}}" aria-hidden="{{sheetScene !== 'rename'}}">
+      <view class="row smooth-heading"><button id="rename-back" class="smooth-back" disabled="{{working}}" aria-label="返回更多选项" bindtap="backSmoothSheet">‹</button><view class="section-title grow">重命名主题板</view></view>
+      <scroll-view scroll-y class="smooth-scroll">
+        <input id="theme-title" class="theme-input" value="{{title}}" maxlength="{{maxTitle}}" placeholder="如：旅行、美食" disabled="{{working || sheetScene !== 'rename'}}" adjust-position="{{false}}" bindinput="input" bindconfirm="save" confirm-type="done" />
+        <view wx:if="{{formError}}" class="error" role="alert">{{formError}}</view>
+        <view class="row smooth-rename-actions"><button id="cancel-theme" class="secondary grow" disabled="{{working}}" bindtap="cancelForm">取消</button><button id="save-theme" class="primary grow" loading="{{working}}" disabled="{{working || sheetScene !== 'rename'}}" bindtap="save">保存</button></view>
+      </scroll-view>
     </view>
   </view>
 </view>
