@@ -57,7 +57,7 @@ Page({
       this.refreshNavigation();
     } catch (e) { this.setData({ loading: false, error: platform.message(e, '本地记录读取失败，请重试') }); }
   },
-  busy() { return !!(this.data.sheetClosing || this.data.libraryOpen || this.data.pickerPreparing || this.data.editorOpen || this.data.placing || this.data.memoryCardId || this.data.shareBoardId || this.data.task || this.data.recovering || this.data.formOpen || this.data.working || this.data.dragging || this.data.swiping || this.data.openingLibrary || this.photoTask || this.memoryOpening || this.mutating); },
+  busy() { return !!(this.data.sheetScene === 'delete' || this.data.sheetClosing || this.data.libraryOpen || this.data.pickerPreparing || this.data.editorOpen || this.data.placing || this.data.memoryCardId || this.data.shareBoardId || this.data.task || this.data.recovering || this.data.formOpen || this.data.working || this.data.dragging || this.data.swiping || this.data.openingLibrary || this.photoTask || this.memoryOpening || this.mutating); },
   refreshNavigation() {
     const state = this.store.get(), items = navigation.themes(state), mode = this.data.mode;
     const selected = items.findIndex(item => item.id === this.activeThemeId);
@@ -303,7 +303,7 @@ Page({
   select(e) { return this.data.mode === 'themes' ? theme.select.call(this, e) : editor.select.call(this, e); },
   library() { return this.data.mode === 'themes' ? theme.library.call(this) : editor.library.call(this); },
   placeFromLibrary(e) { return this.data.mode === 'themes' ? theme.placeFromLibrary.call(this, e) : editor.placeFromLibrary.call(this, e); },
-  closeSmoothSheet() { if (this.data.sheetScene === 'rename') this.backSmoothSheet(); else sheet.close(this); },
+  closeSmoothSheet() { if (['rename', 'delete'].includes(this.data.sheetScene)) this.backSmoothSheet(); else sheet.close(this); },
   sheetViewportChanged(e) {
     if (!this.data.sheetClosing && this.data.sheetScene !== 'rename') this.setData({ sheetViewportHeight: e.detail.height, sheetKeyboard: !!e.detail.keyboard });
   },
@@ -319,7 +319,25 @@ Page({
     await theme.save.call(this);
     if (renaming && !this.disposed && this.data.sheetScene === 'rename' && !this.data.formOpen) this.backSmoothSheet();
   },
-  removeThemeFromSheet() { sheet.close(this, () => this.removeTheme()); },
+  removeThemeFromSheet() {
+    if (this.data.mode !== 'themes' || this.data.sheetScene !== 'menu' || this.data.sheetClosing || this.data.working) return;
+    const item = this.data.themes.find(item => item.id === this.date);
+    if (item) sheet.navigate(this, 'delete', { sheetDeleteId: item.id, sheetDeleteTitle: item.title, sheetDeleteError: '' });
+  },
+  confirmRemoveThemeFromSheet() {
+    const id = this.data.sheetDeleteId;
+    if (this.disposed || this.data.mode !== 'themes' || this.data.sheetScene !== 'delete' || this.data.sheetClosing || this.data.working || !id || id !== this.date) return;
+    this.setData({ working: true, sheetDeleteError: '' });
+    try { this.store.deleteTheme(id); }
+    catch (error) {
+      this.setData({ working: false, sheetDeleteError: platform.message(error, '板面删除失败，请重试') });
+      return;
+    }
+    this.setData({ working: false });
+    // Keep the frozen board and confirmation mounted through the existing exit.
+    // Closing refreshes the next theme (or empty state) after the sheet leaves.
+    sheet.close(this);
+  },
   closeDrawer() { if (this.data.sheetScene) return this.closeSmoothSheet(); if(this.data.pickerPreparing)this.closeJournalPicker(); return this.data.mode === 'themes' ? theme.closeDrawer.call(this) : editor.closeDrawer.call(this); },
   gestureState(e) { this.setData({ dragging: !!e.detail.active }); this.setData({ navigationBusy: this.busy() }); },
   async cancelPhoto(e) { await editor.cancelPhoto.call(this, e); if (!this.disposed) this.refreshNavigation(); },

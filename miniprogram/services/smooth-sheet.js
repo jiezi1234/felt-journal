@@ -1,7 +1,8 @@
 // One shell survives menu navigation; only closing it releases the board.
 const modal = require('./modal-presentation');
 const EXIT_MS = 220;
-const data = { sheetScene: '', sheetClosing: false, sheetLibraryMounted: false, sheetViewportHeight: 0, sheetKeyboard: false, recordClosing: false };
+const data = { sheetScene: '', sheetClosing: false, sheetLibraryMounted: false, sheetViewportHeight: 0, sheetKeyboard: false, recordClosing: false,
+  sheetDeleteId: '', sheetDeleteTitle: '', sheetDeleteError: '' };
 function blocked(host) {
   const library = host.data.sheetScene === 'library' && host.selectComponent && host.selectComponent('#memory-library-card');
   return host.data.sheetClosing || host.data.working || host.data.memoryCardId || library && library.data && library.data.working;
@@ -19,6 +20,7 @@ function navigate(host, scene, update = {}) {
   if (leavingRename) leaveRename(host);
   host.setData({ sheetScene: scene, drawer: scene === 'menu' ? root(host) : scene === 'appearance' ? 'appearance' : '',
     libraryOpen: scene === 'library', ...(scene === 'library' ? { sheetLibraryMounted: true } : {}),
+    ...(scene !== 'delete' ? { sheetDeleteId: '', sheetDeleteError: '' } : {}),
     ...(leavingRename ? { formOpen: false, formError: '', editingId: '', title: '', sheetViewportHeight: 0, sheetKeyboard: false } : {}), ...update });
   if (scene === 'rename') modal.mount(host, viewport => {
     if (host.data.sheetScene === 'rename') host.setData({ sheetViewportHeight: viewport.modalHeight, sheetKeyboard: viewport.modalKeyboard });

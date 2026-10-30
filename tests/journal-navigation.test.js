@@ -312,3 +312,58 @@ test('failed rename remains editable in More, and saving blocks dismissal throug
   assert.equal(p.data.sheetScene, 'menu'); assert.equal(f.store.board(first).title, '保存失败后重试');
   p.renameFromSheet(); p.onHide(); assert.equal(p.data.sheetScene, ''); assert.equal(p.data.formOpen, false);
 });
+
+test('theme delete confirmation stays in More; back, cancel and scrim preserve the board and all memories', t => {
+  const { page: p, store } = fixture(t), { first, second } = themes(store);
+  platform.call = () => { throw Error('Deletion must not open a system dialog or another page'); };
+  p.switchMode(); p.chooseTheme(event({ id: first })); p.openSelection();
+  const before = clone(store.get());
+  for (const close of ['backSmoothSheet', 'closeSmoothSheet', 'closeDrawer']) {
+    p.removeThemeFromSheet(); assert.equal(p.data.sheetScene, 'delete');
+    assert.equal(p.data.sheetDeleteId, first); assert.equal(p.data.sheetDeleteTitle, '日常碎片');
+    assert.equal(p.data.sheetClosing, false); assert.equal(p.data.navigationBusy, true);
+    p.switchMode(); p.chooseTheme(event({ id: second })); assert.equal(p.date, first); assert.equal(p.data.mode, 'themes');
+    p[close](); assert.equal(p.data.sheetScene, 'menu'); assert.equal(p.data.drawer, 'theme');
+    assert.equal(p.data.sheetDeleteId, ''); assert.equal(p.data.sheetClosing, false);
+    p.confirmRemoveThemeFromSheet(); assert.deepEqual(store.get(), before);
+  }
+  p.removeThemeFromSheet(); p.onHide(); assert.equal(p.data.sheetScene, ''); assert.equal(p.data.sheetDeleteId, '');
+  p.confirmRemoveThemeFromSheet(); assert.deepEqual(store.get(), before);
+});
+
+test('confirmed deletion closes the sheet once, retains memories and other boards, and handles the final theme', t => {
+  const { page: p, store } = fixture(t), { first, second } = themes(store);
+  const id = store.add('delete-sheet', '2026-10-22', photo('delete-sheet'), first);
+  store.edit(id, '照片和文字都要保留', '未分类'); store.place(id, second);
+  p.switchMode(); p.chooseTheme(event({ id: first })); p.openSelection(); p.removeThemeFromSheet();
+  const before = clone(store.get());
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const oldWx = global.wx; global.wx = {}; t.after(() => { global.wx = oldWx; });
+  platform.call = () => { throw Error('Deletion must not open a system dialog or another page'); };
+  p.confirmRemoveThemeFromSheet(); assert.equal(p.data.sheetClosing, true); assert.equal(p.date, first);
+  assert.equal(store.get().boards[first], undefined); assert.deepEqual(store.get().memories, before.memories);
+  for (const [key, value] of Object.entries(before.boards)) if (key !== first) assert.deepEqual(store.get().boards[key], value);
+  const revision = store.get().revision; p.confirmRemoveThemeFromSheet(); assert.equal(store.get().revision, revision);
+  t.mock.timers.tick(219); assert.equal(p.data.sheetScene, 'delete');
+  t.mock.timers.tick(1); assert.equal(p.data.sheetScene, ''); assert.equal(p.date, second); assert.equal(p.data.navigationBusy, false);
+  p.openSelection(); p.removeThemeFromSheet(); p.confirmRemoveThemeFromSheet(); t.mock.timers.tick(220);
+  assert.equal(p.date, ''); assert.equal(p.data.model, null); assert.equal(p.data.error, ''); assert.equal(p.data.mode, 'themes');
+  assert.deepEqual(store.get().memories, before.memories); assert.deepEqual(store.get().boards['2026-10-22'], before.boards['2026-10-22']);
+});
+
+test('failed deletion keeps the confirmation for retry and blocks stale or in-progress confirmation', t => {
+  const f = fixture(t), p = f.page, { first, second } = themes(f.store);
+  p.switchMode(); p.chooseTheme(event({ id: first })); p.openSelection(); p.removeThemeFromSheet();
+  const before = clone(f.store.get());
+  f.fail(true); p.confirmRemoveThemeFromSheet();
+  assert.equal(p.data.sheetScene, 'delete'); assert.equal(p.data.sheetClosing, false); assert.equal(p.data.working, false);
+  assert.equal(p.data.sheetDeleteId, first); assert.ok(p.data.sheetDeleteError); assert.deepEqual(f.store.get(), before);
+  p.setData({ working: true });
+  for (const action of ['backSmoothSheet', 'closeSmoothSheet', 'confirmRemoveThemeFromSheet']) {
+    p[action](); assert.equal(p.data.sheetScene, 'delete'); assert.deepEqual(f.store.get(), before);
+  }
+  p.setData({ working: false }); f.fail(false);
+  p.date = second; p.confirmRemoveThemeFromSheet(); assert.deepEqual(f.store.get(), before); p.date = first;
+  p.confirmRemoveThemeFromSheet(); assert.equal(p.data.sheetScene, ''); assert.equal(p.data.sheetDeleteError, '');
+  assert.equal(f.store.get().boards[first], undefined); assert.equal(p.date, second);
+});

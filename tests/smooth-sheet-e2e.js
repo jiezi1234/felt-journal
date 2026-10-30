@@ -65,6 +65,22 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
         await tap('#rename-theme'); await pause(380); await tap('#rename-back'); await capture('themes-rename-return');
         assert.equal((await page.data()).sheetScene, 'menu'); assert.equal((await page.data()).date, theme);
         checks.push('theme rename: same bottom-anchored shell, back/cancel/save return to More; validation failure retains form');
+        const beforeDelete = await mini.evaluate(() => getCurrentPages().slice(-1)[0].store.get());
+        for (const selector of ['#cancel-delete-theme', '#delete-theme-back', '.smooth-scrim']) {
+          await tap('#delete-theme'); await pause(380);
+          assert.equal((await page.data()).sheetScene, 'delete'); assert.equal((await page.data()).sheetDeleteId, theme);
+          assert.equal((await page.data()).sheetDeleteTitle, '重命名后的收藏');
+          const confirmation = await geometry(); assert.ok(confirmation.frozen && confirmation.hidden && confirmation.snapshot);
+          assert.ok(confirmation.surface.height < menu.surface.height);
+          assert.ok(Math.abs(confirmation.surface.bottom - menu.surface.bottom) < 1);
+          if (selector === '#cancel-delete-theme') await capture('themes-delete-confirmation');
+          await tap(selector); await pause(380);
+          assert.equal((await page.data()).sheetScene, 'menu'); assert.equal((await page.data()).sheetClosing, false);
+          assert.equal((await page.data()).date, theme);
+          assert.deepEqual(await mini.evaluate(() => getCurrentPages().slice(-1)[0].store.get()), beforeDelete);
+        }
+        await capture('themes-delete-return');
+        checks.push('theme delete confirmation: same bottom-anchored shell with frozen board; back/cancel/scrim return to More without mutation');
       }
       await tap(mode === 'calendar' ? '#calendar-appearance' : '#theme-appearance'); await capture(mode + '-appearance');
       const appearance = await geometry(); assert.ok(appearance.surface.height > menu.surface.height); assert.ok(!appearance.frozen);
@@ -118,6 +134,21 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
       await tap('#close-record', closingRecord); await wait(() => !getCurrentPages().slice(-1)[0].data.editorOpen); await pause(500);
       checks.push(mode + ': menu/appearance/library/back/detail, fixed bottom, record source/processing/exit, actual sticker flight to restored coordinates, stable canvas dimensions');
     }
+    const beforeDelete = await mini.evaluate(() => getCurrentPages().slice(-1)[0].store.get());
+    const routes = await mini.evaluate(() => getCurrentPages().map(p => p.route));
+    await tap('#theme-options'); await wait(() => getCurrentPages().slice(-1)[0].data.sheetScene === 'menu'); await pause(460);
+    await tap('#delete-theme'); await pause(380); await tap('#confirm-delete-theme');
+    await wait(() => { const p = getCurrentPages().slice(-1)[0]; return !p.data.sheetScene && !p.data.date; });
+    await capture('themes-delete-complete');
+    const afterDelete = await mini.evaluate(() => getCurrentPages().slice(-1)[0].store.get());
+    assert.equal(afterDelete.boards[theme], undefined);
+    assert.deepEqual(afterDelete.memories, beforeDelete.memories);
+    delete beforeDelete.boards[theme]; assert.deepEqual(afterDelete.boards, beforeDelete.boards);
+    assert.deepEqual(afterDelete.garbage, beforeDelete.garbage);
+    assert.equal((await page.data()).mode, 'themes'); assert.equal((await page.data()).error, '');
+    assert.equal((await page.data()).navigationBusy, false);
+    assert.deepEqual(await mini.evaluate(() => getCurrentPages().map(p => p.route)), routes);
+    checks.push('confirmed theme delete: closes with existing exit, final-theme empty state on same page, photos/text/other boards preserved');
     assert.deepEqual(errors, []);
   } finally {
     if (mini) {
