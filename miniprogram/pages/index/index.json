@@ -2,6 +2,7 @@
   "navigationBarTitleText": "毛毡生活手账",
   "navigationStyle": "custom",
   "usingComponents": {
+    "memory-recall": "/components/memory-recall/index",
     "memory-library": "/components/memory-library/index",
     "share-card": "/components/share-card/index",
     "memory-card": "/components/memory-card/index",

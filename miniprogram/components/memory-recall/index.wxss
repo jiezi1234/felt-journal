@@ -1,0 +1,24 @@
+@import "../../styles/smooth-sheet.wxss";
+.recall-overlay { z-index:155; }
+.recall-surface { height:500px; }
+.recall-surface.recall-day-open { height:680px; }
+.recall-pane { position:absolute; inset:0; padding:24px 18px 16px; display:flex; flex-direction:column; min-height:0; opacity:0; visibility:hidden; pointer-events:none; transition:transform 360ms cubic-bezier(.22,.8,.25,1),opacity 240ms ease,visibility 360ms; }
+.recall-current { transform:translateX(0); opacity:1; visibility:visible; pointer-events:auto; }
+.recall-behind { transform:translateX(-26%); }.recall-ahead { transform:translateX(32%); }
+.recall-heading { display:flex; align-items:center; gap:10px; min-height:44px; flex-shrink:0; margin-bottom:8px; }
+.recall-heading .section-title { font-size:20px; }
+button.recall-close,button.recall-back { margin:0; width:44px; height:44px; min-height:44px; padding:0; border:0; border-radius:50%; font-size:26px; line-height:40px; flex-shrink:0; }
+button.recall-back { background:#F2EEE7; }
+.recall-scroll { height:0; flex:1; min-height:0; }
+.recall-object { display:block; width:100%; height:190px; margin:5px auto 12px; }
+.recall-date,.recall-day-date { font-size:12px; color:#897C6B; text-align:center; }.recall-day-date { text-align:left; margin-top:3px; }
+.recall-note { margin:16px 8px 18px; font-size:15px; line-height:1.7; color:#665646; white-space:pre-wrap; overflow-wrap:break-word; }
+.recall-actions { gap:10px; margin-top:18px; }.recall-actions button { font-size:14px; }
+button.recall-hide,button.recall-restore { font-size:12px; color:#8A7C6B; margin:4px auto 0; min-height:44px; }
+.recall-empty { display:flex; flex-direction:column; justify-content:center; text-align:center; gap:14px; min-height:250px; color:#74614E; }.recall-empty text { font-size:13px; color:#8A7C6B; }
+.recall-board-stage { flex:1; min-height:0; }.recall-day-caption { margin:12px 0 0; font-size:12px; line-height:1.6; color:#897C6B; text-align:center; flex-shrink:0; }
+.recall-turn-a { animation:recall-object-a 280ms ease both; }.recall-turn-b { animation:recall-object-b 280ms ease both; }
+@keyframes recall-object-a { from { opacity:.25; transform:translateX(16px); } to { opacity:1; transform:translateX(0); } }
+@keyframes recall-object-b { from { opacity:.25; transform:translateX(16px); } to { opacity:1; transform:translateX(0); } }
+@media (max-height:570px) { .recall-surface { height:450px; }.recall-object { height:140px; } }
+@media (prefers-reduced-motion:reduce) { .recall-pane,.recall-surface { transition-duration:1ms; }.recall-content,.smooth-surface,.smooth-scrim { animation-duration:1ms; } }

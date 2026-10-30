@@ -26,8 +26,8 @@ Component({
       if (resuming) wx.nextTick(() => { if (!this.dead && !this.data.freezeCanvas) this.measure(); });
     }, 'swipePrevious, swipeNext, allowSwipe': function () { swipe.warm(this); },
     'showActions, actionsDisabled, canAdd, canUndo, canBringToFront': function () { this.refresh(); }, layout() { this.measure(); } },
-  lifetimes: { ready() { this.measure(); }, detached() { this.dead = true; journalMotion.dispose(this); swipe.dispose(this); snapshots.dispose(this); this.clearGesture(); this.finishPickupSnapshot(false); } },
-  pageLifetimes: { resize() { journalMotion.dispose(this); swipe.cancel(this); this.touchCancel(); this.measure(); }, hide() { journalMotion.dispose(this); swipe.cancel(this); this.touchCancel(); }, show() { if (this.canvas) this.refresh(); } },
+  lifetimes: { ready() { this.measure(); }, detached() { this.dead = true; clearTimeout(this.recallFadeTimer); journalMotion.dispose(this); swipe.dispose(this); snapshots.dispose(this); this.clearGesture(); this.finishPickupSnapshot(false); } },
+  pageLifetimes: { resize() { journalMotion.dispose(this); swipe.cancel(this); this.touchCancel(); this.measure(); }, hide() { this.pageHidden = true; clearTimeout(this.recallFadeTimer); journalMotion.dispose(this); swipe.cancel(this); this.touchCancel(); }, show() { this.pageHidden = false; this.recallLoad = null; this.failedRecall = ''; if (this.canvas) this.refresh(); } },
   methods: {
     exportViewport() { return this.dimensions ? { width: this.dimensions.width, height: this.dimensions.height } : null; },
     beginNavigationTransition(targetId) { journalMotion.begin(this, targetId); },
@@ -78,11 +78,24 @@ Component({
       });
     },
     async refresh() {
-      if (!this.canvas || !this.data.model || this.dead || this.data.freezeCanvas || this.journalMotion || swipe.hold(this)) return;
+      if (!this.canvas || !this.data.model || this.dead || this.pageHidden || this.data.freezeCanvas || this.journalMotion || swipe.hold(this)) return;
       const version = this.version = (this.version || 0) + 1, model = this.dragModel || this.data.model;
       try {
-        this.images = await renderer.loadImages(this.canvas, model.items || [], this.images, false);
-        if (version !== this.version || this.dead || this.data.freezeCanvas) return;
+        const recall = this.data.floatingControls && this.data.floatingControls.recall;
+        if (recall && (!this.recallLoad || this.recallLoad.path !== recall.path)) {
+          this.recallLoad = { path: recall.path, promise: renderer.loadImages(this.canvas, [{ memory: { subjectPath: recall.path } }], {}, false) };
+        }
+        const loaded = recall ? await Promise.all([renderer.loadImages(this.canvas, model.items || [], this.images, false), this.recallLoad.promise])
+          : [await renderer.loadImages(this.canvas, model.items || [], this.images, false), null];
+        this.images = loaded[0];
+        if (version !== this.version || this.dead || this.pageHidden || this.data.freezeCanvas) return;
+        const recallImage = recall && loaded[1][recall.path];
+        const recallKey = recall && JSON.stringify([recall.id, recall.path]);
+        if (recallImage && recallImage.missing && this.failedRecall !== recallKey) {
+          this.failedRecall = recallKey; this.triggerEvent('recallerror', { id: recall.id, path: recall.path });
+        }
+        if (recallKey !== this.recallKey) { this.recallKey = recallKey; this.recallStarted = Date.now(); }
+        const recallOpacity = recall ? Math.min(1, .2 + (Date.now() - this.recallStarted) / 240) : 1;
         swipe.beforePaint(this);
         const dimensions = this.dimensions || B;
         const display = viewport.present(model, this.screenWidth, this.data.height).model;
@@ -100,7 +113,9 @@ Component({
         const actions = this.actionLayout();
         const guide = boardGuide.layout(model, this.screenWidth, this.data.height, actions);
         boardGuide.paint(ctx, guide, this.screenWidth);
-        boardActions.paint(ctx, actions, this.screenWidth, this.gesture && !this.gesture.moved && this.gesture.action, !guide && this.data.floatingControls && this.data.floatingControls.hint);
+        boardActions.paint(ctx, actions, this.screenWidth, this.gesture && !this.gesture.moved && this.gesture.action, !guide && this.data.floatingControls && this.data.floatingControls.hint, recallImage, recallOpacity);
+        clearTimeout(this.recallFadeTimer);
+        if (recallOpacity < 1) this.recallFadeTimer = setTimeout(() => this.refresh(), 32);
         this.setData({ handles, actions, imageError: (model.items || []).some(p => this.images[p.memory.subjectPath].missing) });
         if (journalMotion.run(this)) return;
         snapshots.painted(this, version);

@@ -367,3 +367,26 @@ test('failed deletion keeps the confirmation for retry and blocks stale or in-pr
   p.confirmRemoveThemeFromSheet(); assert.equal(p.data.sheetScene, ''); assert.equal(p.data.sheetDeleteError, '');
   assert.equal(f.store.get().boards[first], undefined); assert.equal(p.date, second);
 });
+
+test('recall locks board navigation and editing, then closes onto the unchanged current board', t => {
+  const { page: p, store, disk } = fixture(t);
+  const id = store.add('today-recall', '2026-10-22', photo('today-recall'));
+  themes(store); p.refresh(); const before = disk[KEY], model = clone(p.data.model), date = p.date;
+  p.openRecall(); assert.equal(p.data.recallOpen, true); assert.equal(p.data.navigationBusy, true);
+  p.switchMode(); p.chooseDate(event({ date: '2026-10-20' })); p.primary(); p.editItem({ detail: { id } });
+  assert.equal(p.date, date); assert.equal(p.data.mode, 'calendar'); assert.equal(p.data.editorOpen, false); assert.equal(p.data.editable, false); assert.equal(p.canAdjust(), false);
+  p.recallClosing(); assert.equal(p.data.recallClosing, true); assert.equal(p.busy(), true);
+  p.closeRecall(); assert.equal(p.data.recallOpen, false); assert.equal(p.data.navigationBusy, false);
+  assert.deepEqual(p.data.model, model); assert.equal(disk[KEY], before);
+});
+
+test('More can reopen recall after appearance editing; blank calendar selection exits editing unless saving failed', t => {
+  const f = fixture(t), p = f.page;
+  f.store.add('calendar-recall', '2026-10-22', photo('calendar-recall')); p.refresh();
+  p.openCalendarOptions(); p.openAppearance(); assert.equal(p.data.editable, true);
+  p.backSmoothSheet(); p.openRecallFromMenu(); assert.equal(p.data.recallOpen, true); assert.equal(p.data.editable, false);
+  p.closeRecall(); p.edit(); p.select({ detail: { id: '' } }); assert.equal(p.data.editable, false);
+  p.edit(); p.dirty = true; f.fail(true); p.select({ detail: { id: '' } });
+  assert.equal(p.data.editable, true); assert.ok(p.data.saveError);
+  p.openRecall(); assert.equal(p.data.recallOpen, false);
+});

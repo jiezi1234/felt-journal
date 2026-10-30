@@ -12,7 +12,7 @@ Page({
   ...editor, ...theme,
   data: { ...theme.data, ...sheet.data, inlineTheme: false, mode: 'calendar', dailyDate: '', recentDays: [], themeRail: [], journalThemes: [], journalPicker: '', pickerClosing:false, pickerPreparing:false, boardOccluded:false, previewReady:{}, previewErrors:{}, contentMotion:'',
     journalYear: 0, journalMonth: 0, calendarCells: [], canNextMonth: false, weekdays: ['一', '二', '三', '四', '五', '六', '日'],
-    libraryOpen: false, navigationBusy: false, modeSwitchExpanded: false, editorOpen: false, editorDate: '', headerStatus:20, headerHeight:64, headerMenuInset:104, headerTitle:'' },
+    libraryOpen: false, navigationBusy: false, modeSwitchExpanded: false, editorOpen: false, editorDate: '', recallPreview: null, recallOpen: false, recallClosing: false, headerStatus:20, headerHeight:64, headerMenuInset:104, headerTitle:'' },
   syncNavigation() { this.setData({ navigationBusy: this.busy() }); platform.syncTab(this, 'today', true); },
   onLoad() { this.syncHeader(); editor.onLoad.call(this, { date: dates.key() }); this.dailyDate = this.date; this.lastToday = dates.key(); },
   syncHeader() {
@@ -27,7 +27,7 @@ Page({
   onShow() {
     this.syncHeader();
     this.syncNavigation();
-    if (!this.data.editorOpen && !this.data.placing && !this.data.memoryCardId && !this.data.shareBoardId) this.refresh();
+    if (!this.data.editorOpen && !this.data.placing && !this.data.memoryCardId && !this.data.shareBoardId && !this.data.recallOpen) this.refresh();
     clearInterval(this.timer);
     this.timer = setInterval(() => { if (!this.busy() && dates.key() !== this.lastToday) this.refresh(); }, 30000);
   },
@@ -57,7 +57,7 @@ Page({
       this.refreshNavigation();
     } catch (e) { this.setData({ loading: false, error: platform.message(e, '本地记录读取失败，请重试') }); }
   },
-  busy() { return !!(this.data.sheetScene === 'delete' || this.data.sheetClosing || this.data.libraryOpen || this.data.pickerPreparing || this.data.editorOpen || this.data.placing || this.data.memoryCardId || this.data.shareBoardId || this.data.task || this.data.recovering || this.data.formOpen || this.data.working || this.data.dragging || this.data.swiping || this.data.openingLibrary || this.photoTask || this.memoryOpening || this.mutating); },
+  busy() { return !!(this.data.recallOpen || this.data.sheetScene === 'delete' || this.data.sheetClosing || this.data.libraryOpen || this.data.pickerPreparing || this.data.editorOpen || this.data.placing || this.data.memoryCardId || this.data.shareBoardId || this.data.task || this.data.recovering || this.data.formOpen || this.data.working || this.data.dragging || this.data.swiping || this.data.openingLibrary || this.photoTask || this.memoryOpening || this.mutating); },
   refreshNavigation() {
     const state = this.store.get(), items = navigation.themes(state), mode = this.data.mode;
     const selected = items.findIndex(item => item.id === this.activeThemeId);
@@ -214,7 +214,7 @@ Page({
   },
   createJournalTheme() { if (this.prepareBoardChange()) this.closeJournalPicker(()=>{this.setData({mode:'themes'});this.create();}); },
   cancelGesture() { const board = this.selectComponent && this.selectComponent('#today-board'); if (board) board.touchCancel(); },
-  canAdjust() { return !this.data.libraryOpen && !this.data.editorOpen && !this.data.journalPicker && !this.data.formOpen && editor.canAdjust.call(this); },
+  canAdjust() { return !this.data.recallOpen && !this.data.libraryOpen && !this.data.editorOpen && !this.data.journalPicker && !this.data.formOpen && editor.canAdjust.call(this); },
   openBoard() {
     if (this.busy() || this.data.drawer || this.data.journalPicker || this.data.loading || this.data.error) return;
     this.edit();
@@ -299,8 +299,22 @@ Page({
     if (this.canAdjust()) { this.cancelGesture(); this.setData({ drawer: 'selection' }); }
   },
   openSelectedTools() { if (this.canAdjust()) { this.cancelGesture(); this.setData({ drawer: 'selection' }); } },
-  floatingAction(e) { const action = e.detail.action; if(action !== 'mode')this.collapseModeSwitch(); if (action === 'record') this.primary(); else if (action === 'tools') this.openSelectedTools(); else if (action === 'today') this.returnToday(); else if (action === 'mode') this.toggleModeSwitch(); },
-  select(e) { return this.data.mode === 'themes' ? theme.select.call(this, e) : editor.select.call(this, e); },
+  floatingAction(e) { const action = e.detail.action; if(action !== 'mode')this.collapseModeSwitch(); if (action === 'record') this.primary(); else if (action === 'recall') this.openRecall(); else if (action === 'tools') this.openSelectedTools(); else if (action === 'today') this.returnToday(); else if (action === 'mode') this.toggleModeSwitch(); },
+  select(e) { if (this.canAdjust()) return theme.select.call(this, e); },
+  editItem(e) { if (!this.data.recallOpen && !this.data.pickerPreparing) return editor.editItem.call(this, e); },
+  recallPreviewChanged(e) { this.setData({ recallPreview: e.detail.item }); },
+  recallImageFailed(e) { const recall = this.selectComponent('#memory-recall'); if (recall && recall.imageFailed) recall.imageFailed(e); },
+  recallTouchStart() { const recall = this.selectComponent('#memory-recall'); if (recall && recall.touch) recall.touch(true); },
+  recallTouchEnd() { const recall = this.selectComponent('#memory-recall'); if (recall && recall.touch) recall.touch(false); },
+  openRecall() {
+    if (this.data.mode !== 'calendar' || this.busy() || this.data.drawer || this.data.journalPicker || this.data.editable || this.data.selected || this.data.loading || this.data.error) return;
+    return this.presentBoardOverlay({ recallOpen: true, recallClosing: false }, () => this.syncNavigation());
+  },
+  openRecallFromMenu() {
+    if (this.data.mode === 'calendar' && this.data.sheetScene === 'menu') sheet.close(this, () => { this.clearSelection(); this.openRecall(); });
+  },
+  recallClosing() { this.setData({ recallClosing: true }); },
+  closeRecall() { this.setData({ recallOpen: false, recallClosing: false }); this.refresh(); this.syncNavigation(); },
   library() { return this.data.mode === 'themes' ? theme.library.call(this) : editor.library.call(this); },
   placeFromLibrary(e) { return this.data.mode === 'themes' ? theme.placeFromLibrary.call(this, e) : editor.placeFromLibrary.call(this, e); },
   closeSmoothSheet() { if (['rename', 'delete'].includes(this.data.sheetScene)) this.backSmoothSheet(); else sheet.close(this); },

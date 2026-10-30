@@ -90,3 +90,25 @@ test('switching from a static menu to appearance resumes live texture previews w
   b.data.model = { id: 'updated-texture', items: [] }; await b.refresh();
   assert.deepEqual(paints, ['today', 'updated-texture']); assert.equal(exports.length, 2);
 });
+
+test('a pending image load cannot repaint a board after the page goes into the background', async t => {
+  const { board: b, paints } = fixture(t); let resolve;
+  renderer.loadImages.mock.mockImplementationOnce(() => new Promise(done => { resolve = done; }));
+  const pending = b.refresh(); definition.pageLifetimes.hide.call(b);
+  resolve({}); await pending; assert.deepEqual(paints, []);
+  definition.pageLifetimes.show.call(b); await Promise.resolve(); assert.deepEqual(paints, ['today']);
+});
+
+test('recall reports each memory with an unreadable shared image, and retries the image on foreground return', async t => {
+  const { board: b } = fixture(t), failures = [];
+  t.mock.method(require('../miniprogram/core/board-actions'), 'paint', () => {});
+  renderer.loadImages.mock.mockImplementation(async (canvas, items) => Object.fromEntries(items.map(p => [p.memory.subjectPath, { missing: true }])));
+  b.triggerEvent = (name, detail) => { if (name === 'recallerror') failures.push(detail.id); };
+  b.data.floatingControls = { label: '添加记忆', recall: { id: 'first', path: '/missing.png', age: '14 天前' } };
+  t.after(() => clearTimeout(b.recallFadeTimer));
+  await b.refresh(); await b.refresh(); assert.deepEqual(failures, ['first']);
+  b.data.floatingControls.recall.id = 'second'; await b.refresh(); assert.deepEqual(failures, ['first', 'second']);
+  const cached = b.recallLoad;
+  definition.pageLifetimes.hide.call(b); definition.pageLifetimes.show.call(b); await b.refresh();
+  assert.notEqual(b.recallLoad, cached); assert.deepEqual(failures, ['first', 'second', 'second']);
+});

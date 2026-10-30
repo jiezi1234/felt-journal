@@ -1,5 +1,6 @@
 const { rounded } = require('./board-material');
 const B = require('./config').board;
+const recallCard = require('./recall-card');
 
 // Screen-pixel geometry is shared by Canvas paint, native touch hits and the
 // transparent accessible buttons. This UI pass never runs in board exports.
@@ -10,6 +11,11 @@ function layout(width, height, state) {
     // A lifted board keeps the floating controls anchored to the notebook.
     const y = height - (Math.max(16, 6 + (state.bottomInset || 0)) - 3) - 50 + (controls.offsetY || 0);
     const actions = [{ action:'record', id:'journal-canvas-record', label:controls.label, kind:'journal-add', x:(width-addWidth)/2, y, width:addWidth, height:50, disabled:!!controls.disabled }];
+    if (controls.recall && !state.editable && !state.selected && !controls.disabled) {
+      const cardWidth = Math.min(84, Math.floor((width - addWidth) / 2) - 8), cardHeight = cardWidth + 24;
+      if (cardWidth >= 48) actions.push({ action:'recall', id:'journal-recall', kind:'journal-recall', label:`往日一件，${controls.recall.age}，打开回顾`,
+        age:controls.recall.age, x:3, y:y-cardHeight+12, width:cardWidth, height:cardHeight, disabled:false });
+    }
     if (controls.quick) {
       const quickWidth = compact ? 56 : 66;
       actions.push({ action:controls.quick, id:'journal-canvas-quick', label:controls.quick === 'tools' ? '布置选项' : '回到今天', kind:'journal-quick', x:width-quickWidth, y:y+3, width:quickWidth, height:44, disabled:!!controls.disabled });
@@ -38,7 +44,7 @@ function layout(width, height, state) {
 function hit(actions, point) {
   return point && actions.find(a => point.x >= a.x && point.x <= a.x + a.width && point.y >= a.y && point.y <= a.y + a.height);
 }
-function paint(ctx, actions, screenWidth, pressed, hint) {
+function paint(ctx, actions, screenWidth, pressed, hint, recallImage, recallOpacity = 1) {
   if (!actions.length) return;
   ctx.save(); ctx.scale(B.width / screenWidth, B.width / screenWidth);
   if (actions[0].kind === 'journal-add') {
@@ -51,6 +57,7 @@ function paint(ctx, actions, screenWidth, pressed, hint) {
       ctx.fillStyle = '#7D6D5E'; ctx.fillText(hint,screenWidth/2,y,width-12);
     }
     actions.forEach(a => {
+      if (a.kind === 'journal-recall') { recallCard.paint(ctx, a, recallImage, recallOpacity, pressed === a.action); return; }
       if (a.kind === 'journal-mode') { paintBookmark(ctx, a, pressed === a.action); return; }
       ctx.save(); ctx.globalAlpha = a.disabled ? .45 : 1;
       ctx.shadowColor = 'rgba(79,55,21,.24)'; ctx.shadowBlur = 16; ctx.shadowOffsetY = 6;

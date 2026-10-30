@@ -16,6 +16,7 @@
     "test:navigation": "node tests/journal-navigation-e2e.js",
     "test:record": "node tests/record-card-e2e.js",
     "test:sheets": "node tests/smooth-sheet-e2e.js",
+    "test:recall": "node tests/memory-recall-e2e.js",
     "test:libraries": "node tests/memory-library-e2e.js",
     "test:creation-quality": "node tests/creation-quality-e2e.js",
     "test:gestures": "node tests/board-gestures-e2e.js",

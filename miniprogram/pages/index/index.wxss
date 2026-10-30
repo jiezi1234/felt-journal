@@ -105,7 +105,7 @@ button.journal-calendar-day { gap:2px; height:64px; min-height:64px; border-radi
 .journal-sheet-background { transform-origin:50% 0; transform:translateY(0) scale(1); border-radius:0; transition:transform 420ms cubic-bezier(.2,.8,.2,1),border-radius 420ms cubic-bezier(.2,.8,.2,1); }
 .journal-sheet-background.is-receded { transform:translateY(8px) scale(.96); border-radius:28px; overflow:hidden; pointer-events:none; }
 .sheet-covered { visibility:hidden; pointer-events:none; }
-.journal-smooth-surface { height:268px; }
+.journal-smooth-surface { height:350px; }
 .journal-smooth-surface.sheet-theme-menu { height:438px; }
 .journal-smooth-surface.sheet-scene-appearance { height:480px; }
 .journal-smooth-surface.sheet-scene-library { height:660px; }

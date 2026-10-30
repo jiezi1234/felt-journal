@@ -1,0 +1,4 @@
+{
+  "component": true,
+  "usingComponents": { "felt-board": "/components/felt-board/index" }
+}

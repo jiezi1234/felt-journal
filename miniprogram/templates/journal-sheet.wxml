@@ -7,6 +7,7 @@
       <scroll-view scroll-y class="smooth-scroll"><view class="board-options-menu">
         <button id="{{mode === 'themes' ? 'theme-appearance' : 'calendar-appearance'}}" hover-class="ui-pressed" bindtap="openAppearance"><view><text>版面和纹理</text><text class="muted">选择喜欢的颜色与毡面质感</text></view><text>›</text></button>
         <button id="open-memory-libraries" hover-class="ui-pressed" bindtap="openMemoryLibrary"><view><text>记忆库</text><text class="muted">分门别类，收好喜欢的物体</text></view><text>›</text></button>
+        <button wx:if="{{mode === 'calendar'}}" id="open-recall" hover-class="ui-pressed" bindtap="openRecallFromMenu"><view><text>往日一件</text><text class="muted">翻看旧物，恢复隐藏的回忆</text></view><text>›</text></button>
         <block wx:if="{{mode === 'themes'}}"><button id="rename-theme" hover-class="ui-pressed" bindtap="renameFromSheet"><view><text>重命名</text><text class="muted">为这块主题板换个名字</text></view><text>›</text></button><button id="delete-theme" class="danger" hover-class="ui-pressed" bindtap="removeThemeFromSheet"><view><text>删除主题板</text><text class="muted">物体和文字仍会保留</text></view><text>›</text></button></block>
       </view></scroll-view>
     </view>
