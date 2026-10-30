@@ -6,7 +6,7 @@ const { newId } = require('../../services/photo-task');
 const modal = require('../../services/modal-presentation');
 Component({
   options: { styleIsolation: 'apply-shared' },
-  properties: { mode: { type: String, value: 'browse' }, memoryId: String, covered: Boolean },
+  properties: { mode: { type: String, value: 'browse' }, memoryId: String, covered: Boolean, inline: Boolean },
   data: { libraries: [], allCount: 0, allImages: [], libraryId: '', libraryTitle: '', items: [], visibleItems: [], limit: 30,
     selectedIds: [], selectionCount: 0, selectedSummary: '', formOpen: false, formTitle: '', editingId: '', maxTitle: config.maxLibraryTitle,
     query: '', scrollTop: 0, working: false, error: '', missing: {}, loaded: false },
@@ -14,7 +14,12 @@ Component({
     attached() { modal.mount(this); this.store = getStore(); this.refresh(); },
     detached() { this.dead = true; modal.dispose(this); }
   },
-  observers: { covered(value) { if (!value && this.store && !this.dead) this.refresh(); } },
+  observers: {
+    covered(value) { if (!value && this.store && !this.dead) this.refresh(); },
+    'modalHeight, modalKeyboard': function (height, keyboard) {
+      if (this.data.inline && height > 0) this.triggerEvent('viewport', { height, keyboard });
+    }
+  },
   pageLifetimes: { show() { if (this.store) this.refresh(); } },
   methods: {
     refresh() {
@@ -107,7 +112,11 @@ Component({
       } catch (error) { this.setData({ error: platform.message(error, '归档未保存，请重试') }); }
       finally { this.setData({ working: false }); }
     },
-    close() { if (!this.data.working && !this.data.covered) modal.close(this, () => this.triggerEvent('close')); },
+    close() {
+      if (this.data.working || this.data.covered) return;
+      if (this.data.inline) this.triggerEvent('close');
+      else modal.close(this, () => this.triggerEvent('close'));
+    },
     imageError(e) { const id = e.currentTarget.dataset.id; if (id) this.setData({ missing: { ...this.data.missing, [id]: true } }); },
     stop() {}
   }

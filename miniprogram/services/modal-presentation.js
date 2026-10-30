@@ -33,12 +33,12 @@ function mount(host) {
   }
   update(host);
 }
-function close(host, done) {
+function close(host, done, duration = EXIT_MS) {
   const state = host.modalPresentation;
   if (!state) { done(); return; }
   if (!state.alive || state.closing) return;
   state.closing = true; host.setData({ modalClosing: true });
-  state.timer = setTimeout(() => { if (state.alive) done(); }, EXIT_MS);
+  state.timer = setTimeout(() => { if (state.alive) done(); }, duration);
 }
 // Preserve the measured exit geometry while dismissing a native keyboard.
 function freeze(host) { if (host.modalPresentation) host.modalPresentation.frozen = true; }

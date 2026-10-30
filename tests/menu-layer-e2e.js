@@ -88,15 +88,17 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
       await wait(() => { const p = getCurrentPages().slice(-1)[0]; return p.data.drawer === 'appearance' && !p.selectComponent('#today-board').data.freezeCanvas; });
       await page.callMethod('texture', { currentTarget: { dataset: { value: 'long' } } }); await pause(350);
       assert.ok((await state()).paints > shown.paints, 'Appearance continues to render live previews');
-      await tap('#close-drawer'); await idle();
+      await tap('#close-appearance'); await idle();
       await more(mode); await tap('#open-memory-libraries');
       await wait(() => getCurrentPages().slice(-1)[0].data.libraryOpen);
       assert.ok((await state()).frozen); assert.deepEqual((await state()).violations, []);
-      await (await (await page.$('#memory-library-card')).$('#close-library-card')).tap(); await idle();
+      await (await (await page.$('#memory-library-card')).$('#close-library-card')).tap();
+      await wait(() => getCurrentPages().slice(-1)[0].data.sheetScene === 'menu');
+      await tap('#close-drawer'); await idle();
       checks.push(`${mode}: repeated native More taps, first-frame raster, zero hidden paints/exports, appearance and library navigation`);
     }
     const result = await state(); assert.ok(result.paints > 0 && result.exports > 0, 'Instrumentation observed native work');
-    assert.equal(result.entries.length, 10); assert.deepEqual(result.violations, []); assert.deepEqual(errors, []);
+    assert.equal(result.entries.length, 12, 'Includes returning from each library to its existing menu'); assert.deepEqual(result.violations, []); assert.deepEqual(errors, []);
     console.log(JSON.stringify({ passed: true, menuEntries: result.entries.length, hiddenNativeOperations: result.violations.length, checks }, null, 2));
   } finally {
     if (mini) {

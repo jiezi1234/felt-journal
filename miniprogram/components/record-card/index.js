@@ -15,7 +15,16 @@ Component({
   },
   pageLifetimes: { hide() { controller.onHide.call(this); }, show() { if (this.store) controller.onShow.call(this); }, resize() { controller.onResize.call(this); } },
   methods: { ...methods,
-    closeCard() { modal.close(this, () => controller.closeCard.call(this)); },
+    closeCard() {
+      if (this.data.modalClosing) return;
+      this.triggerEvent('closing');
+      modal.close(this, () => controller.closeCard.call(this), 220);
+    },
+    existingMemory() {
+      if (!this.data.isTheme || this.data.task || this.data.modalClosing) return;
+      this.triggerEvent('closing');
+      modal.close(this, () => this.triggerEvent('library'), 220);
+    },
     continuePhoto(e) {
       const id = photo.confirmPlacement(this); if (!id) return;
       this.handingOff = true;

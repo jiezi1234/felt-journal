@@ -5,11 +5,12 @@ const motion = require('../../core/sticker-motion');
 const { createThemeBoardPage } = require('../../services/theme-board-page');
 const navigation = require('../../core/journal-navigation');
 const header = require('../../core/journal-header');
+const sheet = require('../../services/smooth-sheet');
 const editor = createBoardEditor();
 const theme = createThemeBoardPage();
 Page({
   ...editor, ...theme,
-  data: { ...theme.data, inlineTheme: false, mode: 'calendar', dailyDate: '', recentDays: [], themeRail: [], journalThemes: [], journalPicker: '', pickerClosing:false, pickerPreparing:false, boardOccluded:false, previewReady:{}, previewErrors:{}, contentMotion:'',
+  data: { ...theme.data, ...sheet.data, inlineTheme: false, mode: 'calendar', dailyDate: '', recentDays: [], themeRail: [], journalThemes: [], journalPicker: '', pickerClosing:false, pickerPreparing:false, boardOccluded:false, previewReady:{}, previewErrors:{}, contentMotion:'',
     journalYear: 0, journalMonth: 0, calendarCells: [], canNextMonth: false, weekdays: ['一', '二', '三', '四', '五', '六', '日'],
     libraryOpen: false, navigationBusy: false, modeSwitchExpanded: false, editorOpen: false, editorDate: '', headerStatus:20, headerHeight:64, headerMenuInset:104, headerTitle:'' },
   syncNavigation() { this.setData({ navigationBusy: this.busy() }); platform.syncTab(this, 'today', true); },
@@ -30,8 +31,8 @@ Page({
     clearInterval(this.timer);
     this.timer = setInterval(() => { if (!this.busy() && dates.key() !== this.lastToday) this.refresh(); }, 30000);
   },
-  onHide() { this.clearModeSwitchTimer(); clearInterval(this.timer); clearTimeout(this.journalCloseTimer); clearTimeout(this.journalPrepareTimer); this.pickerRequest=(this.pickerRequest||0)+1; this.setData({journalPicker:'',pickerClosing:false,pickerPreparing:false,boardOccluded:false,modeSwitchExpanded:false}); editor.onHide.call(this); if (this.data.drawer === 'selection') this.setData({ drawer: '' }); },
-  onUnload() { this.clearModeSwitchTimer(); clearInterval(this.timer); clearTimeout(this.journalCloseTimer); clearTimeout(this.journalPrepareTimer); this.pickerRequest=(this.pickerRequest||0)+1; editor.onUnload.call(this); },
+  onHide() { if (this.data.sheetScene) { sheet.reset(this); this.setData({drawer:'',libraryOpen:false}); } this.clearModeSwitchTimer(); clearInterval(this.timer); clearTimeout(this.journalCloseTimer); clearTimeout(this.journalPrepareTimer); this.pickerRequest=(this.pickerRequest||0)+1; this.setData({journalPicker:'',pickerClosing:false,pickerPreparing:false,boardOccluded:false,modeSwitchExpanded:false}); editor.onHide.call(this); if (this.data.drawer === 'selection') this.setData({ drawer: '' }); },
+  onUnload() { clearTimeout(this.placementLayoutTimer); sheet.reset(this); this.clearModeSwitchTimer(); clearInterval(this.timer); clearTimeout(this.journalCloseTimer); clearTimeout(this.journalPrepareTimer); this.pickerRequest=(this.pickerRequest||0)+1; editor.onUnload.call(this); },
   refresh() {
     if (this.disposed) return;
     try {
@@ -56,7 +57,7 @@ Page({
       this.refreshNavigation();
     } catch (e) { this.setData({ loading: false, error: platform.message(e, '本地记录读取失败，请重试') }); }
   },
-  busy() { return !!(this.data.libraryOpen || this.data.pickerPreparing || this.data.editorOpen || this.data.placing || this.data.memoryCardId || this.data.shareBoardId || this.data.task || this.data.recovering || this.data.formOpen || this.data.working || this.data.dragging || this.data.swiping || this.data.openingLibrary || this.photoTask || this.memoryOpening || this.mutating); },
+  busy() { return !!(this.data.sheetClosing || this.data.libraryOpen || this.data.pickerPreparing || this.data.editorOpen || this.data.placing || this.data.memoryCardId || this.data.shareBoardId || this.data.task || this.data.recovering || this.data.formOpen || this.data.working || this.data.dragging || this.data.swiping || this.data.openingLibrary || this.photoTask || this.memoryOpening || this.mutating); },
   refreshNavigation() {
     const state = this.store.get(), items = navigation.themes(state), mode = this.data.mode;
     const selected = items.findIndex(item => item.id === this.activeThemeId);
@@ -184,11 +185,12 @@ Page({
   },
   memories() { this.closeJournalPicker(() => this.openMemoryLibrary()); },
   openMemoryLibrary() {
+    if (this.data.sheetScene) { sheet.navigate(this, 'library'); return; }
     if (this.busy() || this.data.loading || this.data.error) return;
     this.cancelGesture(); if (this.dirty && !this.persist()) return;
     return this.presentBoardOverlay({ libraryOpen: true, drawer: '' }, () => this.syncNavigation());
   },
-  closeMemoryLibrary() { if (this.data.memoryCardId) return; this.setData({ libraryOpen: false }); this.refresh(); this.syncNavigation(); },
+  closeMemoryLibrary() { if (this.data.memoryCardId) return; if (this.data.sheetScene) { this.backSmoothSheet(); return; } this.setData({ libraryOpen: false }); this.refresh(); this.syncNavigation(); },
   libraryChanged() { this.refresh(); },
   openLibraryMemory(e) {
     const id = e.detail.id;
@@ -201,9 +203,10 @@ Page({
   },
   openCalendarOptions() {
     if (this.data.mode !== 'calendar' || !this.prepareBoardChange()) return;
-    return this.presentBoardOverlay({ drawer: 'calendar-options' }, () => this.syncNavigation());
+    return this.presentBoardOverlay(sheet.menu(this), () => this.syncNavigation());
   },
   openAppearance() {
+    if (this.data.sheetScene) { if (this.data.sheetScene !== 'library' && sheet.navigate(this, 'appearance')) this.edit(); return; }
     if (this.data.mode === 'themes') return theme.openAppearance.call(this);
     if (this.busy() || this.data.journalPicker || this.data.loading || this.data.error) return;
     this.cancelGesture(); if (this.dirty && !this.persist()) return;
@@ -219,16 +222,21 @@ Page({
   primary() {
     if (this.busy() || this.data.journalPicker || this.data.drawer || this.data.loading || this.data.error) return;
     this.collapseModeSwitch();
-    if (this.data.mode === 'themes') { if (!this.date) this.createJournalTheme(); else theme.sourceSheet.call(this); return; }
+    if (this.data.mode === 'themes' && !this.date) { this.createJournalTheme(); return; }
     this.cancelGesture(); if (this.dirty && !this.persist()) return;
     this.refresh(); if (this.data.error) return;
-    this.setData({ editorDate: this.date, editorOpen: true, drawer: '', navigationBusy: true }); this.syncNavigation();
+    const update = { editorDate: this.date, editorOpen: true, recordClosing: false, drawer: '', navigationBusy: true };
+    const board = this.selectComponent && this.selectComponent('#today-board');
+    if (board && board.prepareOverlay) return this.presentBoardOverlay(update, () => this.syncNavigation());
+    this.setData(update); this.syncNavigation();
   },
   sourceSheet() { this.primary(); },
   editorChanged() { /* The processing card owns the pending result until placement. */ },
+  editorLibrary() { this.closeEditor(); if (this.data.mode === 'themes') return this.library(); },
+  editorClosing() { this.setData({ recordClosing: true }); },
   closeEditor() {
     if (this.data.placing) return;
-    this.setData({ editorOpen: false, navigationBusy: false }); this.syncNavigation(); this.refresh();
+    this.setData({ editorOpen: false, recordClosing: false, navigationBusy: false }); this.syncNavigation(); this.refresh();
   },
   startSticker(e) {
     if (this.data.placing || !this.data.editorOpen) return;
@@ -238,16 +246,32 @@ Page({
     const token = this.placementToken = (this.placementToken || 0) + 1;
     this.setData({ placing: { id, path: memory.subjectPath, source, token }, selected: id, editable: true });
     this.refresh();
+    const board = this.selectComponent && this.selectComponent('#today-board');
+    if (board && board.landingReady) {
+      // Measure the landing after the background has returned to full size.
+      // Peeling runs for 500ms, so this does not delay the sticker's flight.
+      this.placementLayoutToken = token;
+      clearTimeout(this.placementLayoutTimer);
+      this.placementLayoutTimer = setTimeout(() => {
+        if (this.disposed || !this.data.placing || this.data.placing.token !== token) return;
+        this.placementLayoutToken = null; board.landingReady();
+      }, 440);
+    }
     this.placementTimer = setTimeout(() => this.stickerLanded({ detail: { token } }), 6000);
+  },
+  stickerTarget(e) {
+    if (this.data.placing && this.placementLayoutToken === this.data.placing.token) return;
+    editor.stickerTarget.call(this, e);
   },
   stickerLifted(e) {
     if (this.disposed || !this.data.placing || this.data.placing.token !== e.detail.token) return;
-    if (this.data.mode === 'themes') { editor.stickerLifted.call(this, e); return; }
+    if (this.data.mode === 'themes' && this.photoTask) { editor.stickerLifted.call(this, e); return; }
     this.setData({ editorOpen: false });
   },
   stickerLanded(e) {
     const placing = this.data.placing;
     if (!placing || this.disposed || e && e.detail && e.detail.token !== placing.token) return;
+    clearTimeout(this.placementLayoutTimer); this.placementLayoutToken = null;
     editor.stickerLanded.call(this, e);
     this.setData({ editorOpen: false }); this.refreshNavigation(); this.syncNavigation();
   },
@@ -270,7 +294,7 @@ Page({
   openSelection() {
     if (this.data.mode === 'themes') {
       if (!this.date || !theme.prepareThemeChange.call(this)) return;
-      return this.presentBoardOverlay({ drawer: 'theme' }, () => this.syncNavigation());
+      return this.presentBoardOverlay(sheet.menu(this), () => this.syncNavigation());
     }
     if (this.canAdjust()) { this.cancelGesture(); this.setData({ drawer: 'selection' }); }
   },
@@ -279,7 +303,14 @@ Page({
   select(e) { return this.data.mode === 'themes' ? theme.select.call(this, e) : editor.select.call(this, e); },
   library() { return this.data.mode === 'themes' ? theme.library.call(this) : editor.library.call(this); },
   placeFromLibrary(e) { return this.data.mode === 'themes' ? theme.placeFromLibrary.call(this, e) : editor.placeFromLibrary.call(this, e); },
-  closeDrawer() { if(this.data.pickerPreparing)this.closeJournalPicker(); return this.data.mode === 'themes' ? theme.closeDrawer.call(this) : editor.closeDrawer.call(this); },
+  closeSmoothSheet() { sheet.close(this); },
+  sheetViewportChanged(e) {
+    if (!this.data.sheetClosing) this.setData({ sheetViewportHeight: e.detail.height, sheetKeyboard: !!e.detail.keyboard });
+  },
+  backSmoothSheet() { sheet.navigate(this, 'menu'); },
+  renameFromSheet() { sheet.close(this, () => this.rename()); },
+  removeThemeFromSheet() { sheet.close(this, () => this.removeTheme()); },
+  closeDrawer() { if (this.data.sheetScene) return this.closeSmoothSheet(); if(this.data.pickerPreparing)this.closeJournalPicker(); return this.data.mode === 'themes' ? theme.closeDrawer.call(this) : editor.closeDrawer.call(this); },
   gestureState(e) { this.setData({ dragging: !!e.detail.active }); this.setData({ navigationBusy: this.busy() }); },
   async cancelPhoto(e) { await editor.cancelPhoto.call(this, e); if (!this.disposed) this.refreshNavigation(); },
   async continuePhoto(e) { await editor.continuePhoto.call(this, e); if (!this.disposed) this.refreshNavigation(); },

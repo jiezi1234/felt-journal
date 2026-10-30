@@ -53,8 +53,12 @@ Component({
     stop() {},
     measure() {
       if (this.dead || this.data.freezeCanvas) return;
-      this.createSelectorQuery().select('#feltCanvas').fields({ node: true }).select('.board-viewport').boundingClientRect().exec(result => {
-        const r = result[0], rect = result[1]; if (this.dead || this.data.freezeCanvas || !r || !r.node || !rect || !rect.width) return;
+      // A sheet scales the presentation, not the stored/native board geometry.
+      // Computed layout sizes exclude ancestor transforms and avoid feedback shrinkage.
+      this.createSelectorQuery().select('#feltCanvas').fields({ node: true }).select('.board-viewport').fields({ size: true, computedStyle: ['width', 'height'] }).exec(result => {
+        const r = result[0], measured = result[1]; if (this.dead || this.data.freezeCanvas || !r || !r.node || !measured) return;
+        const rect = { width: parseFloat(measured.width), height: parseFloat(measured.height) };
+        if (!(rect.width > 0) || !(rect.height >= 0)) return;
         const tall = this.data.layout === 'tall';
         const width = this.data.layout === 'fit' && rect.height ? Math.min(rect.width, rect.height * B.width / (B.height + B.overhang)) : rect.width;
         const topSpace = width * B.overhang / B.width;

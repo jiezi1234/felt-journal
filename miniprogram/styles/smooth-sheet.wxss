@@ -1,0 +1,13 @@
+/* Bottom-anchored spring-like easing, shared by the record and More sheets. */
+.smooth-overlay { position:fixed; inset:0; z-index:150; display:flex; align-items:flex-end; justify-content:center; padding:12px 12px calc(12px + env(safe-area-inset-bottom)); }
+.smooth-scrim { position:absolute; inset:0; background:rgba(43,35,28,.32); animation:smooth-scrim-in 320ms ease-out both; }
+.smooth-surface { position:relative; width:100%; max-width:520px; max-height:100%; overflow:hidden; border:1px solid #FFFEF8; border-radius:32px; background:#FFFCF7; box-shadow:0 16px 60px rgba(50,38,24,.18); animation:smooth-sheet-in 420ms cubic-bezier(.2,.8,.2,1) both; transition:height 360ms cubic-bezier(.22,.8,.25,1); }
+.smooth-overlay.is-closing { pointer-events:none; }
+.smooth-overlay.is-closing .smooth-scrim { animation:smooth-scrim-out 220ms ease-in both; }
+.smooth-overlay.is-closing .smooth-surface { animation:smooth-sheet-out 220ms cubic-bezier(.4,0,1,1) both; }
+.smooth-handle { position:absolute; z-index:2; top:10px; left:50%; width:34px; height:4px; margin-left:-17px; border-radius:3px; background:#DED7CC; }
+@keyframes smooth-scrim-in { from { opacity:0; } to { opacity:1; } }
+@keyframes smooth-scrim-out { from { opacity:1; } to { opacity:0; } }
+@keyframes smooth-sheet-in { from { transform:translateY(110%); } to { transform:translateY(0); } }
+@keyframes smooth-sheet-out { from { transform:translateY(0); } to { transform:translateY(110%); } }
+@keyframes smooth-content-in { from { opacity:0; transform:translateX(32px); } to { opacity:1; transform:translateX(0); } }

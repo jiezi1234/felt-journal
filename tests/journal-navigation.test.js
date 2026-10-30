@@ -206,6 +206,7 @@ test('failed or stalled board preparation still opens a picker with native occlu
 });
 
 test('both more menus hide the canvas in a completed render before mounting, and reject repeated taps',async t=>{
+  t.mock.timers.enable({apis:['setTimeout']});
   const {page:p,store}=fixture(t);themes(store);
   const oldWx=global.wx;t.after(()=>{global.wx=oldWx;});
   let paint,ready,captures=0;global.wx={nextTick:fn=>{paint=fn;}};
@@ -219,17 +220,18 @@ test('both more menus hide the canvas in a completed render before mounting, and
     assert.equal(p.data.boardOccluded,true);assert.equal(p.data.drawer,'','Menu waits until the hidden canvas has rendered');
     paint();assert.equal(p.data.drawer,mode==='calendar'?'calendar-options':'theme');
     assert.equal(p.data.boardOccluded,false);assert.equal(p.data.pickerPreparing,false);
-    p.closeDrawer();
+    p.closeDrawer();t.mock.timers.tick(220);
   }
 });
 
 test('failed menu captures use pre-occlusion, and cancellation cannot leave a hidden board or open a stale menu',async t=>{
+  t.mock.timers.enable({apis:['setTimeout']});
   const {page:p}=fixture(t);const oldWx=global.wx;t.after(()=>{global.wx=oldWx;});
   let paint;global.wx={nextTick:fn=>{paint=fn;}};
   p.selectComponent=()=>({touchCancel(){},prepareOverlay:()=>Promise.reject(Error('capture failed'))});
   await p.openCalendarOptions();assert.equal(p.data.boardOccluded,true);assert.equal(p.data.drawer,'');
   p.closeDrawer();paint();assert.equal(p.data.boardOccluded,false);assert.equal(p.data.drawer,'');assert.equal(p.data.navigationBusy,false);
-  await p.openCalendarOptions();paint();assert.equal(p.data.drawer,'calendar-options');p.closeDrawer();
+  await p.openCalendarOptions();paint();assert.equal(p.data.drawer,'calendar-options');p.closeDrawer();t.mock.timers.tick(220);
   let ready;p.selectComponent=()=>({touchCancel(){},prepareOverlay:()=>new Promise(resolve=>{ready=resolve;})});
   const opening=p.openCalendarOptions();p.onHide();ready(true);await opening;
   assert.equal(p.data.drawer,'');assert.equal(p.data.boardOccluded,false);assert.equal(p.data.pickerPreparing,false);

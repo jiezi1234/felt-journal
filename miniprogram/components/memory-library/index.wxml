@@ -1,15 +1,15 @@
-<view class="memory-library-overlay modal-overlay {{covered ? 'library-covered' : ''}} {{modalClosing ? 'is-closing' : ''}} {{modalKeyboard ? 'has-keyboard' : ''}}" style="{{modalHeight ? 'height:' + modalHeight + 'px;padding-bottom:' + modalBottom + 'px;' : ''}}" catchtap="stop" catchtouchmove="stop">
-  <view class="library-scrim modal-scrim" bindtap="close" />
+<view class="memory-library-overlay {{inline ? 'is-inline' : 'modal-overlay'}} {{covered && !inline ? 'library-covered' : ''}} {{modalClosing ? 'is-closing' : ''}} {{modalKeyboard ? 'has-keyboard' : ''}}" style="{{!inline && modalHeight ? 'height:' + modalHeight + 'px;padding-bottom:' + modalBottom + 'px;' : ''}}" catchtap="stop" catchtouchmove="stop">
+  <view wx:if="{{!inline}}" class="library-scrim modal-scrim" bindtap="close" />
   <view class="library-card modal-surface" role="dialog" aria-modal="true" aria-label="{{mode === 'pick' ? '加入记忆库' : libraryTitle || '记忆库'}}">
     <view class="library-heading">
-      <button wx:if="{{libraryId || formOpen}}" id="library-back" class="library-icon" aria-label="返回上一层" disabled="{{working}}" bindtap="back">‹</button>
+      <button wx:if="{{libraryId || formOpen || inline}}" id="library-back" class="library-icon" aria-label="返回上一层" disabled="{{working}}" bindtap="{{libraryId || formOpen ? 'back' : 'close'}}">‹</button>
       <view class="library-heading-copy"><text class="library-eyebrow">把喜欢的，慢慢收好</text><view class="library-title">{{formOpen ? editingId ? '重命名记忆库' : '新建记忆库' : mode === 'pick' ? '加入记忆库' : libraryTitle || '记忆库'}}</view></view>
       <button wx:if="{{libraryId && libraryId !== 'all' && !formOpen}}" id="library-options" class="library-icon" aria-label="管理记忆库" disabled="{{working}}" bindtap="options">···</button>
       <button id="close-library-card" class="library-icon" aria-label="关闭记忆库" disabled="{{working}}" bindtap="close">×</button>
     </view>
     <view wx:if="{{formOpen}}" class="library-name-form library-pane">
       <text class="library-helper">给这些记忆取一个名字</text>
-      <input id="library-name" class="library-name-input" value="{{formTitle}}" maxlength="{{maxTitle * 2}}" placeholder="如：旅途拾光、喜欢的小物" focus="{{true}}" disabled="{{working}}" bindinput="nameInput" bindconfirm="saveName" confirm-type="done" />
+      <input id="library-name" class="library-name-input" value="{{formTitle}}" maxlength="{{maxTitle * 2}}" placeholder="如：旅途拾光、喜欢的小物" focus="{{!covered}}" disabled="{{working || covered}}" bindinput="nameInput" bindconfirm="saveName" confirm-type="done" />
       <view class="library-form-actions"><button id="cancel-library-name" class="secondary" disabled="{{working}}" bindtap="back">取消</button><button id="save-library-name" class="primary" loading="{{working}}" disabled="{{working}}" bindtap="saveName">{{editingId ? '保存名称' : mode === 'pick' ? '创建并选中' : '创建记忆库'}}</button></view>
     </view>
     <block wx:elif="{{libraryId}}">

@@ -1,0 +1,24 @@
+<view wx:if="{{sheetScene}}" id="journal-sheet" class="smooth-overlay journal-smooth-overlay {{sheetClosing ? 'is-closing' : ''}} {{memoryCardId ? 'sheet-covered' : ''}} {{sheetKeyboard ? 'has-keyboard' : ''}}" style="{{sheetViewportHeight ? 'height:' + sheetViewportHeight + 'px;' : ''}}" catchtouchmove="stop">
+  <view class="smooth-scrim" bindtap="closeSmoothSheet" />
+  <view id="journal-sheet-surface" class="smooth-surface journal-smooth-surface sheet-scene-{{sheetScene}} {{mode === 'themes' ? 'sheet-theme-menu' : ''}}" role="dialog" aria-modal="true" aria-label="{{sheetScene === 'menu' ? '更多选项' : sheetScene === 'appearance' ? '板面与纹理' : '记忆库'}}">
+    <view class="smooth-handle" aria-hidden="true" />
+    <view class="smooth-pane smooth-menu {{sheetScene === 'menu' ? 'pane-current' : 'pane-behind'}}" aria-hidden="{{sheetScene !== 'menu'}}">
+      <view class="row smooth-heading"><view class="section-title">更多选项</view><button id="close-drawer" class="ghost" aria-label="关闭更多选项" bindtap="closeSmoothSheet">收起 ⌄</button></view>
+      <scroll-view scroll-y class="smooth-scroll"><view class="board-options-menu">
+        <button id="{{mode === 'themes' ? 'theme-appearance' : 'calendar-appearance'}}" hover-class="ui-pressed" bindtap="openAppearance"><view><text>版面和纹理</text><text class="muted">选择喜欢的颜色与毡面质感</text></view><text>›</text></button>
+        <button id="open-memory-libraries" hover-class="ui-pressed" bindtap="openMemoryLibrary"><view><text>记忆库</text><text class="muted">分门别类，收好喜欢的物体</text></view><text>›</text></button>
+        <block wx:if="{{mode === 'themes'}}"><button id="rename-theme" hover-class="ui-pressed" bindtap="renameFromSheet"><view><text>重命名</text><text class="muted">为这块主题板换个名字</text></view><text>›</text></button><button id="delete-theme" class="danger" hover-class="ui-pressed" bindtap="removeThemeFromSheet"><view><text>删除主题板</text><text class="muted">物体和文字仍会保留</text></view><text>›</text></button></block>
+      </view></scroll-view>
+    </view>
+    <view class="smooth-pane smooth-appearance {{sheetScene === 'appearance' ? 'pane-current' : 'pane-next'}}" aria-hidden="{{sheetScene !== 'appearance'}}">
+      <view class="row smooth-heading"><button id="sheet-back" class="smooth-back" aria-label="返回更多选项" bindtap="backSmoothSheet">‹</button><view class="section-title grow">板面与纹理</view><button id="close-appearance" class="ghost" bindtap="closeSmoothSheet">收起 ⌄</button></view>
+      <scroll-view scroll-y class="smooth-scroll"><view class="colors"><button wx:for="{{colors}}" wx:key="value" class="color {{model.color === item.value ? 'active' : ''}}" data-value="{{item.value}}" bindtap="color"><text class="swatch" style="background:{{item.value}}">{{model.color === item.value ? '✓' : ''}}</text>{{item.name}}</button></view>
+        <view class="textures"><button wx:for="{{textures}}" wx:key="value" class="texture {{model.texture === item.value ? 'active' : ''}}" data-value="{{item.value}}" bindtap="texture"><felt-swatch inactive="{{sheetScene !== 'appearance' || !!memoryCardId || sheetClosing}}" color="{{model.color}}" texture="{{item.value}}" /><view class="texture-name">{{item.name}}</view><view class="texture-note">{{item.description}}</view></button></view>
+        <view class="appearance-hint muted">{{saveError || '调整后自动保存'}}</view>
+      </scroll-view>
+    </view>
+    <view class="smooth-pane smooth-library {{sheetScene === 'library' ? 'pane-current' : 'pane-next'}}" aria-hidden="{{sheetScene !== 'library'}}">
+      <memory-library wx:if="{{sheetLibraryMounted}}" id="memory-library-card" inline="{{true}}" covered="{{!!memoryCardId || sheetScene !== 'library' || sheetClosing}}" bind:viewport="sheetViewportChanged" bind:memory="openLibraryMemory" bind:close="backSmoothSheet" bind:change="libraryChanged" />
+    </view>
+  </view>
+</view>

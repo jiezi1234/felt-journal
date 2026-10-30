@@ -11,13 +11,13 @@ $routes = (Get-Content -LiteralPath (Join-Path $projectRoot 'miniprogram\app.jso
 $sources = @($routes)
 $sources += @('components/felt-board/index','components/photo-panel/index','components/felt-swatch/index','components/main-nav/index','components/record-card/index','components/day-board-card/index','components/memory-card/index','components/memory-library/index','components/share-card/index','components/sticker-flight/index','custom-tab-bar/index')
 $wxml = @($sources | ForEach-Object { "$_.wxml" })
-$wxml += @('board-content','board-drawers','board-feedback','themes-content','theme-form','theme-board-drawers','journal-pickers') | ForEach-Object { "templates/$_.wxml" }
+$wxml += @('board-content','board-drawers','board-feedback','themes-content','theme-form','theme-board-drawers','journal-pickers','journal-sheet') | ForEach-Object { "templates/$_.wxml" }
 Push-Location (Join-Path $projectRoot 'miniprogram')
 try {
 & $wcc -o (Join-Path $artifactRoot 'wxml.js') @wxml
 if ($LASTEXITCODE -ne 0) { throw 'WXML 编译失败' }
 $css = @('app.wxss') + @($sources | ForEach-Object { "$_.wxss" })
-$sharedStyles = @('styles/board-editor.wxss','styles/modal.wxss','styles/controls.wxss','styles/card-paper.wxss')
+$sharedStyles = @('styles/board-editor.wxss','styles/modal.wxss','styles/smooth-sheet.wxss','styles/controls.wxss','styles/card-paper.wxss')
 for ($i = 0; $i -lt $css.Count; $i++) {
   $imports = @($css + $sharedStyles | Where-Object { $_ -ne $css[$i] })
   & $wcsc -o (Join-Path $artifactRoot "wxss-$i.js") $css[$i] @imports

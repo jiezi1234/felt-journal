@@ -30,3 +30,16 @@ button.source-button[disabled] { background:transparent; opacity:.45; }
 @media (max-width:350px) { .record-source .source-actions { gap:18px; }.record-body { padding-left:12px; padding-right:12px; } }
 @media (max-height:570px) { .record-card.is-source { height:310px; }.source-circle { width:62px; height:62px; }.source-intro,.source-hint { margin:6px 0; } }
 .has-keyboard .record-body { padding-top:0; padding-bottom:6px; }
+
+@import "../../styles/smooth-sheet.wxss";
+.record-overlay .record-scrim { animation:smooth-scrim-in 320ms ease-out both; }
+.record-overlay .record-card { animation:smooth-sheet-in 420ms cubic-bezier(.2,.8,.2,1) both; transition:height 360ms cubic-bezier(.22,.8,.25,1); }
+.record-overlay.is-closing { pointer-events:none; }
+.record-overlay.is-closing .record-scrim { animation:smooth-scrim-out 220ms ease-in both; }
+.record-overlay.is-closing .record-card { animation:smooth-sheet-out 220ms cubic-bezier(.4,0,1,1) both; }
+.record-body { position:relative; }
+.record-source { position:absolute; inset:8px 16px 16px; transition:opacity 240ms ease,transform 360ms cubic-bezier(.22,.8,.25,1),visibility 360ms; }
+.record-source-away { opacity:0; transform:translateX(-26%); visibility:hidden; pointer-events:none; }
+.record-body photo-panel { animation:smooth-content-in 360ms cubic-bezier(.22,.8,.25,1) both; }
+button.record-existing { min-height:40px; margin-top:8px; font-size:12px; }
+.has-keyboard .record-card { transition:none; }

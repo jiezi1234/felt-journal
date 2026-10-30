@@ -1,1 +1,1 @@
-<canvas type="2d" id="sample" class="sample" />
+<canvas hidden="{{inactive}}" type="2d" id="sample" class="sample" />
