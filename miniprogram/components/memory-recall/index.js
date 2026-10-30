@@ -5,7 +5,7 @@ const platform = require('../../services/platform');
 Component({
   options: { styleIsolation: 'apply-shared' },
   properties: { active: Boolean, editing: Boolean, recording: Boolean, blocked: Boolean, open: Boolean },
-  data: { item: null, closing: false, hiddenCount: 0, error: '', canNext: false, turn: false },
+  data: { item: null, closing: false, hiddenCount: 0, error: '', canNext: false, turn: false, subjectActive: false, subjectPath: '', subjectPreview: '' },
   observers: {
     'active, editing, recording, blocked, open': function () { if (this.store) this.sync(); }
   },
@@ -15,10 +15,10 @@ Component({
       let raw; try { raw = wx.getStorageSync(recall.KEY); } catch (_) { /* Optional local preferences. */ }
       this.prefs = recall.preferences(raw); this.sync();
     },
-    detached() { this.dead = true; this.stopTimer(); clearTimeout(this.closeTimer); }
+    detached() { this.dead = true; this.stopTimer(); clearTimeout(this.closeTimer); clearTimeout(this.subjectTimer); }
   },
   pageLifetimes: {
-    hide() { this.visible = false; this.held = false; this.stopTimer(); },
+    hide() { this.visible = false; this.held = false; this.stopTimer(); this.syncSubject(); },
     show() { this.visible = true; this.failed = {}; if (!this.data.open) this.rotateOnResume = true; if (this.store) this.sync(); }
   },
   methods: {
@@ -32,7 +32,7 @@ Component({
         if (this.eligible() && !this.held) { this.choose(); this.preview(); this.schedule(); }
       }, recall.INTERVAL);
     },
-    touch(active) { this.held = active; this.schedule(); },
+    touch(active) { this.held = active; this.schedule(); this.syncSubject(); },
     savePreferences(next, required = false) {
       try { wx.setStorageSync(recall.KEY, JSON.stringify(next)); }
       catch (error) { if (required) { this.setData({ error: platform.message(error, '回顾设置未保存，请重试') }); return false; } }
@@ -52,12 +52,26 @@ Component({
       const key = JSON.stringify(preview);
       if (key !== this.previewKey) { this.previewKey = key; this.triggerEvent('preview', { item: preview }); }
     },
+    syncSubject() {
+      const active = !!(!this.dead && this.visible && (this.eligible() && !this.held || this.data.open && !this.data.closing && this.subjectSettled));
+      if (active !== this.data.subjectActive) this.setData({ subjectActive: active });
+    },
+    subjectReady(e) {
+      if (!this.dead && this.data.item && e.detail.path === this.data.item.path) this.setData({ subjectPath: e.detail.path, subjectPreview: e.detail.previewPath });
+    },
+    subjectFailed(e) {
+      if (!this.data.item || e.currentTarget.dataset.path !== this.data.item.path) return;
+      if (e.currentTarget.dataset.preview) { this.setData({ subjectPreview: '' }); return; }
+      this.imageFailed(e);
+    },
     sync() {
       if (this.dead) return;
       const opening = this.data.open && !this.wasOpen;
       if (!this.data.open && this.wasOpen) this.setData({ closing: false });
       if (!this.data.active || this.data.editing || this.data.recording) this.rotateOnResume = true;
       if (opening) {
+        this.subjectSettled = false; clearTimeout(this.subjectTimer);
+        this.subjectTimer = setTimeout(() => { if (!this.dead && this.data.open) { this.subjectSettled = true; this.syncSubject(); } }, 420);
         this.setData({ closing: false, error: '' });
         const current = this.data.item && this.available().find(m => m.id === this.data.item.id);
         if (!current) this.choose(); else this.setData({ item: recall.describe(current, dates.key()), canNext: this.available().length > 1 });
@@ -71,6 +85,7 @@ Component({
         this.rotateOnResume = false;
       }
       this.preview();
+      this.syncSubject();
       // Ordinary page refreshes must not keep postponing an idle rotation.
       if (!enabled) this.stopTimer();
       else if (!this.wasEligible || !this.rotationTimer) this.schedule();
@@ -106,6 +121,7 @@ Component({
     dismiss(detail = {}) {
       if (!this.data.open || this.data.closing) return;
       this.setData({ closing: true }); this.triggerEvent('closing'); this.stopTimer();
+      this.syncSubject();
       this.closeTimer = setTimeout(() => { if (!this.dead && this.data.open) this.triggerEvent('close', detail); }, 220);
     },
     stop() {}

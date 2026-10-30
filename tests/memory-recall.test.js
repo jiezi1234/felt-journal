@@ -75,6 +75,20 @@ test('old object review stays pinned; ordinary closing resumes timing without ch
   assert.equal(disk[KEY], snapshot);
 });
 
+test('detail preparation pauses during touch, opening and backgrounding; only the current preview can be displayed', t => {
+  const { c } = fixture(t);
+  assert.equal(c.data.subjectActive, true); c.touch(true); assert.equal(c.data.subjectActive, false);
+  c.touch(false); assert.equal(c.data.subjectActive, true);
+  c.subjectReady({ detail: { path: '/stale.png', previewPath: '/old-preview.png' } }); assert.equal(c.data.subjectPreview, '');
+  c.subjectReady({ detail: { path: c.data.item.path, previewPath: '/ready.png' } }); assert.equal(c.data.subjectPreview, '/ready.png');
+  c.props({ open: true }); assert.equal(c.data.subjectActive, false);
+  t.mock.timers.tick(419); assert.equal(c.data.subjectActive, false);
+  t.mock.timers.tick(1); assert.equal(c.data.subjectActive, true);
+  definition.pageLifetimes.hide.call(c); assert.equal(c.data.subjectActive, false);
+  definition.pageLifetimes.show.call(c); assert.equal(c.data.subjectActive, true);
+  c.close(); assert.equal(c.data.subjectActive, false);
+});
+
 test('view that day closes once with the pinned memory date after the exit transition', t => {
   const { c, events, disk, snapshot } = fixture(t); c.props({ open: true });
   const { id, date } = c.data.item;

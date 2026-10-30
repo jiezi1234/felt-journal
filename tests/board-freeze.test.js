@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const renderer = require('../miniprogram/core/renderer');
 const snapshots = require('../miniprogram/services/board-snapshot');
+const recallBackdrop = require('../miniprogram/services/recall-backdrop');
 let definition;
 global.Component = value => { definition = value; };
 require('../miniprogram/components/felt-board/index');
@@ -11,7 +12,7 @@ const observe = board => definition.observers['covered, interactive, occluded, f
 function fixture(t) {
   const previous = global.wx, exports = [], paints = [], queries = [];
   global.wx = { nextTick: fn => fn(), canvasToTempFilePath: request => exports.push(request), getSystemInfoSync: () => ({ pixelRatio: 2 }) };
-  t.after(() => { global.wx = previous; snapshots.dispose(board); });
+  t.after(() => { recallBackdrop.cancel(board); global.wx = previous; snapshots.dispose(board); });
   t.mock.method(renderer, 'loadImages', async () => ({}));
   t.mock.method(renderer, 'createSurface', () => null);
   t.mock.method(renderer, 'paint', (ctx, model) => paints.push(model.id));
@@ -35,6 +36,13 @@ test('static overlays do not load, paint, resize or export the hidden native can
   assert.equal(renderer.loadImages.mock.callCount(), 0);
   assert.deepEqual(paints, []); assert.deepEqual(exports, []); assert.deepEqual(queries, []);
   assert.equal(b.data.snapshot, '/ready.png'); assert.equal(b.data.snapshotVisible, true); assert.equal(b.data.canvasHidden, true);
+});
+
+test('a prepared recall backdrop opens without repainting or exporting on the tap path', async t => {
+  const { board: b, exports, paints } = fixture(t);
+  b.recallBackdrop = { epoch: 0, path: '/ready.png', key: JSON.stringify([b.data.model, b.canvas.width, b.canvas.height]) };
+  assert.equal(await b.prepareOverlay({ reuseRecall: true }), true);
+  assert.equal(renderer.loadImages.mock.callCount(), 0); assert.deepEqual(paints, []); assert.deepEqual(exports, []);
 });
 
 test('a pre-menu image load cannot paint after a quick open/close; resuming paints the latest board', async t => {

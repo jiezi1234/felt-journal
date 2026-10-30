@@ -1,3 +1,3 @@
-<image class="subject-image {{pending ? 'is-pending' : ''}}" src="{{previewPath || path}}" mode="aspectFit" data-path="{{path}}" data-preview="{{previewPath}}" binderror="imageFailed" aria-label="回忆中的物件" />
+<image wx:if="{{previewPath}}" class="subject-image" src="{{previewPath}}" data-path="{{path}}" data-preview="{{previewPath}}" bindload="imageLoaded" binderror="imageFailed" aria-hidden="true" />
 <!-- Snapshot once, so the native canvas cannot pierce the sheet or its scroll area. -->
 <canvas id="subject-canvas" type="2d" class="subject-canvas" aria-hidden="true" />

@@ -8,6 +8,7 @@ const boardActions = require('../../core/board-actions');
 const boardGuide = require('../../core/board-guide');
 const swipe = require('../../services/board-swipe');
 const journalMotion = require('../../services/journal-board-motion');
+const recallBackdrop = require('../../services/recall-backdrop');
 Component({
   properties: { model: { type: Object, value: null }, layout: String, editable: Boolean, canEdit: Boolean, selected: String, covered: Boolean, occluded: Boolean, freezeCanvas: Boolean, landingId: String, reportGestures: Boolean, forwardOverhangTaps: Boolean, floatingControls: Object, allowSwipe: Boolean, swipePrevious: Object, swipeNext: Object, showActions: Boolean, actionsDisabled: Boolean, canAdd: Boolean, canUndo: Boolean, canBringToFront: Boolean, interactive: { type: Boolean, value: true } },
   data: { height: 210, width: 0, topSpace: 0, canvasHeight: 210, handles: [], actions: [], swipeActive: false, navigationAnimating:false, imageError: false, snapshot: '', snapshotA:'', snapshotB:'', snapshotSlot:'a', snapshotVisible:false, canvasHidden:false },
@@ -26,8 +27,8 @@ Component({
       if (resuming) wx.nextTick(() => { if (!this.dead && !this.data.freezeCanvas) this.measure(); });
     }, 'swipePrevious, swipeNext, allowSwipe': function () { swipe.warm(this); },
     'showActions, actionsDisabled, canAdd, canUndo, canBringToFront': function () { this.refresh(); }, layout() { this.measure(); } },
-  lifetimes: { ready() { this.measure(); }, detached() { this.dead = true; clearTimeout(this.recallFadeTimer); journalMotion.dispose(this); swipe.dispose(this); snapshots.dispose(this); this.clearGesture(); this.finishPickupSnapshot(false); } },
-  pageLifetimes: { resize() { journalMotion.dispose(this); swipe.cancel(this); this.touchCancel(); this.measure(); }, hide() { this.pageHidden = true; clearTimeout(this.recallFadeTimer); journalMotion.dispose(this); swipe.cancel(this); this.touchCancel(); }, show() { this.pageHidden = false; this.recallLoad = null; this.failedRecall = ''; if (this.canvas) this.refresh(); } },
+  lifetimes: { ready() { this.measure(); }, detached() { this.dead = true; recallBackdrop.cancel(this); clearTimeout(this.recallFadeTimer); journalMotion.dispose(this); swipe.dispose(this); snapshots.dispose(this); this.clearGesture(); this.finishPickupSnapshot(false); } },
+  pageLifetimes: { resize() { journalMotion.dispose(this); swipe.cancel(this); this.touchCancel(); this.measure(); }, hide() { this.pageHidden = true; recallBackdrop.cancel(this); clearTimeout(this.recallFadeTimer); journalMotion.dispose(this); swipe.cancel(this); this.touchCancel(); }, show() { this.pageHidden = false; this.recallLoad = null; this.failedRecall = ''; if (this.canvas) this.refresh(); } },
   methods: {
     exportViewport() { return this.dimensions ? { width: this.dimensions.width, height: this.dimensions.height } : null; },
     beginNavigationTransition(targetId) { journalMotion.begin(this, targetId); },
@@ -35,7 +36,9 @@ Component({
     cancelBookmarkTransition() {
       if (this.journalSource && typeof this.journalSource.bookmarkExpanded === 'boolean' || this.journalMotion && this.journalMotion.bookmarkChange) journalMotion.dispose(this);
     },
-    async prepareOverlay() {
+    async prepareOverlay(options = {}) {
+      recallBackdrop.cancel(this);
+      if (options.reuseRecall && recallBackdrop.ready(this)) return true;
       if (this.data.freezeCanvas) return !!this.data.snapshot;
       journalMotion.dispose(this);
       await this.refresh();
@@ -78,6 +81,7 @@ Component({
       });
     },
     async refresh() {
+      if (this.dead || this.pageHidden || this.data.freezeCanvas || this.data.covered || this.data.occluded) recallBackdrop.cancel(this);
       if (!this.canvas || !this.data.model || this.dead || this.pageHidden || this.data.freezeCanvas || this.journalMotion || swipe.hold(this)) return;
       const version = this.version = (this.version || 0) + 1, model = this.dragModel || this.data.model;
       try {
@@ -119,6 +123,7 @@ Component({
         this.setData({ handles, actions, imageError: (model.items || []).some(p => this.images[p.memory.subjectPath].missing) });
         if (journalMotion.run(this)) return;
         snapshots.painted(this, version);
+        if (recallOpacity >= 1) recallBackdrop.warm(this);
         if (!this.data.covered) swipe.warm(this);
         // Native canvas layers can pierce an overlay. Keep the same board visible
         // as a raster while covered, without destroying the canvas or page.

@@ -10,7 +10,7 @@
             <view class="recall-display">
               <view class="recall-tape" aria-hidden="true" />
               <view class="recall-age">{{item.age}}</view>
-              <recall-subject id="recall-object" class="recall-object" path="{{item.path}}" memory-id="{{item.id}}" bind:imageerror="imageFailed" />
+              <image id="recall-photo" class="recall-object" src="{{subjectPath === item.path && subjectPreview ? subjectPreview : item.path}}" mode="aspectFit" data-id="{{item.id}}" data-path="{{item.path}}" data-preview="{{subjectPath === item.path ? subjectPreview : ''}}" binderror="subjectFailed" aria-label="回忆中的物件" />
               <view class="recall-display-caption"><view class="recall-caption-line" /><text>那天留下的小小日常</text><view class="recall-caption-line" /></view>
             </view>
             <view class="recall-entry">
@@ -29,3 +29,4 @@
     </view>
   </view>
 </view>
+<recall-subject id="recall-object" path="{{item ? item.path : ''}}" memory-id="{{item ? item.id : ''}}" enabled="{{subjectActive}}" bind:ready="subjectReady" bind:imageerror="imageFailed" />

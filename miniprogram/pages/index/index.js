@@ -131,7 +131,7 @@ Page({
     if (mode === 'calendar') { const [y, m] = this.dailyDate.split('-').map(Number); this.journalYear = y; this.journalMonth = m; }
     return this.presentBoardOverlay({ journalPicker: mode === 'calendar' ? 'calendar' : 'themes', pickerClosing:false, previewReady:{}, previewErrors:{} }, () => this.refreshNavigation());
   },
-  presentBoardOverlay(update, after) {
+  presentBoardOverlay(update, after, options) {
     this.collapseModeSwitch();
     const token=this.pickerRequest=(this.pickerRequest||0)+1;
     let opened=false;
@@ -151,7 +151,7 @@ Page({
     if (!board || !board.prepareOverlay) { open(); return; }
     this.journalPrepareTimer=setTimeout(open,900);
     // Capture failures still hide the native canvas before opening the overlay.
-    try { return Promise.resolve(board.prepareOverlay()).then(open,open); } catch (_) { open(); }
+    try { return Promise.resolve(board.prepareOverlay(options)).then(open,open); } catch (_) { open(); }
   },
   closeJournalPicker(done) {
     const after=typeof done === 'function' ? done : null;
@@ -308,7 +308,7 @@ Page({
   recallTouchEnd() { const recall = this.selectComponent('#memory-recall'); if (recall && recall.touch) recall.touch(false); },
   openRecall() {
     if (this.data.mode !== 'calendar' || this.busy() || this.data.drawer || this.data.journalPicker || this.data.editable || this.data.selected || this.data.loading || this.data.error) return;
-    return this.presentBoardOverlay({ recallOpen: true, recallClosing: false }, () => this.syncNavigation());
+    return this.presentBoardOverlay({ recallOpen: true, recallClosing: false }, () => this.syncNavigation(), { reuseRecall: true });
   },
   openRecallFromMenu() {
     if (this.data.mode === 'calendar' && this.data.sheetScene === 'menu') sheet.close(this, () => { this.clearSelection(); this.openRecall(); });

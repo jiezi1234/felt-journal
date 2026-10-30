@@ -1,5 +1,2 @@
-:host { display:block; width:100%; height:100%; }
-.subject-image { display:block; width:100%; height:100%; opacity:1; transition:opacity 180ms ease; }
-.subject-image.is-pending { opacity:0; }
-.subject-canvas { position:fixed; left:-9999px; top:0; width:320px; height:216px; pointer-events:none; }
-@media (prefers-reduced-motion:reduce) { .subject-image { transition:none; } }
+:host { position:fixed; left:-9999px; top:0; width:320px; height:216px; pointer-events:none; }
+.subject-image,.subject-canvas { position:fixed; left:-9999px; top:0; width:320px; height:216px; pointer-events:none; }

@@ -33,13 +33,13 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     ctx.fillStyle = '#49382C'; ctx.beginPath(); ctx.ellipse(82, 47, 44, 10, 0, 0, Math.PI * 2); ctx.fill();
     files = await mini.evaluate(bytes => {
       const prefix = wx.env.USER_DATA_PATH + '/recall-test-' + Date.now();
-      const paths = [prefix + '-original.png', prefix + '-subject.png'];
+      const paths = ['original', 'subject-0', 'subject-1', 'subject-2'].map(label => prefix + '-' + label + '.png');
       paths.forEach(file => wx.getFileSystemManager().writeFileSync(file, bytes, 'base64')); return paths;
     }, image.toBuffer('image/png').toString('base64'));
     const disk = {}, store = createStore({ get: key => disk[key], set: (key, value) => { disk[key] = value; } });
     const today = dates.key(), ago = days => { const value = new Date(); value.setDate(value.getDate() - days); return dates.key(value); };
     const old = [31, 14, 2].map((days, i) => {
-      const id = store.add('old-' + i, ago(days), { originalPath: files[0], subjectPath: files[1], width: 180, height: 180, kind: 'original' });
+      const id = store.add('old-' + i, ago(days), { originalPath: files[0], subjectPath: files[i + 1], width: 180, height: 180, kind: 'original' });
       store.edit(id, ['下雨的下午，绕路买了一杯热咖啡。', '散步之后的一杯热饮。', '和朋友聊了很久。'][i], '未分类'); return id;
     });
     const todayId = store.add('today', today, { originalPath: files[0], subjectPath: files[1], width: 180, height: 180, kind: 'original' });
@@ -60,11 +60,29 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     await pause(recall.INTERVAL + 350);
     assert.notEqual((await card.data()).item.id, startId); await capture('idle-rotated');
     checks.push('actual 45-second idle rotation; corner and Add hit targets do not overlap');
+    await wait(() => {
+      const p = getCurrentPages().slice(-1)[0], c = p.selectComponent('#memory-recall'), b = p.selectComponent('#today-board');
+      return c.data.subjectPath === c.data.item.path && !!c.data.subjectPreview && b.recallBackdrop && b.recallBackdrop.path === b.data.snapshot;
+    }, 'Idle recall preparation did not finish');
+    await mini.evaluate(() => {
+      const p = getCurrentPages().slice(-1)[0], b = p.selectComponent('#today-board'), original = b.prepareOverlay;
+      p.recallTiming = {};
+      b.prepareOverlay = function (...args) {
+        const started = Date.now(); p.recallTiming.started = started;
+        const observe = () => { if (p.data.recallOpen) p.recallTiming.openMs = Date.now() - started; else if (!p.disposed && Date.now() - started < 2000) setTimeout(observe, 5); };
+        observe();
+        return Promise.resolve(original.apply(this, args)).then(result => { p.recallTiming.backdropMs = Date.now() - started; return result; });
+      };
+    });
     // Use the same native canvas action handler that owns the visible corner.
     await tap('#journal-recall', board);
     await wait(() => getCurrentPages().slice(-1)[0].data.recallOpen);
     await wait(() => { const c = getCurrentPages().slice(-1)[0].selectComponent('#memory-recall').selectComponent('#recall-object'); return c && !!c.data.previewPath && !c.data.pending; }, 'Stitched subject snapshot did not render');
     await capture('object-review');
+    const timing = await mini.evaluate(() => getCurrentPages().slice(-1)[0].recallTiming);
+    fs.writeFileSync(path.join(output, 'opening-timing.json'), JSON.stringify(timing, null, 2));
+    console.log('Recall opening timing (simulator ms):', timing);
+    checks.push('current stitched image and decoded board are prepared before tapping');
     const pinnedItem = (await card.data()).item;
     await card.setData({ item: { ...pinnedItem, text: Array(20).fill('那天留下的一段很长的记忆，回头看时仍然很清楚。').join('\n') } });
     const footer = await mini.evaluate(() => new Promise(resolve => {
