@@ -64,17 +64,36 @@ test('editing and the entire recording/placement state hide the preview and rota
   assert.equal(disk[KEY], snapshot);
 });
 
-test('old object and whole-day review stay pinned; closing resumes timing without changing the selected object', t => {
+test('old object review stays pinned; ordinary closing resumes timing without changing the selected object', t => {
   const { c, events, disk, snapshot } = fixture(t), initial = c.data.item.id;
   c.props({ open: true }); t.mock.timers.tick(90000); assert.equal(c.data.item.id, initial);
-  c.showDay(); const model = clone(c.data.dayModel); assert.equal(c.data.scene, 'day');
-  c.next(); assert.equal(c.data.item.id, initial); t.mock.timers.tick(90000); assert.deepEqual(c.data.dayModel, model);
-  c.back(); c.next(); assert.notEqual(c.data.item.id, initial);
+  c.next(); assert.notEqual(c.data.item.id, initial);
   const shown = c.data.item.id; c.close(); t.mock.timers.tick(219); assert.equal(events.at(-1).type, 'closing');
-  t.mock.timers.tick(1); assert.equal(events.at(-1).type, 'close'); c.props({ open: false });
+  t.mock.timers.tick(1); assert.equal(events.at(-1).type, 'close'); assert.deepEqual(events.at(-1).detail, {}); c.props({ open: false });
   assert.equal(c.data.closing, false); assert.equal(c.data.item.id, shown);
   t.mock.timers.tick(44999); assert.equal(c.data.item.id, shown); t.mock.timers.tick(1); assert.notEqual(c.data.item.id, shown);
   assert.equal(disk[KEY], snapshot);
+});
+
+test('view that day closes once with the pinned memory date after the exit transition', t => {
+  const { c, events, disk, snapshot } = fixture(t); c.props({ open: true });
+  const { id, date } = c.data.item;
+  c.showDay(); assert.equal(c.data.closing, true); assert.equal(events.at(-1).type, 'closing');
+  c.showDay(); c.next(); c.close(); assert.equal(c.data.item.id, id);
+  t.mock.timers.tick(219); assert.equal(events.filter(e => e.type === 'close').length, 0);
+  t.mock.timers.tick(1); assert.deepEqual(events.filter(e => e.type === 'close'), [{ type: 'close', detail: { date } }]);
+  assert.equal(disk[KEY], snapshot);
+});
+
+test('invalid dates and late callbacks cannot navigate from a closed or detached recall panel', t => {
+  const { c, events } = fixture(t);
+  c.showDay(); assert.equal(events.some(e => e.type === 'closing'), false);
+  c.props({ open: true }); const item = c.data.item;
+  for (const date of ['invalid', '2026-11-01']) { c.setData({ item: { ...item, date } }); c.showDay(); assert.ok(c.data.error); assert.equal(c.data.closing, false); }
+  c.setData({ item }); c.showDay(); c.props({ open: false }); t.mock.timers.tick(220);
+  assert.equal(events.some(e => e.type === 'close'), false);
+  c.props({ open: true }); c.showDay(); definition.lifetimes.detached.call(c); t.mock.timers.tick(220);
+  assert.equal(events.some(e => e.type === 'close'), false);
 });
 
 test('backgrounding suspends rotation, reentry and return to today refresh it, and disposal cancels callbacks', t => {

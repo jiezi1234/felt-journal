@@ -5,7 +5,7 @@ const platform = require('../../services/platform');
 Component({
   options: { styleIsolation: 'apply-shared' },
   properties: { active: Boolean, editing: Boolean, recording: Boolean, blocked: Boolean, open: Boolean },
-  data: { item: null, scene: 'memory', closing: false, hiddenCount: 0, error: '', dayModel: null, dayMounted: false, canNext: false, turn: false },
+  data: { item: null, closing: false, hiddenCount: 0, error: '', canNext: false, turn: false },
   observers: {
     'active, editing, recording, blocked, open': function () { if (this.store) this.sync(); }
   },
@@ -55,10 +55,10 @@ Component({
     sync() {
       if (this.dead) return;
       const opening = this.data.open && !this.wasOpen;
-      if (!this.data.open && this.wasOpen) this.setData({ closing: false, scene: 'memory', dayMounted: false, dayModel: null });
+      if (!this.data.open && this.wasOpen) this.setData({ closing: false });
       if (!this.data.active || this.data.editing || this.data.recording) this.rotateOnResume = true;
       if (opening) {
-        this.setData({ closing: false, scene: 'memory', dayMounted: false, dayModel: null, error: '' });
+        this.setData({ closing: false, error: '' });
         const current = this.data.item && this.available().find(m => m.id === this.data.item.id);
         if (!current) this.choose(); else this.setData({ item: recall.describe(current, dates.key()), canNext: this.available().length > 1 });
       }
@@ -76,7 +76,7 @@ Component({
       else if (!this.wasEligible || !this.rotationTimer) this.schedule();
       this.wasEligible = enabled;
     },
-    next() { if (!this.data.open || this.data.closing || this.data.scene !== 'memory') return; this.choose(); },
+    next() { if (!this.data.open || this.data.closing) return; this.choose(); },
     imageFailed(e) {
       const id = e.detail && e.detail.id || e.currentTarget && e.currentTarget.dataset.id;
       const path = e.detail && e.detail.path || e.currentTarget && e.currentTarget.dataset.path;
@@ -88,15 +88,13 @@ Component({
       }
     },
     showDay() {
-      if (!this.data.item || this.data.closing) return;
-      try {
-        const dayModel = this.store.view(this.data.item.date);
-        this.setData({ dayModel, dayMounted: true, scene: 'day', error: '' });
-      } catch (error) { this.setData({ error: platform.message(error, '这天的板面暂时无法读取') }); }
+      if (!this.data.open || !this.data.item || this.data.closing) return;
+      const date = this.data.item.date;
+      if (!dates.valid(date) || date > dates.key()) { this.setData({ error: '这件记忆的日期无法打开' }); return; }
+      this.dismiss({ date });
     },
-    back() { if (!this.data.closing) this.setData({ scene: 'memory', error: '' }); },
     hideItem() {
-      if (!this.data.item || this.data.closing || this.data.scene !== 'memory') return;
+      if (!this.data.item || this.data.closing) return;
       if (!this.savePreferences({ ...this.prefs, hidden: [...new Set([...this.prefs.hidden, this.data.item.id])] }, true)) return;
       this.choose();
     },
@@ -104,10 +102,11 @@ Component({
       if (this.data.closing || !this.savePreferences({ ...this.prefs, hidden: [] }, true)) return;
       this.choose();
     },
-    close() {
+    close() { this.dismiss(); },
+    dismiss(detail = {}) {
       if (!this.data.open || this.data.closing) return;
       this.setData({ closing: true }); this.triggerEvent('closing'); this.stopTimer();
-      this.closeTimer = setTimeout(() => { if (!this.dead) this.triggerEvent('close'); }, 220);
+      this.closeTimer = setTimeout(() => { if (!this.dead && this.data.open) this.triggerEvent('close', detail); }, 220);
     },
     stop() {}
   }

@@ -314,7 +314,14 @@ Page({
     if (this.data.mode === 'calendar' && this.data.sheetScene === 'menu') sheet.close(this, () => { this.clearSelection(); this.openRecall(); });
   },
   recallClosing() { this.setData({ recallClosing: true }); },
-  closeRecall() { this.setData({ recallOpen: false, recallClosing: false }); this.refresh(); this.syncNavigation(); },
+  closeRecall(e) {
+    if (!this.data.recallOpen || this.disposed) return;
+    const date = e && e.detail && e.detail.date;
+    this.setData({ recallOpen: false, recallClosing: false });
+    if (dates.valid(date) && date <= dates.key()) this.chooseDate({ currentTarget: { dataset: { date } } });
+    else this.refresh();
+    this.syncNavigation();
+  },
   library() { return this.data.mode === 'themes' ? theme.library.call(this) : editor.library.call(this); },
   placeFromLibrary(e) { return this.data.mode === 'themes' ? theme.placeFromLibrary.call(this, e) : editor.placeFromLibrary.call(this, e); },
   closeSmoothSheet() { if (['rename', 'delete'].includes(this.data.sheetScene)) this.backSmoothSheet(); else sheet.close(this); },

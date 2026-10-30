@@ -390,3 +390,26 @@ test('More can reopen recall after appearance editing; blank calendar selection 
   assert.equal(p.data.editable, true); assert.ok(p.data.saveError);
   p.openRecall(); assert.equal(p.data.recallOpen, false);
 });
+
+test('view that day opens the real calendar board, updates its date rail, and supports returning to today', t => {
+  const { page:p, store, disk } = fixture(t), date = '2026-09-18';
+  const id = store.add('recall-destination', date, photo('recall-destination')); p.refresh();
+  const before = disk[KEY], today = p.date;
+  p.openRecall(); p.recallClosing(); p.closeRecall({ detail: { date } });
+  assert.equal(p.data.recallOpen, false); assert.equal(p.data.recallClosing, false);
+  assert.equal(p.date, date); assert.equal(p.data.date, date); assert.equal(p.data.dailyDate, date); assert.equal(p.data.mode, 'calendar');
+  assert.equal(p.data.model.id, date); assert.ok(p.data.model.items.some(item => item.memoryId === id));
+  assert.equal(p.data.headerTitle, '9月18日'); assert.ok(p.data.recentDays.some(day => day.date === date));
+  assert.equal(p.data.navigationBusy, false); assert.equal(p.data.canEdit, true);
+  p.returnToday(); assert.equal(p.date, today); assert.equal(p.data.dailyDate, today);
+  p.closeRecall({ detail: { date } }); assert.equal(p.date, today, 'Late close events cannot change the date again');
+  assert.equal(disk[KEY], before);
+});
+
+test('recall navigation rejects invalid or future targets and can open an empty historic date', t => {
+  const { page:p, disk } = fixture(t), today = p.date, before = disk[KEY];
+  for (const date of ['invalid', '2999-01-01']) { p.openRecall(); p.closeRecall({ detail: { date } }); assert.equal(p.date, today); assert.equal(p.data.navigationBusy, false); }
+  p.openRecall(); p.closeRecall({ detail: { date: '2024-02-29' } });
+  assert.equal(p.data.model.id, '2024-02-29'); assert.equal(p.data.model.items.length, 0); assert.equal(p.data.error, '');
+  assert.equal(disk[KEY], before);
+});

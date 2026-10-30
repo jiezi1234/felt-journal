@@ -1,8 +1,8 @@
 <view wx:if="{{open}}" class="smooth-overlay recall-overlay {{closing ? 'is-closing' : ''}}" catchtouchmove="stop">
   <view class="smooth-scrim" bindtap="close" />
-  <view id="recall-surface" class="smooth-surface recall-surface {{scene === 'day' ? 'recall-day-open' : ''}}" role="dialog" aria-modal="true" aria-label="往日一件">
+  <view id="recall-surface" class="smooth-surface recall-surface" role="dialog" aria-modal="true" aria-label="往日一件">
     <view class="smooth-handle" aria-hidden="true" />
-    <view class="recall-pane {{scene === 'memory' ? 'recall-current' : 'recall-behind'}}" aria-hidden="{{scene !== 'memory'}}">
+    <view class="recall-pane">
       <view class="recall-heading"><view class="section-title grow">往日一件</view><button id="close-recall" class="ghost recall-close" aria-label="关闭回顾" bindtap="close">×</button></view>
       <scroll-view scroll-y class="recall-scroll">
         <block wx:if="{{item}}">
@@ -11,18 +11,13 @@
             <view class="recall-date">{{item.dateLabel}} · {{item.age}}</view>
             <view wx:if="{{item.text}}" class="recall-note">{{item.text}}</view>
           </view>
-          <view class="row recall-actions"><button id="next-recall" class="secondary grow" disabled="{{!canNext || closing}}" bindtap="next">再看一件</button><button id="recall-show-day" class="primary grow" disabled="{{closing}}" bindtap="showDay">看看那天 ↗</button></view>
+          <view class="row recall-actions"><button id="next-recall" class="secondary grow" disabled="{{!canNext || closing}}" bindtap="next">再看一件</button><button id="recall-show-day" class="primary grow" disabled="{{closing}}" bindtap="showDay">查看那天 ↗</button></view>
           <button id="hide-recall-item" class="ghost recall-hide" disabled="{{closing}}" bindtap="hideItem">不再回顾这件</button>
         </block>
         <view wx:else class="recall-empty"><view>等待一次久别重逢</view><text>{{hiddenCount ? '之前隐藏的物件，可以随时恢复回顾。' : '过去日子的物件会出现在这里。'}}</text></view>
         <button wx:if="{{hiddenCount}}" id="restore-recall-items" class="ghost recall-restore" disabled="{{closing}}" bindtap="restoreHidden">恢复已隐藏的 {{hiddenCount}} 件物体</button>
         <view wx:if="{{error}}" class="error" role="alert">{{error}}</view>
       </scroll-view>
-    </view>
-    <view class="recall-pane {{scene === 'day' ? 'recall-current' : 'recall-ahead'}}" aria-hidden="{{scene !== 'day'}}">
-      <view class="recall-heading"><button id="recall-back" class="recall-back" aria-label="返回这件旧物" bindtap="back">‹</button><view class="grow"><view class="section-title">回到那天</view><view class="recall-day-date">{{item.dateLabel}}</view></view><button id="close-recall-day" class="ghost recall-close" aria-label="关闭回顾" bindtap="close">×</button></view>
-      <view class="recall-board-stage"><felt-board wx:if="{{dayMounted}}" id="recall-day-board" style="height:100%;" layout="fit" model="{{dayModel}}" interactive="{{false}}" covered="{{scene !== 'day' || closing}}" occluded="{{scene !== 'day' || closing}}" freeze-canvas="{{scene !== 'day' || closing}}" /></view>
-      <view class="recall-day-caption">{{dayModel.items.length ? '那天留下的 ' + dayModel.items.length + ' 件记忆' : '这天的板面已没有摆放物件，记忆仍保留着。'}}</view>
     </view>
   </view>
 </view>
