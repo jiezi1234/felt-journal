@@ -12,7 +12,7 @@ function layout(width, height, state) {
     const y = height - (Math.max(16, 6 + (state.bottomInset || 0)) - 3) - 50 + (controls.offsetY || 0);
     const actions = [{ action:'record', id:'journal-canvas-record', label:controls.label, kind:'journal-add', x:(width-addWidth)/2, y, width:addWidth, height:50, disabled:!!controls.disabled }];
     if (controls.recall && !state.editable && !state.selected && !controls.disabled) {
-      const cardWidth = Math.min(68, Math.floor((width - addWidth) / 2) - 8), cardHeight = cardWidth + 18;
+      const cardWidth = Math.min(84, Math.floor((width - addWidth) / 2) - 8), cardHeight = cardWidth + 26;
       if (cardWidth >= 48) actions.push({ action:'recall', id:'journal-recall', kind:'journal-recall', label:`往日一件，${controls.recall.age}，打开回顾`,
         age:controls.recall.age, x:3, y:y-cardHeight+26, width:cardWidth, height:cardHeight, disabled:false });
     }
