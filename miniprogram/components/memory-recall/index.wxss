@@ -1,19 +1,39 @@
 @import "../../styles/smooth-sheet.wxss";
 .recall-overlay { z-index:155; }
-.recall-surface { height:500px; }
-.recall-pane { position:absolute; inset:0; padding:24px 18px 16px; display:flex; flex-direction:column; min-height:0; }
-.recall-heading { display:flex; align-items:center; gap:10px; min-height:44px; flex-shrink:0; margin-bottom:8px; }
-.recall-heading .section-title { font-size:20px; }
-button.recall-close { margin:0; width:44px; height:44px; min-height:44px; padding:0; border:0; border-radius:50%; font-size:26px; line-height:40px; flex-shrink:0; }
+.recall-surface { height:610px; background:#FAF7F0; }
+.recall-pane { position:absolute; inset:0; padding:25px 20px 18px; display:flex; flex-direction:column; min-height:0; }
+.recall-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-shrink:0; margin-bottom:20px; }
+.recall-heading .section-title { font-size:21px; font-weight:600; letter-spacing:1px; color:#514536; }
+.recall-subtitle { margin-top:3px; font-size:11px; letter-spacing:.7px; color:#998B78; }
+button.recall-close { margin:0; width:40px; height:44px; min-height:44px; padding:0; border:0; font-size:25px; font-weight:400; line-height:42px; flex-shrink:0; color:#938571; }
 .recall-scroll { height:0; flex:1; min-height:0; }
-.recall-object { display:block; width:100%; height:190px; margin:5px auto 12px; }
-.recall-date { font-size:12px; color:#897C6B; text-align:center; }
-.recall-note { margin:16px 8px 18px; font-size:15px; line-height:1.7; color:#665646; white-space:pre-wrap; overflow-wrap:break-word; }
-.recall-actions { gap:10px; margin-top:18px; }.recall-actions button { font-size:14px; }
-button.recall-hide,button.recall-restore { font-size:12px; color:#8A7C6B; margin:4px auto 0; min-height:44px; }
-.recall-empty { display:flex; flex-direction:column; justify-content:center; text-align:center; gap:14px; min-height:250px; color:#74614E; }.recall-empty text { font-size:13px; color:#8A7C6B; }
+.recall-content { padding-top:8px; }
+.recall-display { position:relative; margin:0 2px; padding:27px 12px 15px; border-radius:18px; border:1px solid #E3D6BF; background-color:#DECEB2; background-image:radial-gradient(rgba(116,88,46,.09) .5px,transparent .7px),linear-gradient(145deg,#ECDFC8,#DECEB2 65%,#D7C4A4); background-size:5px 5px,100% 100%; box-shadow:inset 0 0 0 4px rgba(255,250,235,.18),0 3px 7px rgba(96,73,39,.05); }
+.recall-tape { position:absolute; left:50%; top:-8px; width:62px; height:19px; margin-left:-31px; transform:rotate(-4deg); background:rgba(236,227,200,.84); border-left:1px solid rgba(255,252,240,.7); border-right:1px solid rgba(255,252,240,.7); box-shadow:0 1px 2px rgba(96,73,39,.05); }
+.recall-age { position:absolute; right:15px; top:13px; color:#8A7759; font-size:10px; letter-spacing:1px; }
+.recall-object { display:block; width:100%; height:198px; }
+.recall-display-caption { display:flex; justify-content:center; align-items:center; gap:9px; color:#8D7A5D; font-size:10px; letter-spacing:1.3px; margin-top:3px; }
+.recall-caption-line { width:19px; height:1px; background:rgba(145,119,78,.25); }
+.recall-entry { padding:21px 8px 0; }
+.recall-date { display:flex; align-items:center; gap:8px; font-size:12px; color:#9B886F; letter-spacing:.7px; }
+.recall-date-mark { width:5px; height:5px; border-radius:50%; background:#B9A27B; }
+.recall-note { margin-top:11px; font-size:15px; line-height:1.95; color:#625442; white-space:pre-wrap; overflow-wrap:break-word; }
+.recall-unwritten { color:#A0927F; font-size:13px; }
+.recall-footer { flex-shrink:0; padding-top:14px; border-top:1px solid #EAE2D5; }
+.recall-actions { gap:10px; }
+.recall-actions button { font-size:14px; min-height:48px; padding:12px 10px; }
+.recall-actions button.secondary { background:#EEE8DC; color:#7F6C52; }
+.recall-actions button.primary { background:#655941; color:#FFFCF5; box-shadow:0 3px 8px rgba(80,65,40,.12); }
+.recall-actions button[disabled] { background:#F0EBE2; color:#B8AD9B; box-shadow:none; }
+.recall-refresh { font-size:19px; line-height:18px; vertical-align:-1px; margin-right:2px; }
+.recall-arrow { margin-left:8px; font-size:16px; font-weight:400; }
+button.recall-hide,button.recall-restore { display:block; width:100%; font-size:11px; color:#A0927F; margin:7px auto 5px; min-height:44px; }
+button.recall-restore { color:#87704E; }
+.recall-empty { display:flex; flex-direction:column; justify-content:center; text-align:center; gap:14px; min-height:280px; color:#74614E; }
+.recall-empty text { font-size:13px; color:#9A8973; }
 .recall-turn-a { animation:recall-object-a 280ms ease both; }.recall-turn-b { animation:recall-object-b 280ms ease both; }
-@keyframes recall-object-a { from { opacity:.25; transform:translateX(16px); } to { opacity:1; transform:translateX(0); } }
-@keyframes recall-object-b { from { opacity:.25; transform:translateX(16px); } to { opacity:1; transform:translateX(0); } }
-@media (max-height:570px) { .recall-surface { height:450px; }.recall-object { height:140px; } }
+@keyframes recall-object-a { from { opacity:.25; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+@keyframes recall-object-b { from { opacity:.25; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+@media (max-height:700px) { .recall-surface { height:550px; }.recall-object { height:166px; }.recall-heading { margin-bottom:15px; }.recall-entry { padding-top:17px; } }
+@media (max-height:570px) { .recall-surface { height:470px; }.recall-object { height:136px; }.recall-pane { padding:23px 16px 12px; }.recall-heading { margin-bottom:10px; }.recall-subtitle { display:none; } }
 @media (prefers-reduced-motion:reduce) { .recall-surface { transition-duration:1ms; }.recall-content,.smooth-surface,.smooth-scrim { animation-duration:1ms; } }

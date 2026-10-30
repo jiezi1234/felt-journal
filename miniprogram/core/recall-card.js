@@ -49,4 +49,4 @@ function paint(ctx, action, image, opacity = 1, pressed = false) {
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '11px sans-serif'; ctx.fillStyle = '#766249';
   ctx.fillText('往日一件', 0, top + h - 15, w - 14); ctx.restore();
 }
-module.exports = { paint };
+module.exports = { paint, subject };

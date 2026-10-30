@@ -63,7 +63,21 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     // Use the same native canvas action handler that owns the visible corner.
     await tap('#journal-recall', board);
     await wait(() => getCurrentPages().slice(-1)[0].data.recallOpen);
+    await wait(() => { const c = getCurrentPages().slice(-1)[0].selectComponent('#memory-recall').selectComponent('#recall-object'); return c && !!c.data.previewPath && !c.data.pending; }, 'Stitched subject snapshot did not render');
     await capture('object-review');
+    const pinnedItem = (await card.data()).item;
+    await card.setData({ item: { ...pinnedItem, text: Array(20).fill('那天留下的一段很长的记忆，回头看时仍然很清楚。').join('\n') } });
+    const footer = await mini.evaluate(() => new Promise(resolve => {
+      const c = getCurrentPages().slice(-1)[0].selectComponent('#memory-recall'), query = c.createSelectorQuery();
+      query.select('.recall-scroll').boundingClientRect(); query.select('.recall-footer').boundingClientRect();
+      query.exec(rects => resolve({ rects, height: wx.getSystemInfoSync().windowHeight }));
+    }));
+    assert.ok(footer.rects[1].top >= footer.rects[0].bottom - 1);
+    assert.ok(footer.rects[1].bottom <= footer.height);
+    await capture('long-note');
+    await card.setData({ item: { ...pinnedItem, text: '' } }); await capture('no-note');
+    await card.setData({ item: pinnedItem });
+    checks.push('stitched subject snapshot renders; long notes scroll above fixed actions; no-note layout remains complete');
     const shown = (await card.data()).item.id;
     await tap('#next-recall', card); assert.notEqual((await card.data()).item.id, shown);
     const next = (await card.data()).item.id;

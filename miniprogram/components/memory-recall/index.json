@@ -1,4 +1,4 @@
 {
   "component": true,
-  "usingComponents": {}
+  "usingComponents": { "recall-subject": "../recall-subject/index" }
 }
